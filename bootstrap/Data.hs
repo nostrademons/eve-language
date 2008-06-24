@@ -12,7 +12,7 @@ import Control.Monad.Error hiding (join)
 -- Runtime data
 
 data EveData = 
-    Int Integer
+    Int Int
   | Bool Bool
   | String String
   | List [EveData]  -- Eventually will be moved to library
@@ -60,7 +60,7 @@ instance Show AlexPosn where
   show (AlexPn offset line col) = "line " ++ show line ++ ", col " ++ show col
 
 data EveToken =
-    TokInt Integer
+    TokInt Int
   | TokBool Bool
   | TokString String
   | TokVar String

@@ -2,6 +2,7 @@
 module Lexer (lexer, AlexPosn, showTok) where
 import Control.Monad.Error
 import Data     
+import Utils
 
 -- Actions should have type AlexPosn -> String -> EveToken
 }
@@ -161,8 +162,4 @@ showTok (_, tok) = show tok
 tokenStr constr posn str = (posn, constr str)
 tokenChar constr posn str = (posn, constr (str !! 0))
 extractNum [(num, _)] = num
-strip 0 back xs = 
-  let len = length xs in
-  if back < len then take (len - back) xs else xs
-strip front back xs = strip 0 back (drop front xs)
 }
