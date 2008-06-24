@@ -1,2 +1,4 @@
 Eve>>> 'foo'
 ["'foo'"]
+Eve>>> "bar"
+["'bar'"]

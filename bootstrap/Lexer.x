@@ -24,6 +24,8 @@ tokens :-
   $digit+                       { tokenStr $ TokInt . read }
 
   "'" ($printable # [\' \n])* "'"   { tokenStr $ TokString . strip 1 1 }
+  \" ($printable # [\" \n])* \"     { tokenStr $ TokString . strip 1 1 }
+
   [$alnum _] [$alnum $digit _]*     { tokenStr TokVar }
   "\" [$alnum $digit $oper \-_]+    { tokenStr TokVar }
   $oper{1,2} 	                    { tokenStr TokOp }
