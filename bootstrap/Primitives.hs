@@ -47,5 +47,7 @@ boolOp f [Bool arg] = Bool $ f arg
 car [List (x:xs)] = x
 cdr [List (x:xs)] = List xs
 cons [x, List xs] = List (x:xs)
-sliceList [Int start, Int end, List xs] = List (strip start last xs)
-  where last = length xs - end
+sliceList [Int start, Int end, List xs] = List (strip first last xs)
+  where 
+    first = if start < 0 then length xs + start else start
+    last = if end < 0 then -end else length xs - end

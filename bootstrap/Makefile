@@ -7,7 +7,7 @@ GENERATED = Lexer.hs Parser.hs
 SOURCES = Data.hs Eval.hs $(GENERATED) Primitives.hs Repl.hs TypeCheck.hs
 EXECS = eve test
 
-.PHONY: clean-bak clean-gen clean compile-test
+.PHONY: clean-bak clean-gen clean check
 
 eve: Main.hs $(SOURCES)
 	$(GHCMAKE) $< -o $@
