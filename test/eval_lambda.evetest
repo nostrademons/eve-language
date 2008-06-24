@@ -1,0 +1,16 @@
+Eve>>> f={|x| x*2 }
+{|x| \*(x, 2)}
+Eve>>> f(3)
+6
+Eve>>> f(f(3))
+12
+Eve>>> g={|f,x| f(f(x))}
+{|f, x| f(f(x))}
+Eve>>> g(f, 2)
+8
+Eve>>> compose = {|f, g| {| x | f(g(x))} }
+{|f, g| {|x| f(g(x))}}
+Eve>>> compose(f,f)(5)
+20
+Eve>>> compose(f,f)(f(3))
+24

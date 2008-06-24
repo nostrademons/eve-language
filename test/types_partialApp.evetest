@@ -1,0 +1,10 @@
+Eve>>> f=2+?
+(Int)->Int
+Eve>>> f(3)
+Int
+Eve>>> f=2*?
+(Int)->Int
+Eve>>> f(3)
+Int
+Eve>>> twice={| f, x | f(f(x))}
+((A)->A, A)->A

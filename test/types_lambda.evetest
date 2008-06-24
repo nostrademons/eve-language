@@ -1,0 +1,16 @@
+Eve>>> f={|x| x*2 }
+(Int)->Int
+Eve>>> f(3)
+Int
+Eve>>> f(f(3))
+Int
+Eve>>> g={|f,x| f(f(x))}
+((A)->A, A)->A
+Eve>>> g(f, 2)
+Int
+Eve>>> compose = {|f, g| {| x | f(g(x))} }
+((A)->B, (C)->A)->(C)->B
+Eve>>> compose(f,f)(5)
+Int
+Eve>>> compose(f,f)(f(3))
+Int

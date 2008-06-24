@@ -1,0 +1,5 @@
+double = {|x| x*2 }
+triple = 3*?
+add2 = 2+?
+max = {|x,y| if x > y then x else y }
+min = {|x,y| if x > y then y else x }

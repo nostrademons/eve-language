@@ -1,0 +1,14 @@
+# Ignore compiled Python files
+*.pyc
+# Ignore vim swap files and backups
+*.swp
+*~
+# Ignore Haskell intermediate files
+*.hi
+*.o
+# Ignore the executable and generated lexer/parser
+bootstrap/eve
+bootstrap/Lexer.hs
+bootstrap/Parser.hs
+# Ignore svn directories, in case we accidentally copy one over
+.svn

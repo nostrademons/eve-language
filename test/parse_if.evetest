@@ -1,0 +1,12 @@
+Eve>>> if 3 > 2 then 5 else 6
+Cond: \>(3, 2)->5, true->6
+Eve>>> x=2
+x=2
+Eve>>> if x == 2 then 1 else 0
+Cond: \==(x, 2)->1, true->0
+Eve>>> max = {|x,y| if x > y then x else y }
+max={|x, y| Cond: \>(x, y)->x, true->y}
+Eve>>> max(2,3)
+max(2, 3)
+Eve>>> max(7,5)
+max(7, 5)

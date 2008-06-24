@@ -1,0 +1,14 @@
+Eve>>> 3 > 2
+Bool
+Eve>>> 3 > 6
+Bool
+Eve>>> 2< 3
+Bool
+Eve>>> 3 <= 2+1
+Bool
+Eve>>> 2*3+4 >= 4 * 2
+Bool
+Eve>>> 2+2 == 4
+Bool
+Eve>>> 3*4 != 3*2
+Bool

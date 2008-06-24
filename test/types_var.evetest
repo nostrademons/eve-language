@@ -1,0 +1,10 @@
+Eve>>> x = 3
+Int
+Eve>>> 2*x
+Int
+Eve>>> y=2+x
+Int
+Eve>>> x*y
+Int
+Eve>>> \+(x, y)
+Int

@@ -1,0 +1,12 @@
+Eve>>> if 3 > 2 then 5 else 6
+Int
+Eve>>> x=2
+Int
+Eve>>> if x == 2 then 1 else 0
+Int
+Eve>>> max = {|x,y| if x > y then x else y }
+(Int, Int)->Int
+Eve>>> max(2,3)
+Int
+Eve>>> max(7,5)
+Int

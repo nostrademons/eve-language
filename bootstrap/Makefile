@@ -1,0 +1,34 @@
+GHCMAKE = ghc -fglasgow-exts --make
+ALEX = alex
+HAPPY = happy
+LEX_SPEC = Lexer.x
+PARSE_SPEC = Parser.y
+GENERATED = Lexer.hs Parser.hs
+SOURCES = Data.hs Eval.hs $(GENERATED) Primitives.hs Repl.hs TypeCheck.hs
+EXECS = eve test
+
+.PHONY: clean-bak clean-gen clean compile-test
+
+eve: Main.hs $(SOURCES)
+	$(GHCMAKE) $< -o $@
+
+test: RunTest.hs $(SOURCES)
+	$(GHCMAKE) $< -o $@
+
+check: test
+	./test
+
+all: $(EXECS)
+
+Lexer.hs: $(LEX_SPEC)
+	$(ALEX) $(LEX_SPEC)
+
+Parser.hs: $(PARSE_SPEC)
+	$(HAPPY) $(PARSE_SPEC)
+
+clean-bak:
+	rm -f *~
+clean-gen:
+	rm -f $(GENERATED)
+clean: clean-gen clean-bak
+	rm -f *~ *.hi *.o $(EXECS)

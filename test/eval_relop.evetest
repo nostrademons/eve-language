@@ -1,0 +1,14 @@
+Eve>>> 3 > 2
+true
+Eve>>> 3 > 6
+false
+Eve>>> 2< 3
+true
+Eve>>> 3 <= 2+1
+true
+Eve>>> 2*3+4 >= 4 * 2
+true
+Eve>>> 2+2 == 4
+true
+Eve>>> 3*4 != 3*2
+true
