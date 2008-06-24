@@ -3,7 +3,7 @@ module Data(EveToken(..), AlexPosn(..),
             EveError(..), EveData(..), Env, 
             ModuleDef, getAccessibleBindings,
             EveM, runEveM, getEnv, getTypes, addTopLevelBinding, loadModule,
-            TEnv, EveType(..), tBool, tInt, tList, tFunc, tTuple,
+            TEnv, EveType(..), tBool, tInt, tString, tList, tFunc, tTuple,
             join) where
 import Data.List
 import Control.Monad.State hiding (join)
@@ -14,6 +14,7 @@ import Control.Monad.Error hiding (join)
 data EveData = 
     Int Integer
   | Bool Bool
+  | String String
   | List [EveData]  -- Eventually will be moved to library
   | Primitive String ([EveData] -> EveData)
   | Function [String] EveExpr Env 
@@ -21,6 +22,7 @@ data EveData =
 instance Eq EveData where
   Int x == Int y = x == y
   Bool x == Bool y = x == y
+  String x == String y = x == y
   List x1 == List x2 = and $ zipWith (==) x1 x2
   Primitive name1 _ == Primitive name2 _ = name1 == name2
   Function _ body1 _ == Function _ body2 _ = body1 == body2
@@ -29,6 +31,7 @@ instance Eq EveData where
 instance Show EveData where
   show (Int val) = show val
   show (Bool val) = if val then "true" else "false"
+  show (String val) = "'" ++ val ++ "'"
   show (List val) = "[" ++ join ", " (map show val) ++ "]"
   show (Primitive name _) = name
   show (Function args body _) = show $ Lambda args body
@@ -59,6 +62,7 @@ instance Show AlexPosn where
 data EveToken =
     TokInt Integer
   | TokBool Bool
+  | TokString String
   | TokVar String
   | TokOp String
   | TokKeyword String
@@ -72,6 +76,7 @@ instance Show EveToken where
   show (TokInt val) = show val
   show (TokBool True) = "true"
   show (TokBool False) = "false"
+  show (TokString val) = "'" ++ val ++ "'"
   show (TokVar val) = val
   show (TokOp val) = val
   show (TokKeyword val) = val
@@ -138,6 +143,7 @@ data EveType =
 
 tBool = TPrim "Bool"
 tInt = TPrim "Int"
+tString = TPrim "String"
 tUnit = TPrim "Unit"
 tList elementType = TCon "List" [elementType]
 tTuple = TCon "Tuple"

@@ -18,16 +18,18 @@ tokens :-
   "false"                       { tokenStr $ const (TokBool False) }
   "|"                           { tokenStr TokKeyword }
   ","                           { tokenStr TokKeyword }
-  "."				{ tokenStr TokOp }
+  "."                           { tokenStr TokOp }
   "?"                           { tokenStr TokVar }
   $delim                        { tokenChar TokDelim }
-  $digit+	        	{ tokenStr $ TokInt . read }
-  [$alnum _] [$alnum $digit _]* { tokenStr TokVar }
-  "\" [$alnum $digit $oper \-_]+ { tokenStr TokVar }
-  $oper{1,2} 	                { tokenStr TokOp }
-  "//" [^\n]* \n		;
-  "#" [^\n]* \n			;
-  [$white]+	                ;
+  $digit+                       { tokenStr $ TokInt . read }
+
+  "'" ($printable # [\' \n])* "'"   { tokenStr $ TokString . strip 1 1 }
+  [$alnum _] [$alnum $digit _]*     { tokenStr TokVar }
+  "\" [$alnum $digit $oper \-_]+    { tokenStr TokVar }
+  $oper{1,2} 	                    { tokenStr TokOp }
+  "//" [^\n]* \n                ;
+  "#" [^\n]* \n	                ;
+  [$white]+	                    ;
 
 {
 

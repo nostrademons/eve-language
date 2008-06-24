@@ -26,6 +26,7 @@ sameType args = addConstraints (ap zip tail args) >> return (args !! 0)
 buildConstraints :: TEnv -> EveExpr -> ConstraintM EveType
 buildConstraints env (Literal (Int _)) = return tInt
 buildConstraints env (Literal (Bool _)) = return tBool
+buildConstraints env (Literal (String _)) = return tString
 buildConstraints env (ListLiteral args) =
   if length args == 0 
     then newTVar >>= return . tList

@@ -35,6 +35,7 @@ getTestFiles = dirWalk "../test"
            >>= return 
                . (filter (not . flip contains ".svn"))
                . (filter (not . flip contains "~"))
+               . (filter (not . flip contains ".swp"))
                . (filter (flip contains ".evetest"))
 openTestFile filename = openFile filename ReadMode 
                     >>= hGetContents >>= return . lines
