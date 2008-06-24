@@ -1,5 +1,3 @@
-# Ignore compiled Python files
-*.pyc
 # Ignore vim swap files and backups
 *.swp
 *~
@@ -8,7 +6,12 @@
 *.o
 # Ignore the executable and generated lexer/parser
 bootstrap/eve
+bootstrap/test
 bootstrap/Lexer.hs
 bootstrap/Parser.hs
+# Ignore old svn directories that really should be removed from the
+# repository
+attic
+attic2
 # Ignore svn directories, in case we accidentally copy one over
 .svn
