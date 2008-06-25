@@ -90,6 +90,7 @@ Expr : Operand             { $1 }
      | Expr 'or' Expr { binop "or" $1 $3 }
      | 'not' Expr { Funcall (Variable "\\not") [$2] }
      | Expr '[' Expr ']' { Funcall (Variable "get") [$3, $1] }
+     | Expr '[' Expr ':' Expr ']' { Funcall (Variable "slice") [$3, $5, $1] }
      | 'if' Expr 'then' Expr 'else' Expr
        { Cond [($2, $4), (Literal (Bool True), $6)] }
 
