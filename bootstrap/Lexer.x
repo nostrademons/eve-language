@@ -19,6 +19,7 @@ tokens :-
   "false"                       { tokenStr $ const (TokBool False) }
   "|"                           { tokenStr TokKeyword }
   ","                           { tokenStr TokKeyword }
+  ":"                           { tokenStr TokKeyword }
   "."                           { tokenStr TokOp }
   "?"                           { tokenStr TokVar }
   $delim                        { tokenChar TokDelim }

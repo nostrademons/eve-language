@@ -35,6 +35,7 @@ primitives = [
   ("head", car, tFunc [tAList] (TVar "A")),
   ("tail", cdr, tFunc [tAList] (tAList)),
   ("cons", cons, tFunc [TVar "A", tAList] (tAList)),
+  ("get", getList, tFunc [tInt, tAList] (TVar "A")),
   ("slice", sliceList, tFunc [tInt, tInt, tAList] tAList)]
 
 numericBinop :: (Int -> Int -> Int) -> [EveData] -> EveData
@@ -47,6 +48,9 @@ boolOp f [Bool arg] = Bool $ f arg
 car [List (x:xs)] = x
 cdr [List (x:xs)] = List xs
 cons [x, List xs] = List (x:xs)
+getList [Int index, List xs] = xs !! realIndex
+  where
+    realIndex = if index < 0 then length xs + index else index
 sliceList [Int start, Int end, List xs] = List (strip first last xs)
   where 
     first = if start < 0 then length xs + start else start
