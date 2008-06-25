@@ -1,43 +1,36 @@
-module Primitives(primitiveEnv, primitiveTypes) where
+module Primitives(primitiveEnv) where
 import Data
 import Utils
 import Control.Monad.Error
 
-tNumBinop = tFunc [tInt, tInt] tInt
-tOrdBoolBinop = tFunc [tInt, tInt] tBool
-tBoolBoolBinop = tFunc [tBool, tBool] tBool
-tBoolOp = tFunc [tBool] tBool
-tAList = tList (TVar "A")
-
 primitiveEnv = zip names $ map (uncurry Primitive) (zip names values)
-    where (names, values, _) = unzip3 primitives
-primitiveTypes = zip names types where (names, _, types) = unzip3 primitives
+    where (names, values) = unzip primitives
 
-primitives :: [(String, [EveData] -> EveData, EveType)]
+primitives :: [(String, [EveData] -> EveData)]
 primitives = [
-  ("\\**", numericBinop ((^) . fromIntegral), tNumBinop),
-  ("\\*", numericBinop (*), tNumBinop),
-  ("\\/", numericBinop div, tNumBinop),
-  ("\\%", numericBinop mod, tNumBinop),
-  ("\\+", numericBinop (+), tNumBinop),
-  ("\\-", numericBinop (-), tNumBinop),
-  ("\\<", numBoolBinop (<), tOrdBoolBinop),
-  ("\\>", numBoolBinop (>), tOrdBoolBinop),
-  ("\\==", numBoolBinop (==), tOrdBoolBinop),
-  ("\\!=", numBoolBinop (/=), tOrdBoolBinop),
-  ("\\>=", numBoolBinop (>=), tOrdBoolBinop),
-  ("\\<=", numBoolBinop (<=), tOrdBoolBinop),
-  ("\\and", boolBoolBinop (&&), tBoolBoolBinop),
-  ("\\or", boolBoolBinop (||), tBoolBoolBinop),
-  ("\\not", boolOp (not), tBoolOp),
+  ("\\**", numericBinop ((^) . fromIntegral)),
+  ("\\*", numericBinop (*)),
+  ("\\/", numericBinop div),
+  ("\\%", numericBinop mod),
+  ("\\+", numericBinop (+)),
+  ("\\-", numericBinop (-)),
+  ("\\<", numBoolBinop (<)),
+  ("\\>", numBoolBinop (>)),
+  ("\\==", numBoolBinop (==)),
+  ("\\!=", numBoolBinop (/=)),
+  ("\\>=", numBoolBinop (>=)),
+  ("\\<=", numBoolBinop (<=)),
+  ("\\and", boolBoolBinop (&&)),
+  ("\\or", boolBoolBinop (||)),
+  ("\\not", boolOp (not)),
 
-  ("\\&", concatString, tFunc [tString, tString] tString),
+  ("\\&", concatString),
 
-  ("head", car, tFunc [tAList] (TVar "A")),
-  ("tail", cdr, tFunc [tAList] (tAList)),
-  ("cons", cons, tFunc [TVar "A", tAList] (tAList)),
-  ("get", getList, tFunc [tInt, tAList] (TVar "A")),
-  ("slice", sliceList, tFunc [tInt, tInt, tAList] tAList)]
+  ("head", car),
+  ("tail", cdr),
+  ("cons", cons),
+  ("get", getList),
+  ("slice", sliceList)]
 
 numericBinop :: (Int -> Int -> Int) -> [EveData] -> EveData
 numericBinop f [Int arg1, Int arg2] = Int $ f arg1 arg2

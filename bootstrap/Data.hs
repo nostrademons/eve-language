@@ -1,9 +1,8 @@
 module Data(EveToken(..), AlexPosn(..), 
-            EveExpr(..), EveReplLine(..), EveFileLine(..), runIfExpr,
+            EveExpr(..), EveReplLine(..), EveFileLine(..), 
             EveError(..), EveData(..), Env, 
             ModuleDef, getAccessibleBindings,
-            EveM, runEveM, getEnv, getTypes, addTopLevelBinding, loadModule,
-            TEnv, EveType(..), tBool, tInt, tString, tList, tFunc, tTuple,
+            EveM, runEveM, getEnv, addTopLevelBinding, loadModule,
             join) where
 import Data.List
 import Control.Monad.State hiding (join)
@@ -40,14 +39,14 @@ type Env = [(String, EveData)]
 
 -- Modules
 
-type ModuleBinding = (String, EveData, EveType, String)
+type ModuleBinding = (String, EveData, String)
 type ModuleDef = [ModuleBinding]
 
 getAccessibleBindings :: String -> ModuleDef -> ModuleDef
 getAccessibleBindings this = filter (isAccessible this)
 
 isAccessible :: String -> ModuleBinding -> Bool
-isAccessible importer (_, _, _, access) = access `isPrefixOf` importer
+isAccessible importer (_, _, access) = access `isPrefixOf` importer
 
 type ModuleEnv = [(String, ModuleDef)]
 
@@ -97,10 +96,6 @@ instance Show EveReplLine where
   show (ReplImport path) = "import " ++ join "." path
   show (Assignment var expr) = var ++ "=" ++ show expr
 
-runIfExpr action (Assignment _ expr) = action expr
-runIfExpr action (Expr expr) = action expr
-runIfExpr _ _ = return tUnit
-
 data EveFileLine =
     Export [String] String
   | Import [String]
@@ -133,40 +128,12 @@ instance Show EveExpr where
     where showClause (pred, expr) = show pred ++ "->" ++ show expr
   show (Lambda args body) = "{|" ++ join ", " args ++ "| " ++ show body ++ "}"
 
--- Types
-
-data EveType = 
-    TVar String
-  | TPrim String
-  | TCon String [EveType]
-  deriving (Eq)
-
-tBool = TPrim "Bool"
-tInt = TPrim "Int"
-tString = TPrim "String"
-tUnit = TPrim "Unit"
-tList elementType = TCon "List" [elementType]
-tTuple = TCon "Tuple"
-tFunc argTypes retType = TCon "Function" [tTuple argTypes, retType]
-
-instance Show EveType where
-  show (TPrim val) = val
-  show (TVar var) = var
-  show (TCon "List" [elementType]) = "[" ++ show elementType ++ "]"
-  show (TCon "Tuple" types) = "(" ++ join ", " (map show types) ++ ")"
-  show (TCon "Function" [from, to]) = show from ++ "->" ++ show to
-  show (TCon name args) = name ++ "<" ++ join ", " (map show args) ++ ">"
-
-type TEnv = [(String, EveType)]
-
 -- Errors
 
 data EveError =
     LexError Char AlexPosn
   | ParseError EveToken AlexPosn
   | UnboundVar String
-  | TypeCircularity
-  | TypeMismatch EveType EveType
   | Default String
   deriving (Eq)
 
@@ -176,9 +143,6 @@ instance Show EveError where
   show (ParseError tok posn) = "Parse error at " ++ show posn
                                ++ ": unexpected token " ++ show tok
   show (UnboundVar var) = "Unbound variable: " ++ var
-  show (TypeCircularity) = "Type error: circular constraints"
-  show (TypeMismatch expected found) = "Type error: " ++ show expected ++ 
-                                    " did not match " ++ show found
   show (Default str) = "An error occurred: " ++ str
 
 instance Error EveError where
@@ -188,7 +152,6 @@ instance Error EveError where
 -- Interpreter monad
 data InterpreterState = Interpreter { 
     env :: Env, 
-    types :: TEnv, 
     modules :: ModuleEnv 
 }
 type EveM = StateT InterpreterState (ErrorT EveError IO)
@@ -197,9 +160,6 @@ getStateField selector = get >>= return . selector
 
 getEnv :: (MonadState InterpreterState m) => m Env
 getEnv = getStateField env
-
-getTypes :: (MonadState InterpreterState m) => m TEnv
-getTypes = getStateField types
 
 loadModule :: (MonadState InterpreterState m) => 
               ([String] -> m ModuleDef) -> [String] -> m ModuleDef
@@ -215,10 +175,9 @@ loadModule loader path = getStateField modules >>= maybeLoad
       return moduleDef
 
 addTopLevelBinding :: (MonadState InterpreterState m) => 
-                      String -> EveData -> EveType -> m ()
-addTopLevelBinding var value valType = modify addBinding
+                      String -> EveData -> m ()
+addTopLevelBinding var value = modify addBinding
   where
-    addBinding state = state { env = (var, value) : env state,
-                               types = (var, valType) : types state }
+    addBinding state = state { env = (var, value) : env state }
 
-runEveM monad (env, tEnv) = runErrorT $ runStateT monad $ Interpreter env tEnv []
+runEveM monad (env) = runErrorT $ runStateT monad $ Interpreter env []

@@ -1,6 +1,0 @@
-Eve>>> 2 > 3 and 3 < 2
-Bool
-Eve>>> 2 > 3 or 3 < 2
-Bool
-Eve>>> 3 == 2 + 1 and 3 * 2 == 6
-Bool

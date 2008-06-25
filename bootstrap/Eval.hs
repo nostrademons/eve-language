@@ -6,19 +6,16 @@ import Data
 import Lexer
 import Parser
 import Primitives
-import TypeCheck
 
 evalRepl env (Expr expr) = eval env expr
 evalRepl env (ReplImport path) = loadModule readModule path
            >>= liftM head . mapM addBinding . getAccessibleBindings ""
   where
-    addBinding (var, value, valType, _) = 
-        addTopLevelBinding var value valType >> return value
+    addBinding (var, value, _) = 
+        addTopLevelBinding var value >> return value
 evalRepl env (Assignment var expr) = do
   value <- eval env expr
-  tEnv <- getTypes
-  valType <- typeCheck tEnv expr
-  addTopLevelBinding var value valType
+  addTopLevelBinding var value
   return value
 
 eval :: Env -> EveExpr -> EveM EveData
@@ -45,6 +42,5 @@ readModule path = fileText >>= lexer >>= parseFile >>= mapM makeBinding
     filename = "../src/" ++ join "/" path ++ ".eve"
     fileText = liftIO $ openFile filename ReadMode >>= hGetContents 
     makeBinding (Binding var expr) = do
-      exprType <- typeCheck primitiveTypes expr
       exprVal <- eval primitiveEnv expr
-      return (var, exprVal, exprType, "")
+      return (var, exprVal, "")

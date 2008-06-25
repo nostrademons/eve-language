@@ -10,7 +10,6 @@ import Data
 import Lexer
 import Parser
 import Eval
-import TypeCheck
 import Primitives
 
 -- For some reason, isInfixOf isn't in my version of GHC.
@@ -57,7 +56,7 @@ testLines filename fn (rawInput:output:rest) =
 testLines filename fn _ = liftIO $ putStrLn ("Error in input format for file " ++ filename)
 
 runTest filename = openTestFile filename 
-                   >>= flip runEveM (primitiveEnv, primitiveTypes) 
+                   >>= flip runEveM (primitiveEnv) 
                      . testLines filename f
   where 
     runLex input = lexer input >>= return . show . map showTok
@@ -65,16 +64,10 @@ runTest filename = openTestFile filename
     runEval input = do
       env <- getEnv 
       lexer input >>= parseRepl >>= evalRepl env >>= return . show
-    runType input = let expr = lexer input >>= parseRepl in do
-      env <- getEnv
-      types <- getTypes
-      expr >>= evalRepl env  -- To bind & execute variables
-      expr >>= runIfExpr (typeCheck types) >>= return . show
     f = case () of 
           () | filename `contains` "lex" -> runLex
              | filename `contains` "parse" -> runParse
              | filename `contains` "eval" -> runEval
-             | filename `contains` "type" -> runType
              | otherwise -> return
              
 main = getTestFiles >>= mapM runTest
