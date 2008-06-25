@@ -4,3 +4,5 @@ Eve>>> 2 > 3 or 3 < 2
 false
 Eve>>> 3 == 2 + 1 and 3 * 2 == 6
 true
+Eve>>> not 2 > 3
+true
