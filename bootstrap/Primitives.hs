@@ -31,6 +31,7 @@ primitives = [
   ("\\or", boolBoolBinop (||), tBoolBoolBinop),
   ("\\not", boolOp (not), tBoolOp),
 
+  ("\\&", concatString, tFunc [tString, tString] tString),
 
   ("head", car, tFunc [tAList] (TVar "A")),
   ("tail", cdr, tFunc [tAList] (tAList)),
@@ -44,6 +45,8 @@ numericBinop f [Int arg1, Int arg2] = Int $ f arg1 arg2
 numBoolBinop f [Int arg1, Int arg2] = Bool $ f arg1 arg2
 boolBoolBinop f [Bool arg1, Bool arg2] = Bool $ f arg1 arg2
 boolOp f [Bool arg] = Bool $ f arg
+
+concatString [String xs, String ys] = String (xs ++ ys)
 
 car [List (x:xs)] = x
 cdr [List (x:xs)] = List xs

@@ -1,0 +1,4 @@
+Eve>>> "foo"
+'foo'
+Eve>>> "foo" & "bar"
+'foobar'

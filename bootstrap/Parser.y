@@ -24,6 +24,7 @@ EOL   { (_, TokNewline) }
 '-'   { (_, TokKeyword "-") }
 '<'   { (_, TokOp "<") }
 '>'   { (_, TokOp ">") }
+'&'   { (_, TokOp "&") }
 '<='  { (_, TokOp "<=") }
 '>='  { (_, TokOp ">=") }
 '=='  { (_, TokOp "==") }
@@ -49,6 +50,7 @@ EOL   { (_, TokNewline) }
 'import' { (_, TokKeyword "import") }
 'export' { (_, TokKeyword "export") }
 
+%left '&'
 %left 'and' 'or'
 %nonassoc 'not'
 %nonassoc '!=' '==' '>=' '<=' '>' '<'
@@ -86,6 +88,7 @@ Expr : Operand             { $1 }
      | Expr '<' Expr  { binop "<" $1 $3 }
      | Expr '>=' Expr { binop ">=" $1 $3 }
      | Expr '<=' Expr { binop "<=" $1 $3 }
+     | Expr '&' Expr { binop "&" $1 $3 }
      | Expr 'and' Expr { binop "and" $1 $3 }
      | Expr 'or' Expr { binop "or" $1 $3 }
      | 'not' Expr { Funcall (Variable "\\not") [$2] }
