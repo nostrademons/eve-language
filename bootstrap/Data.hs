@@ -23,6 +23,7 @@ data EveData =
 
 sortFields = sortBy fieldCompare 
   where fieldCompare (x, _) (y, _) = compare x y
+showFields (label, value) = "'" ++ label ++ "': " ++ show value
 
 instance Eq EveData where
   Int x == Int y = x == y
@@ -40,10 +41,9 @@ instance Show EveData where
   show (Int val) = show val
   show (Bool val) = if val then "true" else "false"
   show (String val) = "'" ++ val ++ "'"
-  show (List val) = "[" ++ join ", " (map show val) ++ "]"
-  show (Tuple val) = "(" ++ join ", " (map show val) ++ ")"
-  show (Record val) = "{" ++ join ", " (map showFields val) ++ ")"
-    where showFields (label, value) = label ++ ": " ++ show value
+  show (List val) = "List([" ++ join ", " (map show val) ++ "])"
+  show (Tuple val) = "[" ++ join ", " (map show val) ++ "]"
+  show (Record val) = "{" ++ join ", " (map showFields val) ++ "}"
   show (Primitive name _) = name
   show (Function args body _) = show $ Lambda args body
   show (MultiMethod methods) = show $ methods !! 0
@@ -122,7 +122,8 @@ instance Show EveFileLine where
 
 data EveExpr =
     Literal EveData
-  | ListLiteral [EveExpr]
+  | TupleLiteral [EveExpr]
+  | RecordLiteral [(String, EveExpr)]
   | Variable String
   | Cond [(EveExpr, EveExpr)]
   | Funcall EveExpr [EveExpr]
@@ -134,7 +135,8 @@ join sep ws = foldr1 (\w s -> w ++ sep ++ s) ws
 
 instance Show EveExpr where
   show (Literal val) = show val
-  show (ListLiteral exprList) = "[" ++ join ", " (map show exprList) ++ "]"
+  show (TupleLiteral exprList) = "[" ++ join ", " (map show exprList) ++ "]"
+  show (RecordLiteral pairList) = "{" ++ join ", " (map showFields pairList) ++ "}"
   show (Variable val) = val
   show (Funcall name args) = show name ++ "(" ++ join ", " (map show args) ++ ")"
   show (Cond args) = "Cond: " ++ join ", " (map showClause args)

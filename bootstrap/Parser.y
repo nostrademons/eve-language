@@ -102,19 +102,23 @@ Operand     : INT                          { (Literal . Int) $1 }
             | BOOL                         { (Literal . Bool) $1 }
             | STR                          { (Literal . String) $1 }
             | VAR                          { Variable $1 }
-            | '[' ']'                      { ListLiteral [] }
-            | '[' ExprList ']'             { ListLiteral (reverse $2) }
+            | '[' ']'                      { TupleLiteral [] }
+            | '[' ExprList ']'             { TupleLiteral (reverse $2) }
+            | '{' LabeledList '}'          { RecordLiteral (reverse $2) }
             | '(' Expr ')'                 { $2 }
             | Expr '(' ExprList ')'        { Funcall $1 (reverse $3) }
             | '{' '|' VarList '|' Expr '}' { Lambda (reverse $3) $5 }
 
 DottedIdent : VAR { [$1] }
             | DottedIdent '.' VAR      { $3 : $1 }
+LabeledPair : STR ':' Expr             { ($1, $3) }
+
 ExprList    : Expr                     { [$1] }
             | ExprList ',' Expr        { $3 : $1 }
 VarList     : VAR                      { [$1] }
             | VarList ',' VAR          { $3 : $1 }
-
+LabeledList : LabeledPair                   { [$1] }
+            | LabeledList ',' LabeledPair   { $3 : $1 }
 
 {
 
@@ -133,7 +137,11 @@ replaceReplPartials line = line
 -- Also TODO: Expand the legal positions so that eg. if statements can also have partials
 replacePartials :: EveExpr -> EveExpr
 replacePartials (Literal val) = Literal val
-replacePartials (ListLiteral args) = maybeLambda ListLiteral args
+replacePartials (TupleLiteral args) = maybeLambda TupleLiteral args
+replacePartials (RecordLiteral pairs) = maybeLambda reconstruct $ snd $ unzip pairs
+  where
+    labels = fst $ unzip pairs
+    reconstruct = RecordLiteral . zip labels
 replacePartials (Variable var) = Variable var
 replacePartials (Cond condList) = Cond $ map handleClause condList
   where handleClause (pred, action) = (replacePartials pred, replacePartials action)

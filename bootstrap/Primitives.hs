@@ -33,6 +33,7 @@ primitives = [
   ("\\or", boolBoolBinop (||)),
   ("\\not", boolOp (not)),
 
+  ("List", makeList),
   ("head", car),
   ("tail", cdr),
   ("cons", cons),
@@ -62,6 +63,10 @@ concatString _ = typeError "Concatenation needs a sequence"
 
 concatList [List xs, List ys] = return $ List (xs ++ ys)
 concatList _ = typeError "Concatenation needs a sequence"
+
+makeList [Tuple xs] = return $ List xs
+makeList [x] = return $ List [x]
+makeList xs = return $ List xs
 
 car [List (x:xs)] = return $ x
 car _ = typeError "head expects a list"

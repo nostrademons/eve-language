@@ -1,28 +1,28 @@
-Eve>>> head([2,3,4])
+Eve>>> head(List([2,3,4]))
 2
-Eve>>> tail([2,3,4])
-[3, 4]
-Eve>>> cons(2, [3,4])
-[2, 3, 4]
-Eve>>> cons([3,4], [])
-[[3, 4]]
-Eve>>> head(tail([2,3,4]))
+Eve>>> tail(List([2,3,4]))
+List([3, 4])
+Eve>>> cons(2, List([3,4]))
+List([2, 3, 4])
+Eve>>> cons(List([3,4]), List([]))
+List([List([3, 4])])
+Eve>>> head(tail(List([2,3,4])))
 3
-Eve>>> slice(2, 4, [1, 2, 3, 4, 5, 6])
-[3, 4]
-Eve>>> slice(1, -1, [1, 2, 3, 4])
-[2, 3]
-Eve>>> slice(-3, -1, [1, 2, 3, 4])
-[2, 3]
-Eve>>> get(2, [1, 2, 3, 4])
+Eve>>> slice(2, 4, List([1, 2, 3, 4, 5, 6]))
+List([3, 4])
+Eve>>> slice(1, -1, List([1, 2, 3, 4]))
+List([2, 3])
+Eve>>> slice(-3, -1, List([1, 2, 3, 4]))
+List([2, 3])
+Eve>>> get(2, List([1, 2, 3, 4]))
 3
-Eve>>> get(-1, [1, 2, 3, 4])
+Eve>>> get(-1, List([1, 2, 3, 4]))
 4
-Eve>>> ['foo', 'bar'][0]
+Eve>>> List(['foo', 'bar'])[0]
 'foo'
-Eve>>> slice(1, -1, [1, 2, 3, 4])[0]
+Eve>>> slice(1, -1, List([1, 2, 3, 4]))[0]
 2
-Eve>>> [1,2,3,4][1:-1]
-[2, 3]
-Eve>>> [1, 2] & [3, 4]
-[1, 2, 3, 4]
+Eve>>> List([1,2,3,4])[1:-1]
+List([2, 3])
+Eve>>> List([1, 2]) & List([3, 4])
+List([1, 2, 3, 4])

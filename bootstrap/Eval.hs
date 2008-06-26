@@ -20,7 +20,11 @@ evalRepl env (Assignment var expr) = do
 
 eval :: Env -> EveExpr -> EveM EveData
 eval env (Literal val) = return val
-eval env (ListLiteral args) = mapM (eval env) args >>= return . List
+eval env (TupleLiteral args) = mapM (eval env) args >>= return . Tuple
+eval env (RecordLiteral args) = mapM evalRecord args >>= return . Record
+  where evalRecord (label, expr) = 
+            do value <- eval env expr
+               return (label, value)
 eval env (Variable var) = maybe (throwError $ UnboundVar var) return $
                             lookup var env
 eval env (Funcall fnExpr argExpr) = do
