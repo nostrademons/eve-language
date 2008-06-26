@@ -17,6 +17,7 @@ data EveData =
   | List [EveData]  -- Eventually will be moved to library
   | Primitive String ([EveData] -> EveM EveData)
   | Function [String] EveExpr Env 
+  | MultiMethod [EveData]
 
 instance Eq EveData where
   Int x == Int y = x == y
@@ -25,6 +26,7 @@ instance Eq EveData where
   List x1 == List x2 = and $ zipWith (==) x1 x2
   Primitive name1 _ == Primitive name2 _ = name1 == name2
   Function _ body1 _ == Function _ body2 _ = body1 == body2
+  MultiMethod m1 == MultiMethod m2 = and $ zipWith (==) m1 m2
   _ == _ = False
 
 instance Show EveData where
@@ -34,6 +36,7 @@ instance Show EveData where
   show (List val) = "[" ++ join ", " (map show val) ++ "]"
   show (Primitive name _) = name
   show (Function args body _) = show $ Lambda args body
+  show (MultiMethod methods) = show $ methods !! 0
 
 type Env = [(String, EveData)]
 

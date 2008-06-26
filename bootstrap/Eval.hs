@@ -35,6 +35,11 @@ eval env (Lambda args body) = return $ Function args body env
 apply :: EveData -> [EveData] -> EveM EveData
 apply (Primitive name fn) args = fn args
 apply (Function argNames body env) args = eval (zip argNames args ++ env) body
+apply (MultiMethod (method:rest)) args = catchError (apply method args) tryRest
+  where
+    tryRest _ = apply (MultiMethod rest) args
+apply (MultiMethod [single]) args = apply single args
+apply val args = throwError $ TypeError $ show val ++ " is not a function"
 
 readModule :: [String] -> EveM ModuleDef
 readModule path = fileText >>= lexer >>= parseFile >>= mapM makeBinding
