@@ -15,7 +15,7 @@ data EveData =
   | Bool Bool
   | String String
   | List [EveData]  -- Eventually will be moved to library
-  | Primitive String ([EveData] -> EveData)
+  | Primitive String ([EveData] -> EveM EveData)
   | Function [String] EveExpr Env 
 
 instance Eq EveData where
@@ -134,6 +134,7 @@ data EveError =
     LexError Char AlexPosn
   | ParseError EveToken AlexPosn
   | UnboundVar String
+  | TypeError String
   | Default String
   deriving (Eq)
 
@@ -142,6 +143,7 @@ instance Show EveError where
                            ++ " on character " ++ [c]
   show (ParseError tok posn) = "Parse error at " ++ show posn
                                ++ ": unexpected token " ++ show tok
+  show (TypeError msg) = "Type error: " ++ msg
   show (UnboundVar var) = "Unbound variable: " ++ var
   show (Default str) = "An error occurred: " ++ str
 

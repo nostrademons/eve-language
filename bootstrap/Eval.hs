@@ -33,7 +33,7 @@ eval env (Cond ((pred, action):rest)) = do
 eval env (Lambda args body) = return $ Function args body env
 
 apply :: EveData -> [EveData] -> EveM EveData
-apply (Primitive name fn) args = return $ fn args
+apply (Primitive name fn) args = fn args
 apply (Function argNames body env) args = eval (zip argNames args ++ env) body
 
 readModule :: [String] -> EveM ModuleDef
