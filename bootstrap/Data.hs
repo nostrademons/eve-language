@@ -15,15 +15,22 @@ data EveData =
   | Bool Bool
   | String String
   | List [EveData]  -- Eventually will be moved to library
+  | Tuple [EveData]
+  | Record [(String, EveData)]
   | Primitive String ([EveData] -> EveM EveData)
   | Function [String] EveExpr Env 
   | MultiMethod [EveData]
+
+sortFields = sortBy fieldCompare 
+  where fieldCompare (x, _) (y, _) = compare x y
 
 instance Eq EveData where
   Int x == Int y = x == y
   Bool x == Bool y = x == y
   String x == String y = x == y
   List x1 == List x2 = and $ zipWith (==) x1 x2
+  Tuple x1 == Tuple x2 = and $ zipWith (==) x1 x2
+  Record x1 == Record x2 = and $ zipWith (==) (sortFields x1) (sortFields x2)
   Primitive name1 _ == Primitive name2 _ = name1 == name2
   Function _ body1 _ == Function _ body2 _ = body1 == body2
   MultiMethod m1 == MultiMethod m2 = and $ zipWith (==) m1 m2
@@ -34,6 +41,9 @@ instance Show EveData where
   show (Bool val) = if val then "true" else "false"
   show (String val) = "'" ++ val ++ "'"
   show (List val) = "[" ++ join ", " (map show val) ++ "]"
+  show (Tuple val) = "(" ++ join ", " (map show val) ++ ")"
+  show (Record val) = "{" ++ join ", " (map showFields val) ++ ")"
+    where showFields (label, value) = label ++ ": " ++ show value
   show (Primitive name _) = name
   show (Function args body _) = show $ Lambda args body
   show (MultiMethod methods) = show $ methods !! 0
