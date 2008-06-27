@@ -6,3 +6,15 @@ Eve>>> 3 == 2 + 1 and 3 * 2 == 6
 True
 Eve>>> not 2 > 3
 True
+Eve>>> Bool(42)
+True
+Eve>>> Bool(0)
+False
+Eve>>> Bool([])
+False
+Eve>>> Bool([3, 2])
+True
+Eve>>> Bool('')
+False
+Eve>>> Bool('foo')
+True

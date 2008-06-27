@@ -33,8 +33,6 @@ primitives = [
   ("\\or", boolBoolBinop (||)),
   ("\\not", boolOp (not)),
 
-  ("Sym", makeSymbol),
-  ("List", makeList),
   ("head", car),
   ("tail", cdr),
   ("cons", cons),
@@ -42,7 +40,16 @@ primitives = [
   ("slice", sliceList)]
 
 primitiveMultiMethods = [
-  ("\\&", [concatList, concatString])]
+  ("\\&", [concatList, concatString]),
+
+  ("Int", [makeInt]),
+  ("Bool", [makeBool]),
+  ("String", [makeString]),
+  ("Sym", [makeSymbol]),
+  ("List", [makeList List]),
+  ("Tuple", [makeList Tuple]),
+  ("Record", [typeObject]),
+  ("Function", [typeObject])]
 
 typeError = throwError . TypeError
 
@@ -65,12 +72,29 @@ concatString _ = typeError "Concatenation needs a sequence"
 concatList [List xs, List ys] = return $ List (xs ++ ys)
 concatList _ = typeError "Concatenation needs a sequence"
 
+typeObject _ = typeError "Pure type objects cannot be applied."
+
+makeInt [Int x] = return . Int $ x
+makeInt [Bool x] = return . Int $ if x then 1 else 0
+makeInt [String x] = return . Int $ read x
+makeInt _ = typeError "Int expects a single Int, Bool, or String"
+
+makeBool [Int x] = return . Bool $ x /= 0
+makeBool [Bool x] = return . Bool $ x
+makeBool [String x] = return . Bool $ length x > 0
+makeBool [Tuple xs] = return . Bool $ length xs > 0
+makeBool [List xs] = return . Bool $ length xs > 0
+makeBool _ = typeError "Bool expects a single Int, Bool, String, Tuple, or List"
+
+makeString [x] = return . String $ show x
+makeString _ = typeError "String expects a single argument"
+
 makeSymbol [String x] = return $ Symbol x
 makeSymbol _ = typeError "Sym expects a string"
 
-makeList [Tuple xs] = return $ List xs
-makeList [x] = return $ List [x]
-makeList xs = return $ List xs
+makeList constr [Tuple xs] = return $ constr xs
+makeList constr [x] = return $ constr [x]
+makeList constr xs = return $ constr xs
 
 car [List (x:xs)] = return $ x
 car _ = typeError "head expects a list"

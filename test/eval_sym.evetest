@@ -1,0 +1,4 @@
+Eve>>> Sym('foo')
+Sym(foo)
+Eve>>> Sym('foo' & 'bar')
+Sym(foobar)
