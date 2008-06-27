@@ -149,6 +149,7 @@ data EveError =
     LexError Char AlexPosn
   | ParseError EveToken AlexPosn
   | UnboundVar String
+  | MissingField EveData String
   | TypeError String
   | Default String
   deriving (Eq)
@@ -160,6 +161,7 @@ instance Show EveError where
                                ++ ": unexpected token " ++ show tok
   show (TypeError msg) = "Type error: " ++ msg
   show (UnboundVar var) = "Unbound variable: " ++ var
+  show (MissingField record field) = "Missing field: " ++ show record ++ " has no " ++ field
   show (Default str) = "An error occurred: " ++ str
 
 instance Error EveError where
