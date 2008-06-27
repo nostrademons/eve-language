@@ -33,6 +33,7 @@ primitives = [
   ("\\or", boolBoolBinop (||)),
   ("\\not", boolOp (not)),
 
+  ("Sym", makeSymbol),
   ("List", makeList),
   ("head", car),
   ("tail", cdr),
@@ -63,6 +64,9 @@ concatString _ = typeError "Concatenation needs a sequence"
 
 concatList [List xs, List ys] = return $ List (xs ++ ys)
 concatList _ = typeError "Concatenation needs a sequence"
+
+makeSymbol [String x] = return $ Symbol x
+makeSymbol _ = typeError "Sym expects a string"
 
 makeList [Tuple xs] = return $ List xs
 makeList [x] = return $ List [x]
