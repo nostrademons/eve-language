@@ -30,6 +30,7 @@ EOL   { (_, TokNewline) }
 '=='  { (_, TokOp "==") }
 '!='  { (_, TokOp "!=") }
 '='   { (_, TokOp "=")  }
+'->'  { (_, TokOp "->") }
 'and' { (_, TokOp "and") }
 'or'  { (_, TokOp "or") }
 'not' { (_, TokOp "not") }
@@ -58,6 +59,7 @@ EOL   { (_, TokNewline) }
 %left '*' '/' '%'
 %left '**'
 %left NEG
+%left '->'
 
 %%
 
@@ -88,10 +90,11 @@ Expr : Operand             { $1 }
      | Expr '<' Expr  { binop "<" $1 $3 }
      | Expr '>=' Expr { binop ">=" $1 $3 }
      | Expr '<=' Expr { binop "<=" $1 $3 }
-     | Expr '&' Expr { binop "&" $1 $3 }
-     | Expr 'and' Expr { binop "and" $1 $3 }
-     | Expr 'or' Expr { binop "or" $1 $3 }
-     | 'not' Expr { Funcall (Variable "\\not") [$2] }
+     | Expr '&' Expr    { binop "&" $1 $3 }
+     | Expr 'and' Expr  { binop "and" $1 $3 }
+     | Expr 'or' Expr   { binop "or" $1 $3 }
+     | 'not' Expr       { Funcall (Variable "\\not") [$2] }
+     | Expr '->' Expr   { Funcall $3 [$1] }
      | Expr '[' Expr ']' { Funcall (Variable "get") [$3, $1] }
      | Expr '[' Expr ':' Expr ']' { Funcall (Variable "slice") [$3, $5, $1] }
      | 'if' Expr 'then' Expr 'else' Expr
