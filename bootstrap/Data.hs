@@ -39,7 +39,7 @@ instance Eq EveData where
 
 instance Show EveData where
   show (Int val) = show val
-  show (Bool val) = if val then "true" else "false"
+  show (Bool val) = if val then "True" else "False"
   show (String val) = "'" ++ val ++ "'"
   show (List val) = "List([" ++ join ", " (map show val) ++ "])"
   show (Tuple val) = "[" ++ join ", " (map show val) ++ "]"

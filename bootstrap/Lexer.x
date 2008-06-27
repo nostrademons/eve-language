@@ -15,8 +15,8 @@ $delim = [\( \) \[ \] \{ \}]    -- delimiters
 tokens :-
   "-"                           { tokenStr TokKeyword }
   "->"                          { tokenStr TokOp }
-  "true"                        { tokenStr $ const (TokBool True) }
-  "false"                       { tokenStr $ const (TokBool False) }
+  "True"                        { tokenStr $ const (TokBool True) }
+  "False"                       { tokenStr $ const (TokBool False) }
   "|"                           { tokenStr TokKeyword }
   ","                           { tokenStr TokKeyword }
   ":"                           { tokenStr TokKeyword }
