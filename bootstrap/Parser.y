@@ -77,6 +77,9 @@ FileLine : VAR '=' Expr           { Binding $1 $3 }
          | 'def' VAR '(' VarList ')' ':' DefBody
                                 { Def $2 (reverse $4) (fst $7) (snd $7) }
 
+FileLineList    : FileLine                  { [$1] }
+                | FileLineList EOL FileLine { $3 : $1 }
+
 DefBody : Expr EOL              { ([], $1) }
         | EOL INDENT FileLineList EOL Expr EOL DEDENT
                                 { ($3, $5) }
@@ -131,8 +134,6 @@ VarList     : VAR                      { [$1] }
             | VarList ',' VAR          { $3 : $1 }
 LabeledList : LabeledPair                   { [$1] }
             | LabeledList ',' LabeledPair   { $3 : $1 }
-FileLineList    : FileLine                  { [$1] }
-                | FileLineList EOL FileLine { $3 : $1 }
 
 {
 

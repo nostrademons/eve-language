@@ -37,7 +37,15 @@ getTestFiles = dirWalk "../test"
                . (filter (not . flip contains ".swp"))
                . (filter (flip contains ".evetest"))
 openTestFile filename = openFile filename ReadMode 
-                    >>= hGetContents >>= return . lines
+                    >>= hGetContents >>= return . condenseEscapes . lines
+
+condenseEscapes [] = []
+condenseEscapes [x] = [x]
+condenseEscapes (x:xs) = if "\\" `isSuffixOf` x 
+    then (take (length x - 1) x ++ "\n" ++ sameLine) : restOfLines
+    else x : sameLine : restOfLines
+  where (sameLine : restOfLines) = condenseEscapes xs
+
 
 testLines :: String -> (String -> EveM String) -> [String] -> EveM ()
 testLines filename fn [] = return ()

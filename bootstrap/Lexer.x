@@ -73,13 +73,13 @@ alexMove (AlexPn a l c) _    = AlexPn (a+1)  l     (c+1)
 
 alexScanTokens :: (MonadError EveError m) => String -> [m (AlexPosn, EveToken)]
 alexScanTokens str = go (alexStartPos,'\n',str)
-  where go inp@(pos,_,str) =
-	  case alexScan inp 0 of
-		AlexEOF -> []
-		AlexError (posn, _, (c:_)) -> [throwError $ LexError c posn]
-		AlexSkip  inp' len     -> go inp'
-		AlexToken inp' len act -> return (act pos (take len str)) : go inp'
-
+  where 
+    go inp@(pos,_,str) = case alexScan inp 0 of
+        AlexEOF -> []
+        AlexError (posn, _, (c:_)) -> [throwError $ LexError c posn]
+        AlexError (posn, _, []) -> [throwError $ LexError '\n' posn]
+        AlexSkip  inp' len     -> go inp'
+        AlexToken inp' len act -> return (act pos (take len str)) : go inp'
 
 -----
 
@@ -130,7 +130,6 @@ addNewlines delims@(parens, braces, brackets) (tok@(pos, TokDelim c) : rest)
       '}' -> if braces > 0 then (parens, braces - 1, brackets) else delims
       ']' -> if brackets > 0 then (parens, braces, brackets - 1) else delims
 addNewlines delims (tok@(pos, TokOp _) : rest) = tok : addNewlines delims rest
-addNewlines delims (tok@(pos, TokKeyword _) : rest) = tok : addNewlines delims rest
 addNewlines delims (tok : op@(pos, TokOp _) : rest) = tok : op : addNewlines delims rest
 addNewlines delims (tok@(pos, _) : rest) = if noDelims delims && hasLineBreak tok rest
   then tok : (pos, TokNewline) : addNewlines delims rest
@@ -141,7 +140,7 @@ addIndents :: [Int] -> [(AlexPosn, EveToken)] -> [(AlexPosn, EveToken)]
 addIndents _ [] = []
 addIndents indentStack (tok@(pos, TokNewline) : []) = [tok]
 addIndents indentStack (tok@(pos, TokNewline) : next : rest)
-  | indent > lastIndent = tok : (pos, TokIndent) : addIndents (indent : indentStack) rest
+  | indent > lastIndent = tok : (pos, TokIndent) : next : addIndents (indent : indentStack) rest
   | indent < lastIndent = [tok] ++ dedents ++ [next] ++ addIndents newStack rest
   | indent == lastIndent = tok : next : addIndents indentStack rest
   where 

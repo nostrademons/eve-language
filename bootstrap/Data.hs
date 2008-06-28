@@ -95,10 +95,10 @@ instance Show EveToken where
   show (TokVar val) = val
   show (TokOp val) = val
   show (TokKeyword val) = val
-  show (TokDelim val) = show val
+  show (TokDelim val) = [val]
   show TokNewline = "EOL"
-  show TokIndent = "indent"
-  show TokDedent = "dedent"
+  show TokIndent = "INDENT"
+  show TokDedent = "DEDENT"
 
 -- Program fragments
 

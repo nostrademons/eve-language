@@ -1,0 +1,5 @@
+def double(x): 2
+foo = 2
+def length_if_large(s):
+    strlen = len(s)
+    if strlen > 5 then Str(strlen) else s

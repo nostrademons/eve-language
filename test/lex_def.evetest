@@ -1,0 +1,8 @@
+Eve>>> def foo(x): x * 2 \
+def
+["def","foo","(","x",")",":","x","*","2","EOL","def"]
+Eve>>> def bar(x):\
+    y = 2\
+    x * y\
+def
+["def","bar","(","x",")",":","EOL","INDENT","y","=","2","EOL","x","*","y","EOL","DEDENT","def"]
