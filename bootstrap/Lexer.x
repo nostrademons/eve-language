@@ -85,7 +85,7 @@ alexScanTokens str = go (alexStartPos,'\n',str)
 
 -- Replace appropriate TokVar instances with keywords
 operators = ["and", "or", "not", "then", "else"]
-keywords = ["if", "import", "export"]
+keywords = ["if", "import", "export", "def"]
 
 replaceKeywords :: [(AlexPosn, EveToken)] -> [(AlexPosn, EveToken)]
 replaceKeywords = map changeKeyword 

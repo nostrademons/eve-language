@@ -2,8 +2,8 @@ module Data(EveToken(..), AlexPosn(..),
             EveExpr(..), EveReplLine(..), EveFileLine(..), 
             EveError(..), EveData(..), Env, 
             ModuleDef, getAccessibleBindings,
-            EveM, runEveM, getEnv, addTopLevelBinding, loadModule,
-            join) where
+            EveM, runEveM, getEnv, addTopLevelBinding, 
+            modules, getStateField, join) where
 import Data.List
 import Control.Monad.State hiding (join)
 import Control.Monad.Error hiding (join)
@@ -116,12 +116,14 @@ data EveFileLine =
     Export [String] String
   | Import [String]
   | Binding String EveExpr
+  | Def String [String] [EveFileLine] EveExpr
 
 instance Show EveFileLine where
   show (Export bindings to) = "export " ++ join ", " bindings ++ 
        if length to > 0 then " to " ++ to ++ "\n" else "\n"
   show (Import path) = "import " ++ join "." path ++ "\n"
   show (Binding var expr) = var ++ "=" ++ show expr
+  show (Def name args defines body) = "def " ++ name ++ "(" ++ join ", " args ++ ")"
 
 data EveExpr =
     Literal EveData
@@ -182,19 +184,6 @@ getStateField selector = get >>= return . selector
 
 getEnv :: (MonadState InterpreterState m) => m Env
 getEnv = getStateField env
-
-loadModule :: (MonadState InterpreterState m) => 
-              ([String] -> m ModuleDef) -> [String] -> m ModuleDef
-loadModule loader path = getStateField modules >>= maybeLoad
-  where
-    moduleName = join "." path
-    addModule moduleDef state = 
-        state { modules = (moduleName, moduleDef) : modules state}
-    maybeLoad modules = maybe loadModule return $ lookup moduleName modules
-    loadModule = do
-      moduleDef <- loader path
-      modify $ addModule moduleDef
-      return moduleDef
 
 addTopLevelBinding :: (MonadState InterpreterState m) => 
                       String -> EveData -> m ()

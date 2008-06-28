@@ -18,7 +18,7 @@ doPhases input = do
      return (lexOutput, parseOutput, evalOutput)
 
 replOutput evalOutput = do
-     liftIO . putStr . show $ evalOutput
+     liftIO . putStrLn . show $ evalOutput
 
 saveAndPrint files input = do
      (lexOutput, parseOutput, evalOutput) <- doPhases input
@@ -29,10 +29,10 @@ saveAndPrint files input = do
      replOutput evalOutput 
   where
     writeOutput (file, result) = liftIO $
-        hPutStrLn file ("Eve>>> " ++ input ++ "\n" ++ result) >> hFlush file
+        hPutStr file ("Eve>>> " ++ input ++ "\n" ++ result) >> hFlush file
 
 printOutput input = do
-    (_, _, evalOutput) <- doPhases input
+    (lexOutput, parseOutput, evalOutput) <- doPhases input
     replOutput evalOutput 
 
 handleError action = flip catchError (liftIO . print) . action

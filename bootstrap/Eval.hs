@@ -1,4 +1,5 @@
 module Eval(eval, evalRepl) where
+import Control.Monad.State hiding (join)
 import Control.Monad.Error hiding (join)
 import IO
 
@@ -6,6 +7,19 @@ import Data
 import Lexer
 import Parser
 import Primitives
+
+loadModule :: ([String] -> EveM ModuleDef) -> [String] -> EveM ModuleDef
+loadModule loader path = getStateField modules >>= maybeLoad
+  where
+    moduleName = join "." path
+    addModule moduleDef state = 
+        state { modules = (moduleName, moduleDef) : modules state}
+    maybeLoad modules = maybe loadModule return $ lookup moduleName modules
+    loadModule = do
+      moduleDef <- loader path
+      modify $ addModule moduleDef
+      return moduleDef
+
 
 evalRepl env (Expr expr) = eval env expr
 evalRepl env (ReplImport path) = loadModule readModule path

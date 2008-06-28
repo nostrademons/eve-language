@@ -6,11 +6,11 @@ Eve>>> Bool('')
 False
 Eve>>> Bool('foo')
 True
-Eve>>> String(False)
+Eve>>> Str(False)
 'False'
-Eve>>> String(True)
+Eve>>> Str(True)
 'True'
-Eve>>> String(42)
+Eve>>> Str(42)
 '42'
-Eve>>> String(2 + 4)
+Eve>>> Str(2 + 4)
 '6'

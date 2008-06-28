@@ -16,6 +16,8 @@ BOOL  { (_, TokBool $$) }
 STR   { (_, TokString $$) }
 VAR   { (_, TokVar $$) }
 EOL   { (_, TokNewline) }
+INDENT { (_, TokIndent) }
+DEDENT { (_, TokDedent) }
 '**'  { (_, TokOp "**") }
 '*'   { (_, TokOp "*") }
 '/'   { (_, TokOp "/") }
@@ -34,6 +36,7 @@ EOL   { (_, TokNewline) }
 'and' { (_, TokOp "and") }
 'or'  { (_, TokOp "or") }
 'not' { (_, TokOp "not") }
+'def' { (_, TokKeyword "def") }
 'if'  { (_, TokKeyword "if") }
 'then'{ (_, TokOp "then") }
 'else'{ (_, TokOp "else") }
@@ -71,6 +74,12 @@ FileLine : VAR '=' Expr           { Binding $1 $3 }
          | 'export' VarList     { Export (reverse $2) "" }
          | 'export' VarList 'to' DottedIdent 
                                 { Export (reverse $2) (join "." (reverse $4)) }
+         | 'def' VAR '(' VarList ')' ':' DefBody
+                                { Def $2 (reverse $4) (fst $7) (snd $7) }
+
+DefBody : Expr EOL              { ([], $1) }
+        | EOL INDENT FileLineList EOL Expr EOL DEDENT
+                                { ($3, $5) }
 
 ReplLine : Expr                 { Expr $1 }
          | 'import' DottedIdent { ReplImport (reverse $2) }
@@ -122,6 +131,8 @@ VarList     : VAR                      { [$1] }
             | VarList ',' VAR          { $3 : $1 }
 LabeledList : LabeledPair                   { [$1] }
             | LabeledList ',' LabeledPair   { $3 : $1 }
+FileLineList    : FileLine                  { [$1] }
+                | FileLineList EOL FileLine { $3 : $1 }
 
 {
 

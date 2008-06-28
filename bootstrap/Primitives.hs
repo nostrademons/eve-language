@@ -41,10 +41,11 @@ primitives = [
 
 primitiveMultiMethods = [
   ("\\&", [concatList, concatString]),
+  ("len", [len]),
 
   ("Int", [makeInt]),
   ("Bool", [makeBool]),
-  ("String", [makeString]),
+  ("Str", [makeString]),
   ("Sym", [makeSymbol]),
   ("List", [makeList List]),
   ("Tuple", [makeList Tuple]),
@@ -65,6 +66,12 @@ boolBoolBinop f _ = typeError "Boolean operator expects 2 bools"
 
 boolOp f [Bool arg] = return $ Bool $ f arg
 boolOp f _ = typeError "Expects a boolean"
+
+len [String xs] = return . Int $ length xs
+len [List xs] = return . Int $ length xs
+len [Tuple xs] = return . Int $ length xs
+len [Record xs] = return . Int $ length xs
+len _ = typeError "Length requires a sequence or container"
 
 concatString [String xs, String ys] = return $ String (xs ++ ys)
 concatString _ = typeError "Concatenation needs a sequence"
