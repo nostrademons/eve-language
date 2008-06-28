@@ -6,3 +6,10 @@ Eve>>> def bar(x):\
     x * y\
 def
 ["def","bar","(","x",")",":","EOL","INDENT","y","=","2","EOL","x","*","y","EOL","DEDENT","def"]
+Eve>>> def double(x): 2\
+foo = 2\
+def length_if_large(s):\
+    strlen = len(s)\
+    if strlen > 5 then Str(strlen) else s\
+def
+["def","double","(","x",")",":","2","EOL","foo","=","2","EOL","def","length_if_large","(","s",")",":","EOL","INDENT","strlen","=","len","(","s",")","EOL","if","strlen",">","5","then","Str","(","strlen",")","else","s","EOL","DEDENT","def"]
