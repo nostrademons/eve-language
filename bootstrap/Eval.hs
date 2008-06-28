@@ -8,21 +8,30 @@ import Lexer
 import Parser
 import Primitives
 
-loadModule :: ([String] -> EveM ModuleDef) -> [String] -> EveM ModuleDef
-loadModule loader path = getStateField modules >>= maybeLoad
+readModule :: [String] -> EveM ModuleDef
+readModule path = fileText >>= lexer >>= parseFile >>= mapM makeBinding
+  where
+    filename = "../src/" ++ join "/" path ++ ".eve"
+    fileText = liftIO $ openFile filename ReadMode >>= hGetContents 
+    makeBinding (Binding var expr) = do
+      exprVal <- eval primitiveEnv expr
+      return (var, exprVal, "")
+
+loadModule :: [String] -> EveM ModuleDef
+loadModule path = getStateField modules >>= maybeLoad
   where
     moduleName = join "." path
     addModule moduleDef state = 
         state { modules = (moduleName, moduleDef) : modules state}
-    maybeLoad modules = maybe loadModule return $ lookup moduleName modules
-    loadModule = do
-      moduleDef <- loader path
+    maybeLoad modules = maybe firstTimeLoad return $ lookup moduleName modules
+    firstTimeLoad = do
+      moduleDef <- readModule path
       modify $ addModule moduleDef
       return moduleDef
 
 
 evalRepl env (Expr expr) = eval env expr
-evalRepl env (ReplImport path) = loadModule readModule path
+evalRepl env (ReplImport path) = loadModule path
            >>= liftM head . mapM addBinding . getAccessibleBindings ""
   where
     addBinding (var, value, _) = 
@@ -68,12 +77,3 @@ apply (MultiMethod (method:rest)) args = apply method args `catchError` tryRest
   where
     tryRest _ = apply (MultiMethod rest) args
 apply val args = throwError $ TypeError $ show val ++ " is not a function"
-
-readModule :: [String] -> EveM ModuleDef
-readModule path = fileText >>= lexer >>= parseFile >>= mapM makeBinding
-  where
-    filename = "../src/" ++ join "/" path ++ ".eve"
-    fileText = liftIO $ openFile filename ReadMode >>= hGetContents 
-    makeBinding (Binding var expr) = do
-      exprVal <- eval primitiveEnv expr
-      return (var, exprVal, "")
