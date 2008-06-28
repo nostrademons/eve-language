@@ -16,6 +16,13 @@ readModule path = fileText >>= lexer >>= parseFile >>= mapM makeBinding
     makeBinding (Binding var expr) = do
       exprVal <- eval primitiveEnv expr
       return (var, exprVal, "")
+    makeBinding (Def name args bindings body) = do
+      exprVal <- eval primitiveEnv $ Lambda args $ makeFn bindings body
+      return (name, exprVal, "")
+    makeFn [] body = body
+    makeFn (Binding var expr : rest) body = 
+        Funcall (Lambda [var] (makeFn rest body)) [expr]
+    -- TODO: all the other cases
 
 loadModule :: [String] -> EveM ModuleDef
 loadModule path = getStateField modules >>= maybeLoad
