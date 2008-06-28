@@ -123,7 +123,8 @@ instance Show EveFileLine where
        if length to > 0 then " to " ++ to ++ "\n" else "\n"
   show (Import path) = "import " ++ join "." path ++ "\n"
   show (Binding var expr) = var ++ "=" ++ show expr
-  show (Def name args defines body) = "def " ++ name ++ "(" ++ join ", " args ++ ")"
+  show (Def name args defines body) = 
+        "def " ++ name ++ "(" ++ join ", " args ++ "): " ++ show body
 
 data EveExpr =
     Literal EveData

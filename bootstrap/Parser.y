@@ -80,9 +80,11 @@ FileLine : VAR '=' Expr           { Binding $1 $3 }
 FileLineList    : FileLine                  { [$1] }
                 | FileLineList EOL FileLine { $3 : $1 }
 
-DefBody : Expr EOL              { ([], $1) }
+DefBody : Expr                  { ([], $1) }
+{-
         | EOL INDENT FileLineList EOL Expr EOL DEDENT
                                 { ($3, $5) }
+-}
 
 ReplLine : Expr                 { Expr $1 }
          | 'import' DottedIdent { ReplImport (reverse $2) }
@@ -137,7 +139,7 @@ LabeledList : LabeledPair                   { [$1] }
 
 {
 
-parseFile input = file input >>= return . map replaceFilePartials 
+parseFile input = file input >>= return . reverse . map replaceFilePartials 
 parseRepl input = replLine input >>= return . replaceReplPartials
 
 replaceFilePartials :: EveFileLine -> EveFileLine

@@ -47,15 +47,16 @@ condenseEscapes (x:xs) = if "\\" `isSuffixOf` x
   where (sameLine : restOfLines) = condenseEscapes xs
 
 
-testLines :: String -> (String -> EveM String) -> [String] -> EveM ()
+testLines :: String -> (String -> String -> EveM String) -> [String] -> EveM ()
 testLines filename fn [] = return ()
 testLines filename fn (rawInput:output:rest) = 
     runTest `catchError` printError >> testLines filename fn rest
   where
     printError = liftIO . putStrLn . (("Error in " ++ filename ++ ": ") ++) . show
-    input = drop 7 rawInput
+    (prompt, notPrompt) = span (/= '>') rawInput
+    input = drop 4 notPrompt
     runTest = do
-      result <- fn input
+      result <- fn prompt input
       if result == output
         then return ()
         else liftIO $ putStrLn $
@@ -67,15 +68,21 @@ runTest filename = openTestFile filename
                    >>= flip runEveM (primitiveEnv) 
                      . testLines filename f
   where 
-    runLex input = lexer input >>= return . show . map showTok
-    runParse input = lexer input >>= parseRepl >>= return. show
-    runEval input = do
+    runLex prompt input = lexer input >>= return . show . map showTok
+    runParse :: String -> String -> EveM String
+    runParse prompt input = 
+      lexer input 
+        >>= (if prompt == "Eve" then showAction parseRepl else showAction parseFile) 
+        >>= return
+    runEval prompt input = do
       env <- getEnv 
-      lexer input >>= parseRepl >>= evalRepl env >>= return . show
+      lexer input >>= parseRepl >>= showAction (evalRepl env)
+    showAction action arg = action arg >>= return . show
+    f :: String -> String -> EveM String
     f = case () of 
           () | filename `contains` "lex" -> runLex
              | filename `contains` "parse" -> runParse
              | filename `contains` "eval" -> runEval
-             | otherwise -> return
+             | otherwise -> \prompt input -> return input
              
 main = getTestFiles >>= mapM runTest
