@@ -3,3 +3,9 @@ File>>> foo = 2
 File>>> def double(x): 2\
 foo = 2
 [def double(x): 2,foo=2]
+File>>> def double(x): x * 2
+[def double(x): \*(x, 2)]
+File>>> def length_if_large(s):\
+    strlen = len(s)\
+    if strlen > 5 then Str(strlen) else s
+[def length_if_large(s): Cond: \>(strlen, 5)->Str(strlen), True->s]

@@ -81,10 +81,8 @@ FileLineList    : FileLine                  { [$1] }
                 | FileLineList EOL FileLine { $3 : $1 }
 
 DefBody : Expr                  { ([], $1) }
-{-
-        | EOL INDENT FileLineList EOL Expr EOL DEDENT
+        | EOL INDENT FileLineList EOL Expr
                                 { ($3, $5) }
--}
 
 ReplLine : Expr                 { Expr $1 }
          | 'import' DottedIdent { ReplImport (reverse $2) }
