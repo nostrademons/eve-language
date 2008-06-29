@@ -8,22 +8,6 @@ import Lexer
 import Parser
 import Primitives
 
-readModule :: [String] -> EveM ModuleDef
-readModule path = fileText >>= lexer >>= parseFile >>= mapM makeBinding
-  where
-    filename = "../src/" ++ join "/" path ++ ".eve"
-    fileText = liftIO $ openFile filename ReadMode >>= hGetContents 
-    makeBinding (Binding var expr) = do
-      exprVal <- eval primitiveEnv expr
-      return (var, exprVal, "")
-    makeBinding (Def name args bindings body) = do
-      exprVal <- eval primitiveEnv $ Lambda args $ makeFn bindings body
-      return (name, exprVal, "")
-    makeFn [] body = body
-    makeFn (Binding var expr : rest) body = 
-        Funcall (Lambda [var] (makeFn rest body)) [expr]
-    -- TODO: all the other cases
-
 loadModule :: [String] -> EveM ModuleDef
 loadModule path = getStateField modules >>= maybeLoad
   where
@@ -35,6 +19,22 @@ loadModule path = getStateField modules >>= maybeLoad
       moduleDef <- readModule path
       modify $ addModule moduleDef
       return moduleDef
+    readModule path = fileText >>= lexer >>= parseFile 
+                    >>= mapM parseLine >>= mapM makeModuleDef
+      where
+        filename = "../src/" ++ join "/" path ++ ".eve"
+        fileText = liftIO $ openFile filename ReadMode >>= hGetContents 
+        makeModuleDef (var, exprVal) = return (var, exprVal, "")
+        makeBinding var expr = do
+          exprVal <- eval primitiveEnv expr
+          return (var, exprVal)
+        parseLine (Binding var expr) = makeBinding var expr
+        parseLine (Def name args bindings body) = 
+            makeBinding name $ Lambda args $ makeFn bindings body
+        makeFn [] body = body
+        makeFn (Binding var expr : rest) body = 
+            Funcall (Lambda [var] (makeFn rest body)) [expr]
+        -- TODO: all the other cases
 
 
 evalRepl env (Expr expr) = eval env expr
