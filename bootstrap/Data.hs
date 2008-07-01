@@ -55,14 +55,15 @@ type Env = [(String, EveData)]
 
 -- Modules
 
-type ModuleBinding = (String, EveData, String)
+type ModuleBinding = (String, EveData)
 type ModuleDef = [ModuleBinding]
 
+-- TODO: maybe get rid of these in bootstrap interpreter
 getAccessibleBindings :: String -> ModuleDef -> ModuleDef
 getAccessibleBindings this = filter (isAccessible this)
 
 isAccessible :: String -> ModuleBinding -> Bool
-isAccessible importer (_, _, access) = access `isPrefixOf` importer
+isAccessible importer (_, _) = True
 
 type ModuleEnv = [(String, ModuleDef)]
 
@@ -134,6 +135,7 @@ data EveExpr =
   | Cond [(EveExpr, EveExpr)]
   | Funcall EveExpr [EveExpr]
   | Lambda [String] EveExpr
+  | Letrec [(String, EveExpr)] EveExpr
   deriving (Eq)
 
 join sep [] = ""
@@ -148,6 +150,9 @@ instance Show EveExpr where
   show (Cond args) = "Cond: " ++ join ", " (map showClause args)
     where showClause (pred, expr) = show pred ++ "->" ++ show expr
   show (Lambda args body) = "{|" ++ join ", " args ++ "| " ++ show body ++ "}"
+  show (Letrec clauses body) = "Letrec in " ++ show body ++ ":" 
+                                ++ join ", " (map showClause clauses)
+    where showClause (name, expr) = name ++ " = " ++ show expr
 
 -- Errors
 

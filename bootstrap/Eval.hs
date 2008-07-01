@@ -8,6 +8,40 @@ import Lexer
 import Parser
 import Primitives
 
+-- New approach: after parsing the module, we collect all the imports, then all
+-- the bindings and other expressions, then all the defs.  We run the imports,
+-- then execute all bindings sequentially in the environment formed by those
+-- imports.  Once we have those bindings, we run the defs to close over the
+-- environment created by those bindings, plus the defs themselves (we need
+-- to do a bit of tying the knot, passing in the result of building the defs
+-- into the defs themselves for inclusion as the closure.)
+
+categorize (Import x) (i, b, d) = (x : i, b, d)
+categorize x@(Binding _ _) (i, b, d) = (i, x : b, d)
+categorize x@(Def _ _ _ _) (i, b, d) = (i, b, x : d)
+
+parseFileLines = foldr categorize ([], [], [])
+
+parseDef (Def name args lines body) = (name, Lambda args convertedBody)
+  where
+    (_, bindings, defs) = parseFileLines lines
+    defBody = Letrec (map parseDef defs) body
+    convertedBody = foldr convertBinding defBody bindings
+    convertBinding (Binding var expr) rest = Funcall (Lambda [var] rest) [expr]
+
+readModule :: String -> EveM ModuleDef
+readModule fileText = do
+    (imports, bindings, defs) <- lexer fileText >>= parseFile 
+                             >>= return . parseFileLines
+    importEnv <- mapM loadModule imports >>= return . (primitiveEnv ++) . concat
+    evalEnv <- foldl (>>=) (return importEnv) $ map evalBinding bindings
+    defEnv <- return $ evalLetrec evalEnv $ map parseDef defs
+    return $ take (length bindings) evalEnv ++ defEnv
+  where
+    evalBinding (Binding var expr) env = do
+      datum <- eval env expr
+      return $ (var, datum) : env 
+
 loadModule :: [String] -> EveM ModuleDef
 loadModule path = getStateField modules >>= maybeLoad
   where
@@ -16,37 +50,31 @@ loadModule path = getStateField modules >>= maybeLoad
         state { modules = (moduleName, moduleDef) : modules state}
     maybeLoad modules = maybe firstTimeLoad return $ lookup moduleName modules
     firstTimeLoad = do
-      moduleDef <- readModule path
+      filename <- return $ "../src/" ++ join "/" path ++ ".eve"
+      fileText <- liftIO $ openFile filename ReadMode >>= hGetContents 
+      moduleDef <- readModule fileText
       modify $ addModule moduleDef
       return moduleDef
-    readModule path = fileText >>= lexer >>= parseFile 
-                    >>= mapM parseLine >>= mapM makeModuleDef
-      where
-        filename = "../src/" ++ join "/" path ++ ".eve"
-        fileText = liftIO $ openFile filename ReadMode >>= hGetContents 
-        makeModuleDef (var, exprVal) = return (var, exprVal, "")
-        makeBinding var expr = do
-          exprVal <- eval primitiveEnv expr
-          return (var, exprVal)
-        parseLine (Binding var expr) = makeBinding var expr
-        parseLine (Def name args bindings body) = 
-            makeBinding name $ Lambda args $ makeFn bindings body
-        makeFn [] body = body
-        makeFn (Binding var expr : rest) body = 
-            Funcall (Lambda [var] (makeFn rest body)) [expr]
-        -- TODO: all the other cases
-
 
 evalRepl env (Expr expr) = eval env expr
-evalRepl env (ReplImport path) = loadModule path
-           >>= liftM head . mapM addBinding . getAccessibleBindings ""
+evalRepl env (ReplImport path) = loadModule path >>= liftM head . mapM addBinding 
   where
-    addBinding (var, value, _) = 
+    addBinding (var, value) = 
         addTopLevelBinding var value >> return value
 evalRepl env (Assignment var expr) = do
   value <- eval env expr
   addTopLevelBinding var value
   return value
+
+evalLetrec :: Env -> [(String, EveExpr)] -> Env
+evalLetrec env defs = result
+  where
+    result = map makeBinding defs
+    -- Anything other than a Lambda is a compiler error
+    newFn (Lambda args body) = Function args body result
+    makeBinding (name, expr) = (name, maybe (newFn expr) (addMethod expr) $ lookup name result)
+    addMethod expr fn@(Function _ _ _) = MultiMethod [newFn expr, fn]
+    addMethod expr (MultiMethod fns) = MultiMethod (newFn expr : fns)
 
 eval :: Env -> EveExpr -> EveM EveData
 eval env (Literal val) = return val
@@ -63,6 +91,7 @@ eval env (Cond ((pred, action):rest)) = do
   predResult <- eval env pred
   if predResult == Bool True then eval env action else eval env (Cond rest)
 eval env (Lambda args body) = return $ Function args body env
+eval env (Letrec bindings body) = eval (evalLetrec env bindings ++ env) body
 
 tryEvalFuncall env fnExpr argExpr = do
   fn <- eval env fnExpr
