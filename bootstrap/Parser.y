@@ -125,9 +125,12 @@ Operand     : INT                          { (Literal . Int) $1 }
             | Expr '(' ExprList ')'        { Funcall $1 (reverse $3) }
             | '{' '|' VarList '|' Expr '}' { Lambda (reverse $3) $5 }
 
+Label       : STR                      { $1 }
+            | VAR                      { $1 }
+
 DottedIdent : VAR { [$1] }
             | DottedIdent '.' VAR      { $3 : $1 }
-LabeledPair : STR ':' Expr             { ($1, $3) }
+LabeledPair : Label ':' Expr           { ($1, $3) }
 
 ExprList    : Expr                     { [$1] }
             | ExprList ',' Expr        { $3 : $1 }
