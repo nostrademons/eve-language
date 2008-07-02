@@ -40,7 +40,6 @@ DEDENT { (_, TokDedent) }
 'if'  { (_, TokKeyword "if") }
 'then'{ (_, TokOp "then") }
 'else'{ (_, TokOp "else") }
-'to'  { (_, TokVar "to") }
 ','   { (_, TokKeyword ",") }
 '.'   { (_, TokOp ".") }
 '|'   { (_, TokKeyword "|") }
@@ -71,19 +70,20 @@ File : FileLine { [$1] }
 
 FileLine : VAR '=' Expr           { Binding $1 $3 }
          | 'import' DottedIdent { Import (reverse $2) }
-         | 'export' VarList     { Export (reverse $2) "" }
-         | 'export' VarList 'to' DottedIdent 
-                                { Export (reverse $2) (join "." (reverse $4)) }
+         | 'export' VarList     { Export (reverse $2) }
          | 'def' VAR '(' VarList ')' ':' DefBody
                                 { Def $2 (reverse $4) (fst $7) (snd $7) }
 
-FileLineList    : FileLine                  { [$1] }
-                | FileLineList EOL FileLine { $3 : $1 }
+DefBody : Expr                             { ([], $1) }
+        | EOL INDENT DefLineList DEDENT    { findLastExpr (reverse $3) }
 
-DefBody : Expr                  { ([], $1) }
-        | EOL INDENT Expr       { ([], $3) }
-        | EOL INDENT FileLineList EOL Expr
-                                { ($3, $5) }
+DefLine : Expr                  { NakedExpr $1 }
+        | VAR '=' Expr          { Binding $1 $3 }
+        | 'def' VAR '(' VarList ')' ':' DefBody
+                                { Def $2 (reverse $4) (fst $7) (snd $7) }
+
+DefLineList     : DefLine                   { [$1] }
+                | DefLineList EOL DefLine { $3 : $1 }
 
 ReplLine : Expr                 { Expr $1 }
          | 'import' DottedIdent { ReplImport (reverse $2) }
@@ -178,6 +178,10 @@ maybeLambda exprConstr args =
     substParams (next:params) (Variable "?":args) = Variable next : substParams params args
     substParams params (arg:args) = replacePartials arg : substParams params args
     substParams params [] = []
+
+findLastExpr defLines = (lines, last)
+  where
+    (lines, [NakedExpr last]) = splitAt (length defLines - 1) defLines
 
 binop name left right = Funcall (Variable ('\\':name)) [left, right]
 

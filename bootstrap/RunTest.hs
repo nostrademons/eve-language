@@ -7,6 +7,7 @@ import Directory
 import Data.List
 
 import Data
+import Utils
 import Lexer
 import Parser
 import Eval
@@ -36,16 +37,6 @@ getTestFiles = dirWalk "../test"
                . (filter (not . flip contains "~"))
                . (filter (not . flip contains ".swp"))
                . (filter (flip contains ".evetest"))
-openTestFile filename = openFile filename ReadMode 
-                    >>= hGetContents >>= return . condenseEscapes . lines
-
-condenseEscapes [] = []
-condenseEscapes [x] = [x]
-condenseEscapes (x:xs) = if "\\" `isSuffixOf` x 
-    then (take (length x - 1) x ++ "\n" ++ sameLine) : restOfLines
-    else x : sameLine : restOfLines
-  where (sameLine : restOfLines) = condenseEscapes xs
-
 
 testLines :: String -> (String -> String -> EveM String) -> [String] -> EveM ()
 testLines filename fn [] = return ()

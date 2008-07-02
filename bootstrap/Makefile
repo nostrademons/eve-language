@@ -15,6 +15,9 @@ eve: Main.hs $(SOURCES)
 test: RunTest.hs $(SOURCES)
 	$(GHCMAKE) $< -o $@
 
+lex: PrintTokens.hs $(SOURCES)
+	$(GHCMAKE) $< -o $@
+
 check: test
 	./test
 

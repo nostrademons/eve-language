@@ -114,15 +114,16 @@ instance Show EveReplLine where
   show (Assignment var expr) = var ++ "=" ++ show expr
 
 data EveFileLine =
-    Export [String] String
+    Export [String]
   | Import [String]
+  | NakedExpr EveExpr
   | Binding String EveExpr
   | Def String [String] [EveFileLine] EveExpr
 
 instance Show EveFileLine where
-  show (Export bindings to) = "export " ++ join ", " bindings ++ 
-       if length to > 0 then " to " ++ to ++ "\n" else "\n"
+  show (Export bindings) = "export " ++ join ", " bindings ++ "\n"
   show (Import path) = "import " ++ join "." path ++ "\n"
+  show (NakedExpr expr) = show expr
   show (Binding var expr) = var ++ "=" ++ show expr
   show (Def name args defines body) = 
         "def " ++ name ++ "(" ++ join ", " args ++ "): " ++ show body
@@ -197,4 +198,5 @@ addTopLevelBinding var value = modify addBinding
   where
     addBinding state = state { env = (var, value) : env state }
 
-runEveM monad (env) = runErrorT $ runStateT monad $ Interpreter env []
+runEveM :: EveM a -> Env -> IO (Either EveError (a, InterpreterState))
+runEveM monad env = runErrorT $ runStateT monad $ Interpreter env []

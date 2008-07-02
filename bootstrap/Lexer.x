@@ -141,13 +141,13 @@ addIndents _ [] = []
 addIndents indentStack (tok@(pos, TokNewline) : []) = [tok]
 addIndents indentStack (tok@(pos, TokNewline) : next : rest)
   | indent > lastIndent = tok : (pos, TokIndent) : next : addIndents (indent : indentStack) rest
-  | indent < lastIndent = [tok] ++ dedents ++ [next] ++ addIndents newStack rest
+  | indent < lastIndent = dedents ++ [tok, next] ++ addIndents newStack rest
   | indent == lastIndent = tok : next : addIndents indentStack rest
   where 
     lastIndent = if null indentStack then 1 else head indentStack
     (nextPos, _) = next
     AlexPn _ _ indent = nextPos
-    dedents = zip (repeat nextPos) (replicate numDedents TokDedent)
+    dedents = zip (repeat pos) (replicate numDedents TokDedent)
     numDedents = length $ takeWhile (> indent) indentStack
     newStack = drop numDedents indentStack
 addIndents indentStack (nonNewline : rest) = nonNewline : addIndents indentStack rest

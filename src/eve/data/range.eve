@@ -1,7 +1,7 @@
 def Range(min, max, step): 
-    { 'min': min, 'max': max, 'step': step }
+    { min: min, max: max, step: step }
 
-def Range(min, max): 
+def Range(min, max):
     Range(min, max, 1)
 
 def Range(length):
