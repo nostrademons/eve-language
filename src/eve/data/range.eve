@@ -1,5 +1,12 @@
-def Range(min, max, step): { 'min': min, 'max': max, 'step': step }
-def Range(min, max): Range(min, max, 1)
+def Range(min, max, step): 
+    { 'min': min, 'max': max, 'step': step }
+
+def Range(min, max): 
+    Range(min, max, 1)
+
+def Range(length):
+    Range(0, length)
+
 def iter(range): range
 def get(range): range->min
 def next(range): Range(range->min + range->step, range->max, range->step)

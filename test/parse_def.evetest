@@ -9,3 +9,6 @@ File>>> def length_if_large(s):\
     strlen = len(s)\
     if strlen > 5 then Str(strlen) else s
 [def length_if_large(s): Cond: \>(strlen, 5)->Str(strlen), True->s]
+File>>> def a_record(val):\
+    { 'foo': val }
+[def a_record(val): {'foo': val}]

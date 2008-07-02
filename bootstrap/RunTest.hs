@@ -60,8 +60,8 @@ testLines filename fn (rawInput:output:rest) =
       if result == output
         then return ()
         else liftIO $ putStrLn $
-                "Test " ++ filename ++ " failed: input " ++ input ++
-                " evaluated to " ++ result ++ " instead of " ++ output
+                "Test " ++ filename ++ " failed on input " ++ input ++ 
+                ": \nExpected: " ++ output ++ "\nFound:    " ++ result
 testLines filename fn _ = liftIO $ putStrLn ("Error in input format for file " ++ filename)
 
 runTest filename = openTestFile filename 
