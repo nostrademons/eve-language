@@ -7,12 +7,7 @@ makePrimitives = zip names $ map (uncurry Primitive) (zip names values)
   where 
     (names, values) = unzip primitives
 
-makeMultiMethods = map makeMultiMethod primitiveMultiMethods
-  where
-    makeMultiMethod (name, methods) = 
-        (name, MultiMethod $ map (Primitive name) methods)
-
-primitiveEnv = makePrimitives ++ makeMultiMethods
+primitiveEnv = makePrimitives
 
 
 primitives :: [(String, [EveData] -> EveM EveData)]
@@ -37,20 +32,19 @@ primitives = [
   ("tail", cdr),
   ("cons", cons),
   ("get", getList),
-  ("slice", sliceList)]
+  ("slice", sliceList),
+  ("\\&", concat'),
+  ("type", typeOf),
+  ("len", len),
 
-primitiveMultiMethods = [
-  ("\\&", [concatList, concatString]),
-  ("len", [len]),
-
-  ("Int", [makeInt]),
-  ("Bool", [makeBool]),
-  ("Str", [makeString]),
-  ("Sym", [makeSymbol]),
-  ("List", [makeList List]),
-  ("Tuple", [makeList Tuple]),
-  ("Record", [typeObject]),
-  ("Function", [typeObject])]
+  ("Int", makeInt),
+  ("Bool", makeBool),
+  ("Str", makeString),
+  ("Sym", makeSymbol),
+  ("List", makeList List),
+  ("Tuple", makeList Tuple),
+  ("Record", typeObject),
+  ("Function", typeObject)]
 
 typeError = throwError . TypeError
 
@@ -67,17 +61,25 @@ boolBoolBinop f _ = typeError "Boolean operator expects 2 bools"
 boolOp f [Bool arg] = return $ Bool $ f arg
 boolOp f _ = typeError "Expects a boolean"
 
+typeOf [Int _] = return $ Primitive "Int" makeInt
+typeOf [Bool _] = return $ Primitive "Bool" makeBool
+typeOf [String _] = return $ Primitive "Str" makeString
+typeOf [Symbol _] = return $ Primitive "Sym" makeSymbol
+typeOf [Tuple _] = return $ Primitive "Tuple" $ makeList Tuple
+typeOf [Record _] = return $ Primitive "Record" typeObject
+typeOf [Function _ _ _] = return $ Primitive "Function" typeObject
+typeOf [Primitive _ _] = return $ Primitive "Function" typeObject
+typeOf [MultiMethod _] = return $ Primitive "Function" typeObject
+
 len [String xs] = return . Int $ length xs
 len [List xs] = return . Int $ length xs
 len [Tuple xs] = return . Int $ length xs
 len [Record xs] = return . Int $ length xs
 len _ = typeError "Length requires a sequence or container"
 
-concatString [String xs, String ys] = return $ String (xs ++ ys)
-concatString _ = typeError "Concatenation needs a sequence"
-
-concatList [List xs, List ys] = return $ List (xs ++ ys)
-concatList _ = typeError "Concatenation needs a sequence"
+concat' [String xs, String ys] = return $ String (xs ++ ys)
+concat' [List xs, List ys] = return $ List (xs ++ ys)
+concat' _ = typeError "Concatenation needs a sequence"
 
 typeObject _ = typeError "Pure type objects cannot be applied."
 

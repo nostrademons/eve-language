@@ -4,17 +4,10 @@ import Control.Monad.Error hiding (join)
 import IO
 
 import Data
+import Utils
 import Lexer
 import Parser
 import Primitives
-
--- New approach: after parsing the module, we collect all the imports, then all
--- the bindings and other expressions, then all the defs.  We run the imports,
--- then execute all bindings sequentially in the environment formed by those
--- imports.  Once we have those bindings, we run the defs to close over the
--- environment created by those bindings, plus the defs themselves (we need
--- to do a bit of tying the knot, passing in the result of building the defs
--- into the defs themselves for inclusion as the closure.)
 
 categorize (Import x) (i, b, d) = (x : i, b, d)
 categorize x@(Binding _ _) (i, b, d) = (i, x : b, d)
@@ -66,15 +59,17 @@ evalRepl env (Assignment var expr) = do
   addTopLevelBinding var value
   return value
 
+-- Our tying the knot approach doesn't work here: the lookup call evaluates the
+-- whole thing, which results in infinite recursion.  A better approach might
+-- be to remove the multimethod type and instead, in apply, check for previous
+-- bindings in the a-list and possibly execute them instead.  Then we no longer
+-- need the lookup, and a simple tying the knot when we create a bunch of defs
+-- will suffice.
 evalLetrec :: Env -> [(String, EveExpr)] -> Env
 evalLetrec env defs = result
   where
     result = map makeBinding defs
-    -- Anything other than a Lambda is a compiler error
-    newFn (Lambda args body) = Function args body result
-    makeBinding (name, expr) = (name, maybe (newFn expr) (addMethod expr) $ lookup name result)
-    addMethod expr fn@(Function _ _ _) = MultiMethod [newFn expr, fn]
-    addMethod expr (MultiMethod fns) = MultiMethod (newFn expr : fns)
+    makeBinding (name, Lambda args body) = (name, Function args body result)
 
 eval :: Env -> EveExpr -> EveM EveData
 eval env (Literal val) = return val
@@ -83,8 +78,15 @@ eval env (RecordLiteral args) = mapM evalRecord args >>= return . Record
   where evalRecord (label, expr) = 
             do value <- eval env expr
                return (label, value)
-eval env (Variable var) = maybe (throwError $ UnboundVar var) return $
-                            lookup var env
+eval env (Variable var) = case multiLookup var env of
+    [] -> throwError $ UnboundVar var
+    options -> return $ if all isFunction options 
+        then MultiMethod options else options !! 0
+  where
+    isFunction (Function _ _ _) = True
+    isFunction (Primitive _ _) = True
+    isFunction (MultiMethod _) = True
+    isFunction _ = False
 eval env (Funcall fnExpr argExpr) = 
     tryEvalFuncall env fnExpr argExpr `catchError` tryEvalRecordField env fnExpr argExpr
 eval env (Cond ((pred, action):rest)) = do
