@@ -74,8 +74,12 @@ FileLine : VAR '=' Expr           { Binding $1 $3 }
          | 'def' VAR '(' VarList ')' ':' DefBody
                                 { Def $2 (reverse $4) (fst $7) (snd $7) }
 
-DefBody : Expr                             { ([], $1) }
-        | EOL INDENT DefLineList DEDENT    { findLastExpr (reverse $3) }
+DocString   : {- Empty -}       { "" }
+            | STR EOL           { $1 }
+
+DefBody : Expr                              { ([], $1) }
+        | EOL INDENT DocString DefLineList DEDENT    
+                                            { findLastExpr (reverse $4) }
 
 DefLine : Expr                  { NakedExpr $1 }
         | VAR '=' Expr          { Binding $1 $3 }
