@@ -69,7 +69,7 @@ evalLetrec :: Env -> [(String, EveExpr)] -> Env
 evalLetrec env defs = result
   where
     result = map makeBinding defs
-    makeBinding (name, Lambda args body) = (name, Function args body result)
+    makeBinding (name, Lambda args body) = (name, Function args body (result ++ env))
 
 eval :: Env -> EveExpr -> EveM EveData
 eval env (Literal val) = return val
@@ -99,7 +99,7 @@ tryEvalFuncall env fnExpr argExpr = do
   fn <- eval env fnExpr
   args <- mapM (eval env) argExpr
   apply fn args
-tryEvalRecordField env (Variable field) [argExpr] err = do
+tryEvalRecordField env (Variable field) [argExpr] err@(UnboundVar _) = do
   value <- eval env argExpr
   case value of 
     Record fields -> maybe (throwError $ MissingField value field) return $
