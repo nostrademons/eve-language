@@ -118,14 +118,14 @@ data EveFileLine =
   | Import [String]
   | NakedExpr EveExpr
   | Binding String EveExpr
-  | Def String [String] [EveFileLine] EveExpr
+  | Def String [String] String [EveFileLine] EveExpr
 
 instance Show EveFileLine where
   show (Export bindings) = "export " ++ join ", " bindings ++ "\n"
   show (Import path) = "import " ++ join "." path ++ "\n"
   show (NakedExpr expr) = show expr
   show (Binding var expr) = var ++ "=" ++ show expr
-  show (Def name args defines body) = 
+  show (Def name args docstring defines body) = 
         "def " ++ name ++ "(" ++ join ", " args ++ "): " ++ show body
 
 data EveExpr =

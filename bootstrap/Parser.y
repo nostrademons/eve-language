@@ -72,19 +72,19 @@ FileLine : VAR '=' Expr           { Binding $1 $3 }
          | 'import' DottedIdent { Import (reverse $2) }
          | 'export' VarList     { Export (reverse $2) }
          | 'def' VAR '(' VarList ')' ':' DefBody
-                                { Def $2 (reverse $4) (fst $7) (snd $7) }
+                { let (lines, docString, body) = $7 in Def $2 (reverse $4) docString lines body }
 
 DocString   : {- Empty -}       { "" }
             | STR EOL           { $1 }
 
-DefBody : Expr                              { ([], $1) }
+DefBody : Expr                              { ([], "", $1) }
         | EOL INDENT DocString DefLineList DEDENT    
-                                            { findLastExpr (reverse $4) }
+                                            { findLastExpr $3 (reverse $4) }
 
 DefLine : Expr                  { NakedExpr $1 }
         | VAR '=' Expr          { Binding $1 $3 }
         | 'def' VAR '(' VarList ')' ':' DefBody
-                                { Def $2 (reverse $4) (fst $7) (snd $7) }
+                { let (lines, docString, body) = $7 in Def $2 (reverse $4) docString lines body }
 
 DefLineList     : DefLine                   { [$1] }
                 | DefLineList EOL DefLine { $3 : $1 }
@@ -183,7 +183,7 @@ maybeLambda exprConstr args =
     substParams params (arg:args) = replacePartials arg : substParams params args
     substParams params [] = []
 
-findLastExpr defLines = (lines, last)
+findLastExpr docString defLines = (lines, docString, last)
   where
     (lines, [NakedExpr last]) = splitAt (length defLines - 1) defLines
 

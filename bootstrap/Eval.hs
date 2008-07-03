@@ -11,11 +11,11 @@ import Primitives
 
 categorize (Import x) (i, b, d) = (x : i, b, d)
 categorize x@(Binding _ _) (i, b, d) = (i, x : b, d)
-categorize x@(Def _ _ _ _) (i, b, d) = (i, b, x : d)
+categorize x@(Def _ _ _ _ _) (i, b, d) = (i, b, x : d)
 
 parseFileLines = foldr categorize ([], [], [])
 
-parseDef (Def name args lines body) = (name, Lambda args convertedBody)
+parseDef (Def name args docstring lines body) = (name, Lambda args convertedBody)
   where
     (_, bindings, defs) = parseFileLines lines
     defBody = Letrec (map parseDef defs) body
