@@ -1,0 +1,19 @@
+def Cons(contents, rest): (contents, rest)
+def head(cons): cons[0]
+def tail(cons): cons[1]
+
+def List(iterable):
+    '''
+    Constructs a list from any iterable object.
+    '''
+    if iterable->has_next then Cons(iterable->get, List(iterable->next)) else []
+
+def iter(list):
+    '''
+    Returns an iterator over this list.  List objects are their own iterators.
+    '''
+    list
+
+def get(list): head(list)
+def next(list): tail(list)
+def has_next(list): list != []
