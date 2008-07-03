@@ -4,38 +4,51 @@ import Control.Monad.Error
 import Data     
 import Utils
 
--- Actions should have type AlexPosn -> String -> EveToken
+-- Actions should have type AlexPosn -> String -> ActionResult
+
 }
 
 $digit = [0-9]			-- digits
 $alnum = [A-Za-z]               -- alphanumeric
 $oper = [\+\*\/&=\<\>\%\!\^]    -- operators (plus -, which needs to be support for "3 + -2")
 $delim = [\( \) \[ \] \{ \}]    -- delimiters
+$singleQuoteChar = [$printable \r\n] # \'
+$doubleQuoteChar = [$printable \r\n] # \"
 
 tokens :-
-  "-"                           { tokenStr TokKeyword }
-  "->"                          { tokenStr TokOp }
-  "True"                        { tokenStr $ const (TokBool True) }
-  "False"                       { tokenStr $ const (TokBool False) }
-  "|"                           { tokenStr TokKeyword }
-  ","                           { tokenStr TokKeyword }
-  ":"                           { tokenStr TokKeyword }
-  "."                           { tokenStr TokOp }
-  "?"                           { tokenStr TokVar }
-  $delim                        { tokenChar TokDelim }
-  $digit+                       { tokenStr $ TokInt . read }
+  <0> "-"                           { tokenStr TokKeyword }
+  <0> "->"                          { tokenStr TokOp }
+  <0> "True"                        { tokenStr $ const (TokBool True) }
+  <0> "False"                       { tokenStr $ const (TokBool False) }
+  <0> "|"                           { tokenStr TokKeyword }
+  <0> ","                           { tokenStr TokKeyword }
+  <0> ":"                           { tokenStr TokKeyword }
+  <0> "."                           { tokenStr TokOp }
+  <0> "?"                           { tokenStr TokVar }
+  <0> $delim                        { tokenChar TokDelim }
+  <0> $digit+                       { tokenStr $ TokInt . read }
 
-  "'" ($printable # [\' \n])* "'"   { tokenStr $ TokString . strip 1 1 }
-  \" ($printable # [\" \n])* \"     { tokenStr $ TokString . strip 1 1 }
+  <0> "'"                                           { begin string1 }
+  <string1> ($singleQuoteChar # [\r\n])* "'"        { end 1 $ tokenStr $ TokString . strip 0 1 }
+  <string1> "''" ($singleQuoteChar)* "'''"          { end 1 $ tokenStr $ TokString . strip 2 3 }
 
-  [$alnum _] [$alnum $digit _]*     { tokenStr TokVar }
-  "\" [$alnum $digit $oper \-_]+    { tokenStr TokVar }
-  $oper{1,2} 	                    { tokenStr TokOp }
-  "//" [^\n]* \n                ;
-  "#" [^\n]* \n	                ;
-  [$white]+	                    ;
+  <0> \"                                            { begin string2 }
+  <string2> ($doubleQuoteChar # [\r\n])* \"         { end 1 $ tokenStr $ TokString . strip 0 1 }
+  <string2> \"\" ($doubleQuoteChar)* \"\"\"         { end 1 $ tokenStr $ TokString . strip 2 3 }
+
+  <0> [$alnum _] [$alnum $digit _]*     { tokenStr TokVar }
+  <0> "\" [$alnum $digit $oper \-_]+    { tokenStr TokVar }
+  <0> $oper{1,2} 	                    { tokenStr TokOp }
+  <0> "//" [^\n]* \n                ;
+  <0> "#" [^\n]* \n	                ;
+  <0> [$white]+	                    ;
 
 {
+
+data ActionResult = 
+    StartState Int
+  | EndState (AlexPosn, EveToken)
+  | Token (AlexPosn, EveToken)
 
 -- The input type
 
@@ -72,14 +85,26 @@ alexMove (AlexPn a l c) '\n' = AlexPn (a+1) (l+1)   1
 alexMove (AlexPn a l c) _    = AlexPn (a+1)  l     (c+1)
 
 alexScanTokens :: (MonadError EveError m) => String -> [m (AlexPosn, EveToken)]
-alexScanTokens str = go (alexStartPos,'\n',str)
+alexScanTokens str = go (alexStartPos,'\n',str) 0
   where 
-    go inp@(pos,_,str) = case alexScan inp 0 of
+    go inp@(pos,_,str) startCode = case alexScan inp startCode of
         AlexEOF -> []
         AlexError (posn, _, (c:_)) -> [throwError $ LexError c posn]
         AlexError (posn, _, []) -> [throwError $ LexError '\n' posn]
-        AlexSkip  inp' len     -> go inp'
-        AlexToken inp' len act -> return (act pos (take len str)) : go inp'
+        AlexSkip  inp' len     -> go inp' startCode
+        AlexToken inp' len act -> case act pos (take len str) of
+            StartState newStartCode -> go inp' newStartCode
+            EndState token -> return token : go inp' 0
+            Token token -> return token : go inp' startCode
+
+-- Helper functions to return token actions
+begin startCode posn str = StartState startCode
+end posminus action posn@(AlexPn a l c) str = 
+            EndState $ (AlexPn (a - posminus) l (c - posminus), token)
+  where Token (_, token) = action posn str
+tokenStr constr posn str = Token (posn, constr str)
+tokenChar constr posn str = Token (posn, constr (str !! 0))
+extractNum [(num, _)] = num
 
 -----
 
@@ -158,8 +183,4 @@ lexer input = sequence (alexScanTokens input)
 
 showTok (_, tok) = show tok
 
--- Helper functions to return token actions
-tokenStr constr posn str = (posn, constr str)
-tokenChar constr posn str = (posn, constr (str !! 0))
-extractNum [(num, _)] = num
 }

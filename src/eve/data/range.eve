@@ -1,5 +1,8 @@
 def Range(min, max, step): 
-    "Creates a range between ``min`` (inclusive) and ``max`` (exclusive)"
+    '''
+    Creates a range between ``min`` (inclusive) and ``max`` (exclusive), with
+    values increasing by ``step`` each iteration.
+    '''
     { min: min, max: max, step: step }
 
 def Range(min, max):
