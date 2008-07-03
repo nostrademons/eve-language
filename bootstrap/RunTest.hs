@@ -1,8 +1,8 @@
 module Main(main) where
 import IO
-import Monad
+import Monad hiding (join)
 import Control.Monad.Trans
-import Control.Monad.Error
+import Control.Monad.Error hiding (join)
 import Directory
 import Data.List
 
@@ -18,6 +18,9 @@ contains [] needle = False
 contains haystack@(x:xs) needle = 
     needle `isPrefixOf` haystack || xs `contains` needle
 
+stripTo haystack needle = 
+    drop (length (dropWhile (not . isSuffixOf needle) (inits haystack) !! 1)) haystack
+
 dirWalk :: FilePath -> IO [FilePath]
 dirWalk dir = let
     isValid name = not $ ("/." `isSuffixOf` name) || ("/.." `isSuffixOf` name)
@@ -31,12 +34,13 @@ dirWalk dir = let
     files <- listFiles noDots
     return $ files ++ subDirFiles
 
-getTestFiles = dirWalk "../test" 
-           >>= return 
-               . (filter (not . flip contains ".svn"))
-               . (filter (not . flip contains "~"))
-               . (filter (not . flip contains ".swp"))
-               . (filter (flip contains ".evetest"))
+filterExtensions ext = 
+         (filter (not . flip contains ".svn"))
+       . (filter (not . flip contains "~"))
+       . (filter (not . flip contains ".swp"))
+       . (filter (flip contains ("." ++ ext)))
+
+getTestFiles = dirWalk "../test" >>= return . filterExtensions "evetest" 
 
 testLines :: String -> (String -> String -> EveM String) -> [String] -> EveM ()
 testLines filename fn [] = return ()
@@ -76,4 +80,33 @@ runTest filename = openTestFile filename
              | filename `contains` "eval" -> runEval
              | otherwise -> \prompt input -> return input
              
-main = getTestFiles >>= mapM runTest
+getLibFiles = dirWalk "../src" >>= return . filterExtensions "eve"
+
+readDocStrings filename = do
+    text <- openFile filename ReadMode >>= hGetContents
+    Right (parseTree, _) <- runEveM ((lexer text >>= parseFile) `catchError` (return . const [])) []
+    return $ extractDocstrings parseTree
+
+extractDocstrings :: [EveFileLine] -> [(String, String)]
+extractDocstrings [] = []
+extractDocstrings ((Def name args docstring _ _):xs) = 
+    (name ++ "(" ++ join ", " args ++ ")", docstring) : extractDocstrings xs
+extractDocstrings (_:xs) = extractDocstrings xs
+
+extractTests :: [String] -> [(String, String)]
+extractTests [] = []
+extractTests (x:xs)
+  | x `contains` ">>>" = (x `stripTo` ">>> ", head xs) : extractTests (tail xs)
+  | otherwise = extractTests(xs)
+
+printResults :: (String, String) -> IO [()]
+printResults (testName, docstring) = do
+    testLines <- return $ extractTests $ lines docstring
+    mapM (putStrLn . showTest) testLines
+  where
+    showTest (test, expected) = "In " ++ testName ++ ",\n  Testing: " 
+                                        ++ test ++ "\n  Expected: " ++ expected
+
+runDocTests filename = readDocStrings filename >>= mapM printResults
+
+main = getTestFiles >>= mapM runTest >> getLibFiles >>= mapM runDocTests
