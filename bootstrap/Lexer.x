@@ -8,7 +8,7 @@ import Utils
 
 }
 
-$digit = [0-9]			-- digits
+$digit = [0-9]	      	        -- digits
 $alnum = [A-Za-z]               -- alphanumeric
 $oper = [\+\*\/&=\<\>\%\!\^]    -- operators (plus -, which needs to be support for "3 + -2")
 $delim = [\( \) \[ \] \{ \}]    -- delimiters
