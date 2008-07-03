@@ -1,17 +1,54 @@
 def Range(min, max, step): 
-    '''
+    """
     Creates a range between ``min`` (inclusive) and ``max`` (exclusive), with
     values increasing by ``step`` each iteration.
-    '''
+
+    Eve>>> r = Range(1, 9, 2)
+    {'min': 1, 'max': 9, 'step': 2}
+    Eve>>> r->min
+    1
+    Eve>>> r->max
+    9
+    Eve>>> r->step
+    2
+
+    """
     { min: min, max: max, step: step }
 
 def Range(min, max):
+    """
+    Creates a range between ``min`` and ``max`` with step of 1.
+
+    Eve>>> Range(2, 10)->step
+    1
+
+    """
     Range(min, max, 1)
 
 def Range(length):
+    """
+    Creates a range between 0 and ``length``.
+
+    Eve>>> Range(5)->min
+    0
+
+    """
     Range(0, length)
 
-def iter(range): range
+def iter(range): 
+    """
+    Iterates over the range.  Range objects are their own iterators; each call
+    to next returns a fresh range object for the next subrange.
+    """
+    range
+
 def get(range): range->min
 def next(range): Range(range->min + range->step, range->max, range->step)
 def has_next(range): range->min < range->max
+
+def len(range):
+    """
+    Returns the number of integers in the range.
+    """
+    (range->max - range->min) / range->step
+

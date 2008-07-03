@@ -109,7 +109,10 @@ tryEvalRecordField env _ _ err = throwError err
 
 apply :: EveData -> [EveData] -> EveM EveData
 apply (Primitive name fn) args = fn args
-apply (Function argNames body env) args = eval (zip argNames args ++ env) body
+apply (Function argNames body env) args = if length argNames == length args
+    then eval (zip argNames args ++ env) body
+    else throwError $ TypeError $ "Wrong number of arguments: expected " 
+                            ++ show argNames ++ ", found " ++ show args
 apply (MultiMethod [single]) args = apply single args
 apply (MultiMethod (method:rest)) args = apply method args `catchError` tryRest
   where

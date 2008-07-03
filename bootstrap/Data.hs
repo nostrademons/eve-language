@@ -49,7 +49,7 @@ instance Show EveData where
   show (Record val) = "{" ++ join ", " (map showFields val) ++ "}"
   show (Primitive name _) = name
   show (Function args body _) = show $ Lambda args body
-  show (MultiMethod methods) = show $ methods !! 0
+  show (MultiMethod methods) = show $ methods 
 
 type Env = [(String, EveData)]
 

@@ -162,7 +162,7 @@ addNewlines delims (tok@(pos, _) : rest) = if noDelims delims && hasLineBreak to
 addNewlines delims [] = []
 
 addIndents :: [Int] -> [(AlexPosn, EveToken)] -> [(AlexPosn, EveToken)]
-addIndents _ [] = []
+addIndents indentStack [] = replicate (length indentStack) (AlexPn 0 0 0, TokDedent)
 addIndents indentStack (tok@(pos, TokNewline) : []) = [tok]
 addIndents indentStack (tok@(pos, TokNewline) : next : rest)
   | indent > lastIndent = tok : (pos, TokIndent) : next : addIndents (indent : indentStack) rest

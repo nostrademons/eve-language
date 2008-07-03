@@ -18,7 +18,7 @@ doPhases input = do
      return (lexOutput, parseOutput, evalOutput)
 
 replOutput evalOutput = do
-     liftIO . putStrLn . show $ evalOutput
+     liftIO . putStr . show $ evalOutput
 
 saveAndPrint files input = do
      (lexOutput, parseOutput, evalOutput) <- doPhases input
