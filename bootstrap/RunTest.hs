@@ -4,6 +4,7 @@ import Monad hiding (join)
 import Control.Monad.Trans
 import Control.Monad.Error hiding (join)
 import Directory
+import System.FilePath.Posix
 import Data.List
 
 import Data
@@ -19,7 +20,7 @@ contains haystack@(x:xs) needle =
     needle `isPrefixOf` haystack || xs `contains` needle
 
 stripTo haystack needle = 
-    drop (length (dropWhile (not . isSuffixOf needle) (inits haystack) !! 1)) haystack
+    drop (length (dropWhile (not . isSuffixOf needle) (inits haystack) !! 0)) haystack
 
 dirWalk :: FilePath -> IO [FilePath]
 dirWalk dir = let
@@ -96,17 +97,26 @@ extractDocstrings (_:xs) = extractDocstrings xs
 extractTests :: [String] -> [(String, String)]
 extractTests [] = []
 extractTests (x:xs)
-  | x `contains` ">>>" = (x `stripTo` ">>> ", head xs) : extractTests (tail xs)
+  | x `contains` ">>>" = (x `stripTo` ">>> ", dropWhile (== ' ') $ head xs) : extractTests (tail xs)
   | otherwise = extractTests(xs)
 
-printResults :: (String, String) -> IO [()]
-printResults (testName, docstring) = do
-    testLines <- return $ extractTests $ lines docstring
-    mapM (putStrLn . showTest) testLines
+printResults :: String -> (String, String) -> IO [()]
+printResults filename (testName, docstring) = do
+    Right (failures, _) <- return (extractTests (lines docstring)) >>= runTests
+    mapM (putStrLn . showFailure) $ filter (/= Nothing) failures
   where
-    showTest (test, expected) = "In " ++ testName ++ ",\n  Testing: " 
-                                        ++ test ++ "\n  Expected: " ++ expected
+    moduleName = join "." $ drop 2 $ splitDirectories $ dropExtension $ filename 
+    runTests lines = runEveM (evalInitial >> mapM runTest lines) primitiveEnv
+    runTest (test, expected) = do
+        result <- (evalLine test >>= return . show) `catchError` (return . show)
+        return $ if result == expected then Nothing else Just (test, expected, result)
+    evalInitial = evalLine ("import " ++ moduleName)
+    evalLine line = do
+        env <- getEnv
+        lexer line >>= parseRepl >>= evalRepl env
+    showFailure (Just (test, expected, found)) = "In " ++ moduleName ++ "." ++ testName ++ 
+        ",\n  Testing: " ++ test ++ "\n  Expected: " ++ expected ++ "\n  Found: " ++ found
 
-runDocTests filename = readDocStrings filename >>= mapM printResults
+runDocTests filename = readDocStrings filename >>= mapM (printResults filename)
 
 main = getTestFiles >>= mapM runTest >> getLibFiles >>= mapM runDocTests
