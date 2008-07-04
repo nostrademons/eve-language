@@ -40,6 +40,7 @@ DEDENT { (_, TokDedent) }
 'if'  { (_, TokKeyword "if") }
 'then'{ (_, TokOp "then") }
 'else'{ (_, TokOp "else") }
+'cond'{ (_, TokKeyword "cond") }
 ','   { (_, TokKeyword ",") }
 '.'   { (_, TokOp ".") }
 '|'   { (_, TokKeyword "|") }
@@ -82,6 +83,7 @@ DefBody : Expr                              { ([], "", $1) }
                                             { findLastExpr $3 (reverse $4) }
 
 DefLine : Expr                  { NakedExpr $1 }
+        | MultiLineExpr         { NakedExpr $1 }
         | VAR '=' Expr          { Binding $1 $3 }
         | 'def' VAR '(' VarList ')' ':' DefBody
                 { let (lines, docString, body) = $7 in Def $2 (reverse $4) docString lines body }
@@ -92,6 +94,13 @@ DefLineList     : DefLine                   { [$1] }
 ReplLine : Expr                 { Expr $1 }
          | 'import' DottedIdent { ReplImport (reverse $2) }
          | VAR '=' Expr         { Assignment $1 $3 }
+
+MultiLineExpr   : 'cond' ':' EOL INDENT CondClauseList DEDENT   { Cond (reverse $5) }
+
+CondClause : Expr ':' Expr      { ($1, $3) }
+
+CondClauseList : CondClause                     { [$1] }
+                | CondClauseList EOL CondClause { $3 : $1 }
 
 Expr : Operand             { $1 }
      | '-' Expr %prec NEG  { binop "-" (Literal (Int 0)) $2 }

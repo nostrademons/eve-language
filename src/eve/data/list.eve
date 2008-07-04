@@ -17,3 +17,4 @@ def iter(list):
 def get(list): head(list)
 def next(list): tail(list)
 def has_next(list): list != []
+
