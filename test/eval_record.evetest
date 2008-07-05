@@ -6,3 +6,7 @@ Eve>>> { 'foo': 3, 'bar': 4 } -> foo
 3
 Eve>>> bar({ 'foo': 3, 'bar': 4 })
 4
+Eve>>> { foo: 3, bar: 4}['foo']
+3
+Eve>>> (1..5)['start']
+1

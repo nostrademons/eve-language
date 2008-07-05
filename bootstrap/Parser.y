@@ -33,6 +33,7 @@ DEDENT { (_, TokDedent) }
 '!='  { (_, TokOp "!=") }
 '='   { (_, TokOp "=")  }
 '->'  { (_, TokOp "->") }
+'..'  { (_, TokOp "..") }
 'and' { (_, TokOp "and") }
 'or'  { (_, TokOp "or") }
 'not' { (_, TokOp "not") }
@@ -58,6 +59,7 @@ DEDENT { (_, TokDedent) }
 %left 'and' 'or'
 %nonassoc 'not'
 %nonassoc '!=' '==' '>=' '<=' '>' '<'
+%nonassoc '..'
 %left '+' '-'
 %left '*' '/' '%'
 %left '**'
@@ -110,6 +112,7 @@ Expr : Operand             { $1 }
      | Expr '%' Expr { binop "%" $1 $3 }
      | Expr '+' Expr { binop "+" $1 $3 }
      | Expr '-' Expr { binop "-" $1 $3 }
+     | Expr '..' Expr { Funcall (Variable "Range") [$1, $3] }
      | Expr '==' Expr { binop "==" $1 $3 }
      | Expr '!=' Expr { binop "!=" $1 $3 }
      | Expr '>' Expr  { binop ">" $1 $3 }

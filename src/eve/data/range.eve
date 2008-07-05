@@ -5,6 +5,11 @@ def Range(start, stop):
     Eve>>> Range(2, 10)->step
     1
 
+    There's also syntactic sugar built into the parser for ranges:
+
+    Eve>>> 1..5 
+    {'start': 1, 'stop': 5, 'step': 1}
+
     """
     Range(start, stop, 1)
 

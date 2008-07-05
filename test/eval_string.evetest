@@ -32,3 +32,7 @@ Eve>>> len("Foo")
 3
 Eve>>> "Frob"->iter->next->get
 'r'
+Eve>>> "Foobar"[1..4]
+'oob'
+Eve>>> "Foobar"[-3..-1]
+'ba'

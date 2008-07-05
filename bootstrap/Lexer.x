@@ -24,6 +24,7 @@ tokens :-
   <0> ","                           { tokenStr TokKeyword }
   <0> ":"                           { tokenStr TokKeyword }
   <0> "."                           { tokenStr TokOp }
+  <0> ".."                          { tokenStr TokOp }
   <0> "?"                           { tokenStr TokVar }
   <0> $delim                        { tokenChar TokDelim }
   <0> $digit+                       { tokenStr $ TokInt . read }
