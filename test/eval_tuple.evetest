@@ -1,0 +1,14 @@
+Eve>>> [1,2,3][1]
+2
+Eve>>> [1,2,3][]
+1
+Eve>>> [1,2,3,4][-1]
+4
+Eve>>> iter([1,2,3,4])[]
+1
+Eve>>> iter([1,2,3,4])->next->next->get
+3
+Eve>>> [1,2,3]->iter->next->next->next->has_next
+False
+Eve>>> len([1,2,3])
+3

@@ -24,3 +24,11 @@ Eve>>> Str(42)
 '42'
 Eve>>> Str(2 + 4)
 '6'
+Eve>>> "Foo"[0]
+'F'
+Eve>>> "Bar"[-1]
+'r'
+Eve>>> len("Foo")
+3
+Eve>>> "Frob"->iter->next->get
+'r'

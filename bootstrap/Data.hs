@@ -16,7 +16,9 @@ data EveData =
   | String String
   | Symbol String
   | Tuple [EveData]
+  | SequenceIter EveData Int
   | Record [(String, EveData)]
+  | RecordIter EveData Int
   | Primitive String ([EveData] -> EveM EveData)
   | Function [String] EveExpr Env 
   | MultiMethod [EveData]
@@ -31,7 +33,9 @@ instance Eq EveData where
   String x == String y = x == y
   Symbol x == Symbol y = x == y
   Tuple x1 == Tuple x2 = and $ zipWith (==) x1 x2
+  SequenceIter x1 i1 == SequenceIter x2 i2 = i1 == i2 && x1 == x2
   Record x1 == Record x2 = and $ zipWith (==) (sortFields x1) (sortFields x2)
+  RecordIter x1 i1 == RecordIter x2 i2 = i1 == i2 && x1 == x2
   Primitive name1 _ == Primitive name2 _ = name1 == name2
   Function _ body1 _ == Function _ body2 _ = body1 == body2
   MultiMethod m1 == MultiMethod m2 = and $ zipWith (==) m1 m2
@@ -43,7 +47,9 @@ instance Show EveData where
   show (String val) = "'" ++ val ++ "'"
   show (Symbol val) = "Sym(" ++ val ++ ")"
   show (Tuple val) = "[" ++ join ", " (map show val) ++ "]"
+  show (SequenceIter val index) = "Iterator(" ++ show index ++ ") for " ++ show val
   show (Record val) = "{" ++ join ", " (map showFields val) ++ "}"
+  show (RecordIter val index) = "Iterator(" ++ show index ++ ") for " ++ show val
   show (Primitive name _) = name
   show (Function args body _) = show $ Lambda args body
   show (MultiMethod methods) = show $ methods 
