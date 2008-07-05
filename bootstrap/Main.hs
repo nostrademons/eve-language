@@ -37,7 +37,10 @@ printOutput input = do
 
 handleError action = flip catchError (liftIO . print) . action
 
+autoImports = ["eve.data.range"]
+
 main = let 
+    setup = mapM_ (doPhases . ("import " ++)) autoImports
     repl = runRepl "Eve" 
     initialState = (primitiveEnv)
     makeFile name outType = liftIO $ openFile 
@@ -45,7 +48,7 @@ main = let
   in do
     args <- getArgs 
     if length args == 0 
-      then runEveM (repl $ handleError printOutput) initialState >> return ()
+      then runEveM (setup >> repl (handleError printOutput)) initialState >> return ()
       else do 
         files <- mapM (makeFile (args !! 0)) ["lex", "parse", "eval"]
         runEveM (repl $ handleError $ saveAndPrint files) initialState
