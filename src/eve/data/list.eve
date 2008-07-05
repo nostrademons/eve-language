@@ -1,4 +1,4 @@
-def Cons(contents, rest): (contents, rest)
+def Cons(contents, rest): [contents, rest]
 def head(cons): cons[0]
 def tail(cons): cons[1]
 

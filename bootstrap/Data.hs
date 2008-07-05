@@ -15,7 +15,6 @@ data EveData =
   | Bool Bool
   | String String
   | Symbol String
-  | List [EveData]  -- Eventually will be moved to library
   | Tuple [EveData]
   | Record [(String, EveData)]
   | Primitive String ([EveData] -> EveM EveData)
@@ -31,7 +30,6 @@ instance Eq EveData where
   Bool x == Bool y = x == y
   String x == String y = x == y
   Symbol x == Symbol y = x == y
-  List x1 == List x2 = and $ zipWith (==) x1 x2
   Tuple x1 == Tuple x2 = and $ zipWith (==) x1 x2
   Record x1 == Record x2 = and $ zipWith (==) (sortFields x1) (sortFields x2)
   Primitive name1 _ == Primitive name2 _ = name1 == name2
@@ -44,7 +42,6 @@ instance Show EveData where
   show (Bool val) = if val then "True" else "False"
   show (String val) = "'" ++ val ++ "'"
   show (Symbol val) = "Sym(" ++ val ++ ")"
-  show (List val) = "List([" ++ join ", " (map show val) ++ "])"
   show (Tuple val) = "[" ++ join ", " (map show val) ++ "]"
   show (Record val) = "{" ++ join ", " (map showFields val) ++ "}"
   show (Primitive name _) = name
