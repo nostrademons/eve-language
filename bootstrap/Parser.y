@@ -42,10 +42,13 @@ DEDENT { (_, TokDedent) }
 'then'{ (_, TokOp "then") }
 'else'{ (_, TokOp "else") }
 'cond'{ (_, TokKeyword "cond") }
+'type'{ (_, TokKeyword "type") }
+'typedef'   { (_, TokKeyword "typedef") }
 ','   { (_, TokKeyword ",") }
 '.'   { (_, TokOp ".") }
 '|'   { (_, TokKeyword "|") }
 ':'   { (_, TokKeyword ":") }
+'@'   { (_, TokKeyword "@") }
 '('   { (_, TokDelim '(') }
 ')'   { (_, TokDelim ')') }
 '{'   { (_, TokDelim '{') }
@@ -71,14 +74,34 @@ DEDENT { (_, TokDedent) }
 File : FileLine { [$1] }
      | File EOL FileLine { $3 : $1 }
 
-FileLine : VAR '=' Expr           { Binding $1 $3 }
-         | 'import' DottedIdent { Import (reverse $2) }
-         | 'export' VarList     { Export (reverse $2) }
-         | 'def' VAR '(' VarList ')' ':' DefBody
-                { let (lines, docString, body) = $7 in Def $2 (reverse $4) docString lines body }
+FileLine : VAR '=' Expr                 { Binding $1 $3 }
+         | 'import' DottedIdent         { Import (reverse $2) }
+         | 'export' VarList             { Export (reverse $2) }
+         | 'typedef' VAR ':' TypeExpr   { TypeDef $2 $4 }
+         | DefDecl                      { $1 }
+
+DefDecl     : TypeDecl 'def' VAR '(' VarList ')' ':' DefBody
+    { let (lines, docString, body) = $8 in Def $3 (reverse $5) docString $1 lines body }
 
 DocString   : {- Empty -}       { "" }
             | STR EOL           { $1 }
+
+TypeDecl    : {- Empty -}       { Nothing }
+            | '@' 'type' '(' TypeList '->' TypeExpr ')' EOL
+                                { Just $ TFunc (reverse $4) $6 }
+
+TypeExpr    : VAR                               { TPrim $1 }
+            | '[' TypeList ']'                  { TTuple (reverse $2) }
+            | '{' LabeledTypeList '}'           { TRecord (reverse $2) }
+            | '(' TypeList '->' TypeExpr ')'    { TFunc (reverse $2) $4 }
+
+TypeList    : TypeExpr                  { [$1] }
+            | TypeList ',' TypeExpr     { $3 : $1 }
+
+LabeledTypePair     : Label ':' TypeExpr    { ($1, $3) }
+
+LabeledTypeList     : LabeledTypePair                       { [$1] }
+                    | LabeledTypeList ',' LabeledTypePair   { $3 : $1 }
 
 DefBody : Expr                              { ([], "", $1) }
         | EOL INDENT DocString DefLineList DEDENT    
@@ -87,8 +110,7 @@ DefBody : Expr                              { ([], "", $1) }
 DefLine : Expr                  { NakedExpr $1 }
         | MultiLineExpr         { NakedExpr $1 }
         | VAR '=' Expr          { Binding $1 $3 }
-        | 'def' VAR '(' VarList ')' ':' DefBody
-                { let (lines, docString, body) = $7 in Def $2 (reverse $4) docString lines body }
+        | DefDecl               { $1 }
 
 DefLineList     : DefLine                   { [$1] }
                 | DefLineList EOL DefLine { $3 : $1 }

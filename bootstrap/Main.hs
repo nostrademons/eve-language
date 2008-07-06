@@ -37,8 +37,6 @@ printOutput input = do
 
 handleError action = flip catchError (liftIO . print) . action
 
-autoImports = ["eve.data.range"]
-
 main = let 
     setup = mapM_ (doPhases . ("import " ++)) autoImports
     repl = runRepl "Eve" 

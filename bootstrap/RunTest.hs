@@ -60,6 +60,12 @@ testLines filename fn (rawInput:output:rest) =
                 ": \nExpected: " ++ output ++ "\nFound:    " ++ result
 testLines filename fn _ = liftIO $ putStrLn ("Error in input format for file " ++ filename)
 
+evalLine line = do
+    env <- getEnv
+    lexer line >>= parseRepl >>= evalRepl env
+
+evalInitial = mapM_ (evalLine . ("import " ++)) autoImports
+
 runTest filename = openTestFile filename 
                    >>= flip runEveM (primitiveEnv) 
                      . testLines filename f
@@ -72,6 +78,7 @@ runTest filename = openTestFile filename
         >>= return
     runEval prompt input = do
       env <- getEnv 
+      evalInitial
       lexer input >>= parseRepl >>= showAction (evalRepl env)
     showAction action arg = action arg >>= return . show
     f :: String -> String -> EveM String
@@ -90,7 +97,7 @@ readDocStrings filename = do
 
 extractDocstrings :: [EveFileLine] -> [(String, String)]
 extractDocstrings [] = []
-extractDocstrings ((Def name args docstring _ _):xs) = 
+extractDocstrings ((Def name args docstring _ _ _):xs) = 
     (name ++ "(" ++ join ", " args ++ ")", docstring) : extractDocstrings xs
 extractDocstrings (_:xs) = extractDocstrings xs
 
@@ -110,10 +117,6 @@ printResults filename (testName, docstring) = do
     runTest (test, expected) = do
         result <- (evalLine test >>= return . show) `catchError` (return . show)
         return $ if result == expected then Nothing else Just (test, expected, result)
-    evalInitial = evalLine ("import " ++ moduleName)
-    evalLine line = do
-        env <- getEnv
-        lexer line >>= parseRepl >>= evalRepl env
     showFailure (Just (test, expected, found)) = "In " ++ moduleName ++ "." ++ testName ++ 
         ",\n  Testing: " ++ test ++ "\n  Expected: " ++ expected ++ "\n  Found: " ++ found
 

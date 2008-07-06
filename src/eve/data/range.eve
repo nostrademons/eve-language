@@ -1,3 +1,6 @@
+typedef Range: { start: Int, stop: Int, step: Int }
+
+@type(Int, Int -> Range)
 def Range(start, stop):
     """
     Creates a range between ``start`` and ``stop`` with step of 1.
@@ -13,6 +16,7 @@ def Range(start, stop):
     """
     Range(start, stop, 1)
 
+@type(Int -> Range)
 def Range(length):
     """
     Creates a range between 0 and ``length``.
@@ -23,6 +27,7 @@ def Range(length):
     """
     Range(0, length)
 
+@type(Int, Int, Int -> Range)
 def Range(start, stop, step): 
     """
     Creates a range between ``start`` (inclusive) and ``stop`` (exclusive), with
@@ -40,6 +45,7 @@ def Range(start, stop, step):
     """
     { start: start, stop: stop, step: step }
 
+@type(Range -> Iterator)
 def iter(range): 
     """
     Iterates over the range.  Range objects are their own iterators; each call
@@ -51,6 +57,7 @@ def get(range): range->start
 def next(range): Range(range->start + range->step, range->stop, range->step)
 def has_next(range): range->start < range->stop
 
+@type(Range -> Int)
 def len(range):
     """
     Returns the number of integers in the range.

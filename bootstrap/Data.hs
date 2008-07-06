@@ -1,6 +1,6 @@
 module Data(EveToken(..), AlexPosn(..), 
             EveExpr(..), EveReplLine(..), EveFileLine(..), 
-            EveError(..), EveData(..), Env, 
+            EveError(..), EveData(..), EveType(..), Env, 
             ModuleDef, getAccessibleBindings,
             EveM, runEveM, getEnv, addTopLevelBinding, 
             modules, getStateField, join) where
@@ -26,15 +26,19 @@ data EveData =
 sortFields = sortBy fieldCompare 
   where fieldCompare (x, _) (y, _) = compare x y
 showFields (label, value) = "'" ++ label ++ "': " ++ show value
+showTuple val = "[" ++ join ", " (map show val) ++ "]"
+showRecord val = "{" ++ join ", " (map showFields val) ++ "}"
+eqTuple x1 x2 = and $ zipWith (==) x1 x2
+eqRecord x1 x2 = and $ zipWith (==) (sortFields x1) (sortFields x2)
 
 instance Eq EveData where
   Int x == Int y = x == y
   Bool x == Bool y = x == y
   String x == String y = x == y
   Symbol x == Symbol y = x == y
-  Tuple x1 == Tuple x2 = and $ zipWith (==) x1 x2
+  Tuple x1 == Tuple x2 = eqTuple x1 x2
   SequenceIter x1 i1 == SequenceIter x2 i2 = i1 == i2 && x1 == x2
-  Record x1 == Record x2 = and $ zipWith (==) (sortFields x1) (sortFields x2)
+  Record x1 == Record x2 = eqRecord x1 x2
   RecordIter x1 i1 == RecordIter x2 i2 = i1 == i2 && x1 == x2
   Primitive name1 _ == Primitive name2 _ = name1 == name2
   Function _ body1 _ == Function _ body2 _ = body1 == body2
@@ -46,9 +50,9 @@ instance Show EveData where
   show (Bool val) = if val then "True" else "False"
   show (String val) = "'" ++ val ++ "'"
   show (Symbol val) = "Sym(" ++ val ++ ")"
-  show (Tuple val) = "[" ++ join ", " (map show val) ++ "]"
+  show (Tuple val) = showTuple val
   show (SequenceIter val index) = "Iterator(" ++ show index ++ ") for " ++ show val
-  show (Record val) = "{" ++ join ", " (map showFields val) ++ "}"
+  show (Record val) = showRecord val
   show (RecordIter val index) = "Iterator(" ++ show index ++ ") for " ++ show val
   show (Primitive name _) = name
   show (Function args body _) = show $ Lambda args body
@@ -121,15 +125,37 @@ data EveFileLine =
   | Import [String]
   | NakedExpr EveExpr
   | Binding String EveExpr
-  | Def String [String] String [EveFileLine] EveExpr
+  | TypeDef String EveType
+  | Def String [String] String (Maybe EveType) [EveFileLine] EveExpr
 
 instance Show EveFileLine where
   show (Export bindings) = "export " ++ join ", " bindings ++ "\n"
   show (Import path) = "import " ++ join "." path ++ "\n"
   show (NakedExpr expr) = show expr
   show (Binding var expr) = var ++ "=" ++ show expr
-  show (Def name args docstring defines body) = 
-        "def " ++ name ++ "(" ++ join ", " args ++ "): " ++ show body
+  show (TypeDef name value) = "typedef " ++ name ++ ": " ++ show value
+  show (Def name args docstring Nothing defines body) = 
+    "def " ++ name ++ "(" ++ join ", " args ++ "): " ++ show body
+  show (Def name args docstring (Just typeExpr) defines body) = 
+    "@type(" ++ show typeExpr ++ ")\ndef " ++ name ++ "(" ++ join ", " args ++ "): " ++ show body
+
+data EveType =
+    TPrim String
+  | TTuple [EveType]
+  | TRecord [(String, EveType)]
+  | TFunc [EveType] EveType
+
+instance Show EveType where
+  show (TPrim name) = name
+  show (TTuple fields) = showTuple fields
+  show (TRecord fields) = showRecord fields
+  show (TFunc args ret) = join ", " (map show args) ++ " -> " ++ show ret
+
+instance Eq EveType where
+  TPrim name1 == TPrim name2 = name1 == name2
+  TTuple x1 == TTuple x2 = eqTuple x1 x2
+  TRecord x1 == TRecord x2 = eqRecord x1 x2
+  TFunc args1 ret1 == TFunc args2 ret2 = ret1 == ret2 && eqTuple args1 args2
 
 data EveExpr =
     Literal EveData

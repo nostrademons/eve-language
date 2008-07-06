@@ -8,6 +8,8 @@ def List(iterable):
     '''
     if iterable->has_next then Cons(iterable->get, List(iterable->next)) else []
 
+# TODO: we really need to straighten out multimethods, because this is hiding
+# all the primitive multimethods
 def iter(list):
     '''
     Returns an iterator over this list.  List objects are their own iterators.

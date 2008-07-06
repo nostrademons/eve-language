@@ -23,6 +23,7 @@ tokens :-
   <0> "|"                           { tokenStr TokKeyword }
   <0> ","                           { tokenStr TokKeyword }
   <0> ":"                           { tokenStr TokKeyword }
+  <0> "@"                           { tokenStr TokKeyword }
   <0> "."                           { tokenStr TokOp }
   <0> ".."                          { tokenStr TokOp }
   <0> "?"                           { tokenStr TokVar }
@@ -112,7 +113,7 @@ extractNum [(num, _)] = num
 -- Operators are tokens where a following or preceding newline is ignored,
 -- while keywords trigger no special newline handling
 operators = ["and", "or", "not", "then", "else"]
-keywords = ["if", "import", "export", "def", "cond"]
+keywords = ["if", "import", "export", "def", "cond", "typedef", "type"]
 
 replaceKeywords :: [(AlexPosn, EveToken)] -> [(AlexPosn, EveToken)]
 replaceKeywords = map changeKeyword 

@@ -1,4 +1,4 @@
-module Eval(eval, evalRepl) where
+module Eval(eval, evalRepl, autoImports) where
 import Control.Monad.State hiding (join)
 import Control.Monad.Error hiding (join)
 import IO
@@ -9,23 +9,27 @@ import Lexer
 import Parser
 import Primitives
 
-categorize (Import x) (i, b, d) = (x : i, b, d)
-categorize x@(Binding _ _) (i, b, d) = (i, x : b, d)
-categorize x@(Def _ _ _ _ _) (i, b, d) = (i, b, x : d)
+autoImports = ["eve.data.range"]
+-- autoImports = []
 
-parseFileLines = foldr categorize ([], [], [])
+categorize (Import x) (i, b, d, t) = (x : i, b, d, t)
+categorize x@(Binding _ _) (i, b, d, t) = (i, x : b, d, t)
+categorize x@(Def _ _ _ _ _ _) (i, b, d, t) = (i, b, x : d, t)
+categorize x@(TypeDef _ _) (i, b, d, t) = (i, b, d, x : t)
 
-parseDef (Def name args docstring lines body) = (name, Lambda args convertedBody)
+parseFileLines = foldr categorize ([], [], [], [])
+
+parseDef (Def name args docstring typeDecl lines body) = (name, Lambda args convertedBody)
   where
-    (_, bindings, defs) = parseFileLines lines
+    (_, bindings, defs, typedefs) = parseFileLines lines
     defBody = Letrec (map parseDef defs) body
     convertedBody = foldr convertBinding defBody bindings
     convertBinding (Binding var expr) rest = Funcall (Lambda [var] rest) [expr]
 
 readModule :: String -> EveM ModuleDef
 readModule fileText = do
-    (imports, bindings, defs) <- lexer fileText >>= parseFile 
-                             >>= return . parseFileLines
+    (imports, bindings, defs, typedefs) <- lexer fileText >>= parseFile 
+                 >>= return . parseFileLines
     importEnv <- mapM loadModule imports >>= return . (primitiveEnv ++) . concat
     evalEnv <- foldl (>>=) (return importEnv) $ map evalBinding bindings
     defEnv <- return $ evalLetrec evalEnv $ map parseDef defs
