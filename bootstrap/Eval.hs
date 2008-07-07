@@ -19,12 +19,19 @@ categorize x@(TypeDef _ _) (i, b, d, t) = (i, b, d, x : t)
 
 parseFileLines = foldr categorize ([], [], [], [])
 
-parseDef (Def name args docstring typeDecl lines body) = (name, Lambda args convertedBody)
+parseDef typeEnv (Def name args docstring typeDecl lines body) = (name, convertedBody)
   where
-    (_, bindings, defs, typedefs) = parseFileLines lines
-    defBody = Letrec (map parseDef defs) body
-    convertedBody = foldr convertBinding defBody bindings
+    (_, bindings, defs, _) = parseFileLines lines
+    defBody = Letrec (map (parseDef typeEnv) defs) body
+    convertedBody = (maybe id (addTypeChecks . convertTypeDefs) typeDecl) $
+        Lambda args $ foldr convertBinding defBody bindings
     convertBinding (Binding var expr) rest = Funcall (Lambda [var] rest) [expr]
+    addTypeChecks (TFunc tArgs ret) = TypeCheck (zip args tArgs)
+    convertTypeDefs (TPrim name) = maybe (TPrim name) id $ lookup name typeEnv
+    convertTypeDefs (TTuple types) = TTuple $ map convertTypeDefs types
+    convertTypeDefs (TRecord types) = TRecord $ zip keys $ map convertTypeDefs values
+      where (keys, values) = unzip types
+    convertTypeDefs (TFunc args ret) = TFunc (map convertTypeDefs args) $ convertTypeDefs ret
 
 readModule :: String -> EveM ModuleDef
 readModule fileText = do
@@ -32,9 +39,10 @@ readModule fileText = do
                  >>= return . parseFileLines
     importEnv <- mapM loadModule imports >>= return . (primitiveEnv ++) . concat
     evalEnv <- foldl (>>=) (return importEnv) $ map evalBinding bindings
-    defEnv <- return $ evalLetrec evalEnv $ map parseDef defs
+    defEnv <- return $ evalLetrec evalEnv $ map (parseDef $ map parseType typedefs) defs
     return $ take (length bindings) evalEnv ++ defEnv
   where
+    parseType (TypeDef name val) = (name, val)
     evalBinding (Binding var expr) env = do
       datum <- eval env expr
       return $ (var, datum) : env 
@@ -63,17 +71,12 @@ evalRepl env (Assignment var expr) = do
   addTopLevelBinding var value
   return value
 
--- Our tying the knot approach doesn't work here: the lookup call evaluates the
--- whole thing, which results in infinite recursion.  A better approach might
--- be to remove the multimethod type and instead, in apply, check for previous
--- bindings in the a-list and possibly execute them instead.  Then we no longer
--- need the lookup, and a simple tying the knot when we create a bunch of defs
--- will suffice.
 evalLetrec :: Env -> [(String, EveExpr)] -> Env
 evalLetrec env defs = result
   where
     result = map makeBinding defs
     makeBinding (name, Lambda args body) = (name, Function args body (result ++ env))
+    makeBinding (name, TypeCheck _ body) = makeBinding (name, body)
 
 eval :: Env -> EveExpr -> EveM EveData
 eval env (Literal val) = return val
@@ -98,6 +101,20 @@ eval env (Cond ((pred, action):rest)) = do
   if predResult == Bool True then eval env action else eval env (Cond rest)
 eval env (Lambda args body) = return $ Function args body env
 eval env (Letrec bindings body) = eval (evalLetrec env bindings ++ env) body
+eval env (TypeCheck types body) = mapM_ checkType types >> eval env body
+  where
+    checkType (varname, typeDecl) = eval env (Variable varname) >>= throwIfInvalid typeDecl
+    throwIfInvalid (TPrim "Int") val@(Int _) = return val
+    throwIfInvalid (TPrim "Bool") val@(Bool _) = return val
+    throwIfInvalid (TPrim "Str") val@(String _) = return val
+    throwIfInvalid (TPrim "Sym") val@(Symbol _) = return val
+    -- TODO: function types
+    throwIfInvalid (TTuple types) val@(Tuple fields) = checkAll types fields val
+    throwIfInvalid (TRecord types) val@(Record fields) = 
+        checkAll (extractVals types) (extractVals fields) val
+    throwIfInvalid typeDecl val = throwError $ TypeError (show val ++ " is not a " ++ show typeDecl)
+    checkAll types fields val = sequence_ (zipWith throwIfInvalid types fields) >> return val
+    extractVals = snd . unzip . sortRecord
 
 tryEvalFuncall env fnExpr argExpr = do
   fn <- eval env fnExpr

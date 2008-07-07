@@ -1,7 +1,7 @@
 module Data(EveToken(..), AlexPosn(..), 
             EveExpr(..), EveReplLine(..), EveFileLine(..), 
             EveError(..), EveData(..), EveType(..), Env, 
-            ModuleDef, getAccessibleBindings,
+            ModuleDef, getAccessibleBindings, sortRecord,
             EveM, runEveM, getEnv, addTopLevelBinding, 
             modules, getStateField, join) where
 import Data.List
@@ -23,13 +23,13 @@ data EveData =
   | Function [String] EveExpr Env 
   | MultiMethod [EveData]
 
-sortFields = sortBy fieldCompare 
+sortRecord = sortBy fieldCompare 
   where fieldCompare (x, _) (y, _) = compare x y
 showFields (label, value) = "'" ++ label ++ "': " ++ show value
 showTuple val = "[" ++ join ", " (map show val) ++ "]"
 showRecord val = "{" ++ join ", " (map showFields val) ++ "}"
 eqTuple x1 x2 = and $ zipWith (==) x1 x2
-eqRecord x1 x2 = and $ zipWith (==) (sortFields x1) (sortFields x2)
+eqRecord x1 x2 = and $ zipWith (==) (sortRecord x1) (sortRecord x2)
 
 instance Eq EveData where
   Int x == Int y = x == y
@@ -166,6 +166,7 @@ data EveExpr =
   | Funcall EveExpr [EveExpr]
   | Lambda [String] EveExpr
   | Letrec [(String, EveExpr)] EveExpr
+  | TypeCheck [(String, EveType)] EveExpr
   deriving (Eq)
 
 join sep [] = ""
@@ -183,6 +184,7 @@ instance Show EveExpr where
   show (Letrec clauses body) = "Letrec in " ++ show body ++ ":" 
                                 ++ join ", " (map showClause clauses)
     where showClause (name, expr) = name ++ " = " ++ show expr
+  show (TypeCheck _ body) = show body
 
 -- Errors
 
