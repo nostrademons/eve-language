@@ -23,8 +23,9 @@ parseDef typeEnv (Def name args docstring typeDecl lines body) = (name, converte
   where
     (_, bindings, defs, _) = parseFileLines lines
     defBody = Letrec (map (parseDef typeEnv) defs) body
-    convertedBody = (maybe id (addTypeChecks . convertTypeDefs) typeDecl) $
-        Lambda args $ foldr convertBinding defBody bindings
+    convertedBody = Lambda args $ 
+        (maybe id (addTypeChecks . convertTypeDefs) typeDecl) $
+        foldr convertBinding defBody bindings
     convertBinding (Binding var expr) rest = Funcall (Lambda [var] rest) [expr]
     addTypeChecks (TFunc tArgs ret) = TypeCheck (zip args tArgs)
     convertTypeDefs (TPrim name) = maybe (TPrim name) id $ lookup name typeEnv
@@ -76,7 +77,6 @@ evalLetrec env defs = result
   where
     result = map makeBinding defs
     makeBinding (name, Lambda args body) = (name, Function args body (result ++ env))
-    makeBinding (name, TypeCheck _ body) = makeBinding (name, body)
 
 eval :: Env -> EveExpr -> EveM EveData
 eval env (Literal val) = return val

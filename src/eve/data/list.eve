@@ -6,7 +6,13 @@ def List(iterable):
     '''
     Constructs a list from any iterable object.
     '''
-    if iterable->has_next then Cons(iterable->get, List(iterable->next)) else []
+    List(iterable->iter)
+
+def List(i):
+    '''
+    Constructs a list from an iterator.
+    '''
+    if i->has_next then Cons(i->get, List(i->next)) else []
 
 # TODO: we really need to straighten out multimethods, because this is hiding
 # all the primitive multimethods

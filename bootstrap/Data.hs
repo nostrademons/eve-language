@@ -184,7 +184,7 @@ instance Show EveExpr where
   show (Letrec clauses body) = "Letrec in " ++ show body ++ ":" 
                                 ++ join ", " (map showClause clauses)
     where showClause (name, expr) = name ++ " = " ++ show expr
-  show (TypeCheck _ body) = show body
+  show (TypeCheck typeDecl body) = show body ++ " :: " ++ show typeDecl
 
 -- Errors
 

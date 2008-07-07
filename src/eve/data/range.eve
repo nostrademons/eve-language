@@ -50,6 +50,12 @@ def iter(range):
     """
     Iterates over the range.  Range objects are their own iterators; each call
     to next returns a fresh range object for the next subrange.
+
+    Eve>>> (1..5)->iter->next->get
+    2
+    Eve>>> (1..2)->iter->next->has_next
+    False
+
     """
     range
 
