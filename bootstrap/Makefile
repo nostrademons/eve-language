@@ -5,7 +5,7 @@ LEX_SPEC = Lexer.x
 PARSE_SPEC = Parser.y
 GENERATED = Lexer.hs Parser.hs
 SOURCES = Data.hs Utils.hs Eval.hs $(GENERATED) Primitives.hs Repl.hs
-EXECS = eve test
+EXECS = eve test lex
 
 .PHONY: clean-bak clean-gen clean check
 

@@ -1,0 +1,16 @@
+Eve is intended to be a purely-functional programming language with Erlang-style concurrency and Python syntax.  It's dynamically typed, but with optional type declarations and type definitions (soft typing).  The intended userbase is people who currently use Python or Ruby for shell scripting and web programming but would like to try out functional programming techniques without learning a whole new syntax and language ecosystem.
+
+This is prerelease software, hence the lack of documentation.  A large number of unit tests are available in the /test directory; the Eve standard libraries (in /src) also support doctess, which are run automatically by the test harness.  The main compiler source code is in /bootstrap and consists of a bunch of Haskell modules.
+
+To build, you'll need the following software:
+- GHC (Glasgow Haskell Compiler)
+- Alex (Haskell lexer generator)
+- Happy (Haskell parser generator)
+- make
+
+The makefile offers the following targets:
+- eve (default): builds the interactive interpreter
+- test: builds the test harness
+- check: builds & runs the test harness
+- lex: builds an executable that prints out the token stream, for debugging
+- clean: removes all generated files.
