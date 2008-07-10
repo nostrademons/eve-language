@@ -14,3 +14,7 @@ The makefile offers the following targets:
 - check: builds & runs the test harness
 - lex: builds an executable that prints out the token stream, for debugging
 - clean: removes all generated files.
+
+There is a blog tracking development and design decisions at:
+
+http://eve-language.blogspot.com/
