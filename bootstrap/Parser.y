@@ -75,7 +75,7 @@ DEDENT { (_, TokDedent) }
 File : FileLine { [$1] }
      | File EOL FileLine { $3 : $1 }
 
-FileLine : VAR '=' Expr                 { Binding $1 $3 }
+FileLine : SequenceUnpack               { $1 }
          | 'import' DottedIdent         { Import (reverse $2) }
          | 'export' VarList             { Export (reverse $2) }
          | 'typedef' VAR ':' TypeExpr   { TypeDef $2 $4 }
@@ -110,7 +110,7 @@ DefBody : Expr                              { ([], "", $1) }
 
 DefLine : Expr                  { NakedExpr $1 }
         | MultiLineExpr         { NakedExpr $1 }
-        | VAR '=' Expr          { Binding $1 $3 }
+        | SequenceUnpack        { $1 }
         | DefDecl               { $1 }
 
 DefLineList     : DefLine                   { [$1] }
@@ -121,6 +121,9 @@ ReplLine : Expr                 { Expr $1 }
          | VAR '=' Expr         { Assignment $1 $3 }
 
 MultiLineExpr   : 'cond' ':' EOL INDENT CondClauseList DEDENT   { Cond (reverse $5) }
+
+SequenceUnpack : VAR '=' Expr          { Binding (Right $1) $3 }
+               | VarList '=' Expr      { Binding (Left $1) $3 }
 
 CondClause : Expr ':' Expr      { ($1, $3) }
 

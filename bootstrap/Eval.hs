@@ -26,7 +26,9 @@ parseDef typeEnv (Def name args docstring typeDecl lines body) = (name, converte
     convertedBody = Lambda args $ 
         (maybe id (addTypeChecks . convertTypeDefs) typeDecl) $
         foldr convertBinding defBody bindings
-    convertBinding (Binding var expr) rest = Funcall (Lambda [var] rest) [expr]
+    convertBinding (Binding (Left vars) expr) rest = 
+        Funcall (Variable "apply") [Lambda vars rest, expr]
+    convertBinding (Binding (Right var) expr) rest = Funcall (Lambda [var] rest) [expr]
     addTypeChecks (TFunc tArgs ret) = TypeCheck (zip args tArgs)
     convertTypeDefs (TPrim name) = maybe (TPrim name) id $ lookup name typeEnv
     convertTypeDefs (TTuple types) = TTuple $ map convertTypeDefs types
@@ -44,7 +46,8 @@ readModule fileText = do
     return $ take (length bindings) evalEnv ++ defEnv
   where
     parseType (TypeDef name val) = (name, val)
-    evalBinding (Binding var expr) env = do
+    -- TODO: sequence-unpacking top-level binding
+    evalBinding (Binding (Right var) expr) env = do
       datum <- eval env expr
       return $ (var, datum) : env 
 

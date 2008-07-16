@@ -125,7 +125,7 @@ data EveFileLine =
     Export [String]
   | Import [String]
   | NakedExpr EveExpr
-  | Binding String EveExpr
+  | Binding (Either [String] String) EveExpr
   | TypeDef String EveType
   | Def String [String] String (Maybe EveType) [EveFileLine] EveExpr
 
@@ -133,7 +133,8 @@ instance Show EveFileLine where
   show (Export bindings) = "export " ++ join ", " bindings ++ "\n"
   show (Import path) = "import " ++ join "." path ++ "\n"
   show (NakedExpr expr) = show expr
-  show (Binding var expr) = var ++ "=" ++ show expr
+  show (Binding (Left vars) expr) = join ", " vars ++ "=" ++ show expr
+  show (Binding (Right var) expr) = var ++ "=" ++ show expr
   show (TypeDef name value) = "typedef " ++ name ++ ": " ++ show value
   show (Def name args docstring Nothing defines body) = 
     "def " ++ name ++ "(" ++ join ", " args ++ "): " ++ show body

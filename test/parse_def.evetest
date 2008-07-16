@@ -3,6 +3,11 @@ File>>> foo = 2
 File>>> def double(x): 2\
 foo = 2
 [def double(x): 2,foo=2]
+File>>> def swap(tuple2): \
+    b, a = tuple2\
+    [a, b]\
+bar = swap([2, 3])
+[def swap(tuple2): [a, b],bar=swap([2, 3])]
 File>>> def double(x): x * 2
 [def double(x): \*(x, 2)]
 File>>> def length_if_large(s):\
