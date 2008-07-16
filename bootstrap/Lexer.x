@@ -40,6 +40,7 @@ tokens :-
 
   <0> [$alnum _] [$alnum $digit _]*     { tokenStr TokVar }
   <0> "\" [$alnum $digit $oper \-_]+    { tokenStr TokVar }
+  <0> ":" [$alnum _] [$alnum $digit _]* { tokenStr $ TokSym . strip 1 0 }
   <0> $oper{1,2} 	                    { tokenStr TokOp }
   <0> "//" [^\n]* \n                ;
   <0> "#" [^\n]* \n	                ;

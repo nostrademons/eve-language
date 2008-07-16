@@ -49,7 +49,7 @@ instance Show EveData where
   show (Int val) = show val
   show (Bool val) = if val then "True" else "False"
   show (String val) = "'" ++ val ++ "'"
-  show (Symbol val) = "Sym(" ++ val ++ ")"
+  show (Symbol val) = ":" ++ val
   show (Tuple val) = showTuple val
   show (SequenceIter val index) = "Iterator(" ++ show index ++ ") for " ++ show val
   show (Record val) = showRecord val
@@ -86,6 +86,7 @@ data EveToken =
     TokInt Int
   | TokBool Bool
   | TokString String
+  | TokSym String
   | TokVar String
   | TokOp String
   | TokKeyword String

@@ -14,6 +14,7 @@ import Data
 INT   { (_, TokInt $$) }
 BOOL  { (_, TokBool $$) }
 STR   { (_, TokString $$) }
+SYM   { (_, TokSym $$) }
 VAR   { (_, TokVar $$) }
 EOL   { (_, TokNewline) }
 INDENT { (_, TokIndent) }
@@ -155,6 +156,7 @@ Expr : Operand             { $1 }
 Operand     : INT                          { (Literal . Int) $1 }
             | BOOL                         { (Literal . Bool) $1 }
             | STR                          { (Literal . String) $1 }
+            | SYM                          { (Literal . Symbol) $1 }
             | VAR                          { Variable $1 }
             | '[' ']'                      { TupleLiteral [] }
             | '[' ExprList ']'             { TupleLiteral (reverse $2) }
