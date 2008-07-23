@@ -81,7 +81,7 @@ FileLine : SequenceUnpack               { $1 }
          | 'typedef' VAR ':' TypeExpr   { TypeDef $2 $4 }
          | DefDecl                      { $1 }
 
-DefDecl     : TypeDecl 'def' VAR '(' VarList ')' ':' DefBody
+DefDecl     : TypeDecl 'def' VAR '(' ArgList ')' ':' DefBody
     { let (lines, docString, body) = $8 in Def $3 (reverse $5) docString $1 lines body }
 
 DocString   : {- Empty -}       { "" }
@@ -166,7 +166,7 @@ Operand     : INT                          { (Literal . Int) $1 }
             | '{' LabeledList '}'          { RecordLiteral (reverse $2) }
             | '(' Expr ')'                 { $2 }
             | Expr '(' ExprList ')'        { Funcall $1 (reverse $3) }
-            | '{' '|' VarList '|' Expr '}' { Lambda (reverse $3) $5 }
+            | '{' '|' ArgList '|' Expr '}' { Lambda (reverse $3) $5 }
 
 Label       : STR                      { $1 }
             | VAR                      { $1 }
@@ -179,6 +179,8 @@ ExprList    : Expr                     { [$1] }
             | ExprList ',' Expr        { $3 : $1 }
 VarList     : VAR                      { [$1] }
             | VarList ',' VAR          { $3 : $1 }
+ArgList     : {- empty -}              { [] }
+            | VarList                  { $1 }
 LabeledList : LabeledPair                   { [$1] }
             | LabeledList ',' LabeledPair   { $3 : $1 }
 

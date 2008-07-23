@@ -1,5 +1,8 @@
 File>>> foo = 2
 [foo=2]
+File>>> def no_arg(): 2\
+foo = 2
+[def no_arg(): 2,foo=2]
 File>>> def double(x): 2\
 foo = 2
 [def double(x): 2,foo=2]
