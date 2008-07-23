@@ -113,7 +113,7 @@ printResults filename (testName, docstring) = do
     mapM (putStrLn . showFailure) $ filter (/= Nothing) failures
   where
     moduleName = join "." $ drop 2 $ splitDirectories $ dropExtension $ filename 
-    runTests lines = runEveM (evalInitial >> mapM runTest lines) primitiveEnv
+    runTests lines = runEveM (evalInitial >> mapM runTest lines) startingEnv
     runTest (test, expected) = do
         result <- (evalLine test >>= return . show) `catchError` (return . show)
         return $ if result == expected then Nothing else Just (test, expected, result)

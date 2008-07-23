@@ -42,7 +42,7 @@ readModule :: String -> EveM ModuleDef
 readModule fileText = do
     (imports, bindings, defs, typedefs) <- lexer fileText >>= parseFile 
                  >>= return . parseFileLines
-    importEnv <- mapM loadModule imports >>= return . (primitiveEnv ++) . concat
+    importEnv <- mapM loadModule imports >>= return . (startingEnv ++) . concat
     evalEnv <- foldl (>>=) (return importEnv) $ map evalBinding bindings
     defEnv <- return $ evalLetrec evalEnv $ map (parseDef $ map parseType typedefs) defs
     return $ take (length bindings) evalEnv ++ defEnv
