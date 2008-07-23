@@ -166,6 +166,7 @@ Operand     : INT                          { (Literal . Int) $1 }
             | '{' LabeledList '}'          { RecordLiteral (reverse $2) }
             | '(' Expr ')'                 { $2 }
             | Expr '(' ExprList ')'        { Funcall $1 (reverse $3) }
+            | Expr '(' ')'                 { Funcall $1 [] }
             | '{' '|' ArgList '|' Expr '}' { Lambda (reverse $3) $5 }
 
 Label       : STR                      { $1 }
