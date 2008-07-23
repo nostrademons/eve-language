@@ -2,7 +2,7 @@ module Data(EveToken(..), AlexPosn(..),
             EveExpr(..), EveReplLine(..), EveFileLine(..), 
             EveError(..), EveData(..), EveType(..), Env, 
             ModuleDef, getAccessibleBindings, sortRecord,
-            EveM, runEveM, getEnv, addTopLevelBinding, 
+            EveM, runEveM, getEnv, eveCall, addTopLevelBinding, 
             modules, getStateField, join) where
 import Data.List
 import Control.Monad.State hiding (join)
@@ -170,6 +170,10 @@ data EveExpr =
   | Letrec [(String, EveExpr)] EveExpr
   | TypeCheck [(String, EveType)] EveExpr
   deriving (Eq)
+
+-- Utility function to generate code fragments for calling other Eve functions
+eveCall :: String -> [EveData] -> EveExpr
+eveCall name args = Funcall (Variable name) $ map Literal args
 
 join sep [] = ""
 join sep ws = foldr1 (\w s -> w ++ sep ++ s) ws

@@ -9,7 +9,6 @@ makePrimitives = zip names $ map (uncurry Primitive) (zip names values)
 
 primitiveEnv = makePrimitives
 
-
 primitives :: [(String, [EveData] -> EveM EveData)]
 primitives = [
   ("\\**", numericBinop ((^) . fromIntegral)),

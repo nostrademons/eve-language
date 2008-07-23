@@ -67,7 +67,7 @@ evalLine line = do
 evalInitial = mapM_ (evalLine . ("import " ++)) autoImports
 
 runTest filename = openTestFile filename 
-                   >>= flip runEveM (primitiveEnv) 
+                   >>= flip runEveM (startingEnv) 
                      . testLines filename f
   where 
     runLex prompt input = lexer input >>= return . show . map showTok

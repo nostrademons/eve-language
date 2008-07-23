@@ -1,4 +1,4 @@
-module Eval(eval, evalRepl, autoImports) where
+module Eval(eval, evalRepl, autoImports, startingEnv) where
 import Control.Monad.State hiding (join)
 import Control.Monad.Error hiding (join)
 import IO
@@ -11,6 +11,8 @@ import Primitives
 
 autoImports = ["eve.data.range"]
 -- autoImports = []
+
+startingEnv = [("apply", Primitive "apply" applyPrimitive)] ++ primitiveEnv
 
 categorize (Import x) (i, b, d, t) = (x : i, b, d, t)
 categorize x@(Binding _ _) (i, b, d, t) = (i, x : b, d, t)
@@ -142,3 +144,23 @@ apply (MultiMethod (method:rest)) args = apply method args `catchError` tryRest
   where
     tryRest _ = apply (MultiMethod rest) args
 apply val args = throwError $ TypeError $ show val ++ " is not a function"
+
+iterableValues :: EveData -> EveM [EveData]
+iterableValues iter = do
+    env <- getEnv
+    Bool hasNext <- iterCall env "has_next"
+    if hasNext then do
+        val <- iterCall env "get"
+        next <- iterCall env "next"
+        rest <- iterableValues next
+        return $ val : rest
+      else
+        return []
+  where iterCall env name = eval env $ eveCall name [iter]
+
+applyPrimitive :: [EveData] -> EveM EveData
+applyPrimitive [fn, sequence] = do
+    env <- getEnv
+    iter <- eval env $ eveCall "iter" [sequence]
+    values <- iterableValues iter
+    apply fn $ values

@@ -40,7 +40,7 @@ handleError action = flip catchError (liftIO . print) . action
 main = let 
     setup = mapM_ (doPhases . ("import " ++)) autoImports
     repl = runRepl "Eve" 
-    initialState = (primitiveEnv)
+    initialState = (startingEnv)
     makeFile name outType = liftIO $ openFile 
          ("../test/" ++ outType ++ "_" ++ name ++ ".evetest") AppendMode
   in do
