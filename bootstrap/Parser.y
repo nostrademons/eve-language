@@ -156,10 +156,7 @@ Expr : Operand             { $1 }
        { Cond [($2, $4), (Literal (Bool True), $6)] }
 
 
-Operand     : INT                          { (Literal . Int) $1 }
-            | BOOL                         { (Literal . Bool) $1 }
-            | STR                          { (Literal . String) $1 }
-            | SYM                          { (Literal . Symbol) $1 }
+Operand     : Literal                      { $1 }
             | VAR                          { Variable $1 }
             | '[' ']'                      { TupleLiteral [] }
             | '[' ExprList ']'             { TupleLiteral (reverse $2) }
@@ -168,6 +165,11 @@ Operand     : INT                          { (Literal . Int) $1 }
             | Expr '(' ExprList ')'        { Funcall $1 (reverse $3) }
             | Expr '(' ')'                 { Funcall $1 [] }
             | '{' '|' ArgList '|' Expr '}' { Lambda (reverse $3) $5 }
+
+Literal     : INT                          { (Literal . Int) $1 }
+            | BOOL                         { (Literal . Bool) $1 }
+            | STR                          { (Literal . String) $1 }
+            | SYM                          { (Literal . Symbol) $1 }
 
 Label       : STR                      { $1 }
             | VAR                      { $1 }
