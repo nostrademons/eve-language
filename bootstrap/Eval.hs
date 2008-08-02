@@ -26,13 +26,15 @@ parseDef typeEnv (Def name args docstring typeDecl lines body) = (name, converte
     (_, bindings, defs, _) = parseFileLines lines
     defBody = Letrec (map (parseDef typeEnv) defs) body
     convertedBody = Lambda args $ 
-        (maybe id (addTypeChecks . convertTypeDefs) typeDecl) $
+        (maybe id (addTypeCheck . convertTypeDefs) typeDecl) $
         foldr convertBinding defBody bindings
+    addTypeCheck typeDecl body = TypeCheck (body, typeDecl) body
     convertBinding (Binding (Left vars) expr) rest = 
         Funcall (Variable "apply") [Lambda vars rest, expr]
     convertBinding (Binding (Right var) expr) rest = Funcall (Lambda [var] rest) [expr]
-    addTypeChecks (TFunc tArgs ret) = TypeCheck (zip args tArgs)
+    convertTypeDefs :: EveType -> EveType
     convertTypeDefs (TPrim name) = maybe (TPrim name) id $ lookup name typeEnv
+    convertTypeDefs (TLiteral datum) = TLiteral datum
     convertTypeDefs (TTuple types) = TTuple $ map convertTypeDefs types
     convertTypeDefs (TRecord types) = TRecord $ zip keys $ map convertTypeDefs values
       where (keys, values) = unzip types
@@ -106,13 +108,14 @@ eval env (Cond ((pred, action):rest)) = do
   if predResult == Bool True then eval env action else eval env (Cond rest)
 eval env (Lambda args body) = return $ Function args body env
 eval env (Letrec bindings body) = eval (evalLetrec env bindings ++ env) body
-eval env (TypeCheck types body) = mapM_ checkType types >> eval env body
+eval env (TypeCheck (tested, typeDecl) body) = 
+    eval env tested >>= throwIfInvalid typeDecl >> eval env body
   where
-    checkType (varname, typeDecl) = eval env (Variable varname) >>= throwIfInvalid typeDecl
     throwIfInvalid (TPrim "Int") val@(Int _) = return val
     throwIfInvalid (TPrim "Bool") val@(Bool _) = return val
     throwIfInvalid (TPrim "Str") val@(String _) = return val
     throwIfInvalid (TPrim "Sym") val@(Symbol _) = return val
+    throwIfInvalid (TLiteral expected) val | val == expected = return val
     -- TODO: function types
     throwIfInvalid (TTuple types) val@(Tuple fields) = checkAll types fields val
     throwIfInvalid (TRecord types) val@(Record fields) = 

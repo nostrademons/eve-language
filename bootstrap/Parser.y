@@ -43,7 +43,7 @@ DEDENT { (_, TokDedent) }
 'then'{ (_, TokOp "then") }
 'else'{ (_, TokOp "else") }
 'cond'{ (_, TokKeyword "cond") }
-'type'{ (_, TokKeyword "type") }
+'as'  { (_, TokOp "as") }
 'typedef'   { (_, TokKeyword "typedef") }
 ','   { (_, TokKeyword ",") }
 '.'   { (_, TokOp ".") }
@@ -81,17 +81,19 @@ FileLine : SequenceUnpack               { $1 }
          | 'typedef' VAR ':' TypeExpr   { TypeDef $2 $4 }
          | DefDecl                      { $1 }
 
-DefDecl     : TypeDecl 'def' VAR '(' ArgList ')' ':' DefBody
-    { let (lines, docString, body) = $8 in Def $3 (reverse $5) docString $1 lines body }
+DefDecl     : 'def' VAR '(' ArgList ')' TypeDecl ':' DefBody
+    { let (lines, docString, body) = $8 in 
+        let (args, newBody) = collectTypeDecls $4 body in 
+            Def $2 args docString $6 lines newBody }
 
 DocString   : {- Empty -}       { "" }
             | STR EOL           { $1 }
 
 TypeDecl    : {- Empty -}       { Nothing }
-            | '@' 'type' '(' TypeList '->' TypeExpr ')' EOL
-                                { Just $ TFunc (reverse $4) $6 }
+            | 'as' TypeExpr     { Just $2 }
 
 TypeExpr    : VAR                               { TPrim $1 }
+            | Literal                           { TLiteral $1 }
             | '[' TypeList ']'                  { TTuple (reverse $2) }
             | '{' LabeledTypeList '}'           { TRecord (reverse $2) }
             | '(' TypeList '->' TypeExpr ')'    { TFunc (reverse $2) $4 }
@@ -156,20 +158,22 @@ Expr : Operand             { $1 }
        { Cond [($2, $4), (Literal (Bool True), $6)] }
 
 
-Operand     : Literal                      { $1 }
+Operand     : Literal                      { Literal $1 }
             | VAR                          { Variable $1 }
-            | '[' ']'                      { TupleLiteral [] }
             | '[' ExprList ']'             { TupleLiteral (reverse $2) }
             | '{' LabeledList '}'          { RecordLiteral (reverse $2) }
             | '(' Expr ')'                 { $2 }
             | Expr '(' ExprList ')'        { Funcall $1 (reverse $3) }
             | Expr '(' ')'                 { Funcall $1 [] }
-            | '{' '|' ArgList '|' Expr '}' { Lambda (reverse $3) $5 }
+            | '{' '|' ArgList '|' Expr '}' { let (args, newBody) = collectTypeDecls $3 $5 in
+                                                Lambda args newBody }
+            | Operand 'as' TypeExpr        { TypeCheck ($1, $3) $1 }
 
-Literal     : INT                          { (Literal . Int) $1 }
-            | BOOL                         { (Literal . Bool) $1 }
-            | STR                          { (Literal . String) $1 }
-            | SYM                          { (Literal . Symbol) $1 }
+Literal     : INT                          { Int $1 }
+            | BOOL                         { Bool $1 }
+            | STR                          { String $1 }
+            | SYM                          { Symbol $1 }
+            | '[' ']'                      { Tuple [] }
 
 Label       : STR                      { $1 }
             | VAR                      { $1 }
@@ -183,7 +187,8 @@ ExprList    : Expr                     { [$1] }
 VarList     : VAR                      { [$1] }
             | VarList ',' VAR          { $3 : $1 }
 ArgList     : {- empty -}              { [] }
-            | VarList                  { $1 }
+            | VAR TypeDecl             { [($1, $2)] }
+            | ArgList ',' VAR TypeDecl { ($3, $4) : $1 }
 LabeledList : LabeledPair                   { [$1] }
             | LabeledList ',' LabeledPair   { $3 : $1 }
 
@@ -214,6 +219,8 @@ replacePartials (Cond condList) = Cond $ map handleClause condList
   where handleClause (pred, action) = (replacePartials pred, replacePartials action)
 replacePartials (Lambda args body) = Lambda args $ replacePartials body
 replacePartials (Funcall expr args) = maybeLambda (Funcall (replacePartials expr)) args
+replacePartials (TypeCheck (tested, typeDecl) expr) = 
+    TypeCheck (replacePartials tested, typeDecl) $ replacePartials expr
 
 maybeLambda exprConstr args =
   if numParams > 0
@@ -226,6 +233,12 @@ maybeLambda exprConstr args =
     substParams (next:params) (Variable "?":args) = Variable next : substParams params args
     substParams params (arg:args) = replacePartials arg : substParams params args
     substParams params [] = []
+
+collectTypeDecls argList body = (reverse $ fst $ unzip argList, newBody)
+  where 
+    newBody = foldr makeTypeCheck body argList
+    makeTypeCheck (varName, Nothing) = id
+    makeTypeCheck (varName, Just typeDecl) = TypeCheck (Variable varName, typeDecl)
 
 findLastExpr docString defLines = (lines, docString, last)
   where

@@ -113,8 +113,8 @@ extractNum [(num, _)] = num
 
 -- Operators are tokens where a following or preceding newline is ignored,
 -- while keywords trigger no special newline handling
-operators = ["and", "or", "not", "then", "else"]
-keywords = ["if", "import", "export", "def", "cond", "typedef", "type"]
+operators = ["and", "or", "not", "then", "else", "as"]
+keywords = ["if", "import", "export", "def", "cond", "typedef"]
 
 replaceKeywords :: [(AlexPosn, EveToken)] -> [(AlexPosn, EveToken)]
 replaceKeywords = map changeKeyword 

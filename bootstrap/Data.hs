@@ -143,18 +143,21 @@ instance Show EveFileLine where
 
 data EveType =
     TPrim String
+  | TLiteral EveData
   | TTuple [EveType]
   | TRecord [(String, EveType)]
   | TFunc [EveType] EveType
 
 instance Show EveType where
   show (TPrim name) = name
+  show (TLiteral datum) = show datum
   show (TTuple fields) = showTuple fields
   show (TRecord fields) = showRecord fields
   show (TFunc args ret) = join ", " (map show args) ++ " -> " ++ show ret
 
 instance Eq EveType where
   TPrim name1 == TPrim name2 = name1 == name2
+  TLiteral x1 == TLiteral x2 = x1 == x2
   TTuple x1 == TTuple x2 = eqTuple x1 x2
   TRecord x1 == TRecord x2 = eqRecord x1 x2
   TFunc args1 ret1 == TFunc args2 ret2 = ret1 == ret2 && eqTuple args1 args2
@@ -168,7 +171,7 @@ data EveExpr =
   | Funcall EveExpr [EveExpr]
   | Lambda [String] EveExpr
   | Letrec [(String, EveExpr)] EveExpr
-  | TypeCheck [(String, EveType)] EveExpr
+  | TypeCheck (EveExpr, EveType) EveExpr
   deriving (Eq)
 
 -- Utility function to generate code fragments for calling other Eve functions
@@ -190,7 +193,8 @@ instance Show EveExpr where
   show (Letrec clauses body) = "Letrec in " ++ show body ++ ":" 
                                 ++ join ", " (map showClause clauses)
     where showClause (name, expr) = name ++ " = " ++ show expr
-  show (TypeCheck typeDecl body) = show body ++ " :: " ++ show typeDecl
+  show (TypeCheck (tested, typeDecl) body) = show tested ++ " as " ++ show typeDecl ++
+        (if tested == body then "" else " => " ++ show body)
 
 -- Errors
 
