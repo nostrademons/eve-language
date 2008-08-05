@@ -3,38 +3,46 @@ import Data
 import Utils
 import Control.Monad.Error
 
-makePrimitives = zip names $ map (uncurry Primitive) (zip names values)
+makePrimitives primitives = 
+    zip names $ map (uncurry Primitive) (zip names values)
   where 
     (names, values) = unzip primitives
 
-primitiveEnv = makePrimitives
 
-primitives :: [(String, [EveData] -> EveM EveData)]
-primitives = [
-  ("\\**", numericBinop ((^) . fromIntegral)),
-  ("\\*", numericBinop (*)),
-  ("\\/", numericBinop div),
-  ("\\%", numericBinop mod),
-  ("\\+", numericBinop (+)),
-  ("\\-", numericBinop (-)),
-  ("\\<", numBoolBinop (<)),
-  ("\\>", numBoolBinop (>)),
-  ("\\==", numBoolBinop (==)),
-  ("\\!=", numBoolBinop (/=)),
-  ("\\>=", numBoolBinop (>=)),
-  ("\\<=", numBoolBinop (<=)),
-  ("\\and", boolBoolBinop (&&)),
-  ("\\or", boolBoolBinop (||)),
-  ("\\not", boolOp (not)),
+numberPrimitives = makePrimitives [
+  ("pow", numericBinop ((^) . fromIntegral)),
+  ("mul", numericBinop (*)),
+  ("floordiv", numericBinop div),
+  ("mod", numericBinop mod),
+  ("add", numericBinop (+)),
+  ("sub", numericBinop (-))]
 
-  ("\\&", concat'),
-  ("type", typeOf),
-  ("len", len),
-  ("get", get),
+orderedPrimitives = makePrimitives [
+  ("lt", numBoolBinop (<)),
+  ("gt", numBoolBinop (>)),
+  ("eq", numBoolBinop (==)),
+  ("ne", numBoolBinop (/=)),
+  ("ge", numBoolBinop (>=)),
+  ("le", numBoolBinop (<=))]
+
+boolPrimitives = makePrimitives [
+  ("and_", boolBoolBinop (&&)),
+  ("or_", boolBoolBinop (||)),
+  ("not_", boolOp (not))]
+
+iterPrimitives = makePrimitives [
   ("iter", iter),
+  ("get", get),
   ("next", iterNext),
-  ("has_next", iterHasNext),
+  ("has_next", iterHasNext)]
 
+sequencePrimitives = makePrimitives [
+  ("\\&", concat'),
+  ("len", len),
+  ("get", get)]
+
+typePrimitives = makePrimitives [
+  ("type", typeOf),
   ("Int", makeInt),
   ("Bool", makeBool),
   ("Str", makeString),
@@ -42,6 +50,10 @@ primitives = [
   ("Tuple", makeList Tuple),
   ("Record", typeObject),
   ("Function", typeObject)]
+
+primitiveEnv = foldr (++) [] [
+    numberPrimitives, orderedPrimitives, boolPrimitives,
+    iterPrimitives, sequencePrimitives, typePrimitives]
 
 typeError = throwError . TypeError
 
@@ -66,7 +78,6 @@ typeOf [Tuple _] = return $ Primitive "Tuple" $ makeList Tuple
 typeOf [Record _] = return $ Primitive "Record" typeObject
 typeOf [Function _ _ _] = return $ Primitive "Function" typeObject
 typeOf [Primitive _ _] = return $ Primitive "Function" typeObject
-typeOf [MultiMethod _] = return $ Primitive "Function" typeObject
 
 lenHelper xs = return . Int $ length xs
 len [String xs] = lenHelper xs
@@ -102,6 +113,8 @@ get _ = typeError "get requires at least one argument"
 iter [val@(String _)] = return $ SequenceIter val 0
 iter [val@(Tuple _)] = return $ SequenceIter val 0
 iter [val@(Record _)] = return $ RecordIter val 0
+iter [val@(SequenceIter _ _)] = return val
+iter [val@(RecordIter _ _)] = return val
 iter val = typeError (show val ++ " is not iterable")
 
 -- TODO: these just expose a Haskell error if you overshoot the end of the
