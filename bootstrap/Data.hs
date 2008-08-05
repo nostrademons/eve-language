@@ -21,7 +21,6 @@ data EveData =
   | RecordIter EveData Int
   | Primitive String ([EveData] -> EveM EveData)
   | Function [String] EveExpr Env 
-  | MultiMethod [EveData]
 
 sortRecord = sortBy fieldCompare 
   where fieldCompare (x, _) (y, _) = compare x y
@@ -42,7 +41,6 @@ instance Eq EveData where
   RecordIter x1 i1 == RecordIter x2 i2 = i1 == i2 && x1 == x2
   Primitive name1 _ == Primitive name2 _ = name1 == name2
   Function _ body1 _ == Function _ body2 _ = body1 == body2
-  MultiMethod m1 == MultiMethod m2 = and $ zipWith (==) m1 m2
   _ == _ = False
 
 instance Show EveData where
@@ -56,7 +54,6 @@ instance Show EveData where
   show (RecordIter val index) = "Iterator(" ++ show index ++ ") for " ++ show val
   show (Primitive name _) = name
   show (Function args body _) = show $ Lambda args body
-  show (MultiMethod methods) = show $ methods 
 
 type Env = [(String, EveData)]
 

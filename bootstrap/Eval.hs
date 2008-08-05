@@ -92,14 +92,10 @@ eval env (RecordLiteral args) = mapM evalRecord args >>= return . Record
   where evalRecord (label, expr) = 
             do value <- eval env expr
                return (label, value)
-eval env (Variable var) = case multiLookup var env of
-    [] -> throwError $ UnboundVar var
-    options -> return $ if all isFunction options 
-        then MultiMethod options else options !! 0
+eval env (Variable var) = maybe (throwError $ UnboundVar var) return $ lookup var env
   where
     isFunction (Function _ _ _) = True
     isFunction (Primitive _ _) = True
-    isFunction (MultiMethod _) = True
     isFunction _ = False
 eval env (Funcall fnExpr argExpr) = 
     tryEvalFuncall env fnExpr argExpr `catchError` tryEvalRecordField env fnExpr argExpr
@@ -142,10 +138,6 @@ apply (Function argNames body env) args = if length argNames == length args
     then eval (zip argNames args ++ env) body
     else throwError $ TypeError $ "Wrong number of arguments: expected " 
                             ++ show argNames ++ ", found " ++ show args
-apply (MultiMethod [single]) args = apply single args
-apply (MultiMethod (method:rest)) args = apply method args `catchError` tryRest
-  where
-    tryRest _ = apply (MultiMethod rest) args
 apply val args = throwError $ TypeError $ show val ++ " is not a function"
 
 iterableValues :: EveData -> EveM [EveData]
