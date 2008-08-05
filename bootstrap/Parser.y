@@ -134,22 +134,22 @@ CondClauseList : CondClause                     { [$1] }
 
 Expr : Operand             { $1 }
      | '-' Expr %prec NEG  { binop "-" (Literal (Int 0)) $2 }
-     | Expr '**' Expr { binop "**" $1 $3 }
-     | Expr '*' Expr { binop "*" $1 $3 }
-     | Expr '/' Expr { binop "/" $1 $3 }
-     | Expr '%' Expr { binop "%" $1 $3 }
-     | Expr '+' Expr { binop "+" $1 $3 }
-     | Expr '-' Expr { binop "-" $1 $3 }
+     | Expr '**' Expr { binop "pow" $1 $3 }
+     | Expr '*' Expr { binop "mul" $1 $3 }
+     | Expr '/' Expr { binop "div" $1 $3 }
+     | Expr '%' Expr { binop "mod" $1 $3 }
+     | Expr '+' Expr { binop "add" $1 $3 }
+     | Expr '-' Expr { binop "sub" $1 $3 }
      | Expr '..' Expr { Funcall (Variable "Range") [$1, $3] }
-     | Expr '==' Expr { binop "==" $1 $3 }
-     | Expr '!=' Expr { binop "!=" $1 $3 }
-     | Expr '>' Expr  { binop ">" $1 $3 }
-     | Expr '<' Expr  { binop "<" $1 $3 }
-     | Expr '>=' Expr { binop ">=" $1 $3 }
-     | Expr '<=' Expr { binop "<=" $1 $3 }
-     | Expr '&' Expr    { binop "&" $1 $3 }
-     | Expr 'and' Expr  { binop "and" $1 $3 }
-     | Expr 'or' Expr   { binop "or" $1 $3 }
+     | Expr '==' Expr { binop "eq" $1 $3 }
+     | Expr '!=' Expr { binop "ne" $1 $3 }
+     | Expr '>' Expr  { binop "gt" $1 $3 }
+     | Expr '<' Expr  { binop "lt" $1 $3 }
+     | Expr '>=' Expr { binop "ge" $1 $3 }
+     | Expr '<=' Expr { binop "le" $1 $3 }
+     | Expr '&' Expr    { binop "\\&" $1 $3 }
+     | Expr 'and' Expr  { binop "\\and" $1 $3 }
+     | Expr 'or' Expr   { binop "\\or" $1 $3 }
      | 'not' Expr       { Funcall (Variable "\\not") [$2] }
      | Expr '->' Expr   { Funcall $3 [$1] }
      | Expr '[' ']'     { Funcall (Variable "get") [$1] }
@@ -244,7 +244,7 @@ findLastExpr docString defLines = (lines, docString, last)
   where
     (lines, [NakedExpr last]) = splitAt (length defLines - 1) defLines
 
-binop name left right = Funcall (Variable ('\\':name)) [left, right]
+binop name left right = Funcall (Variable (name)) [left, right]
 
 happyError ((posn, token):whatever) = throwError $ ParseError token posn
 }

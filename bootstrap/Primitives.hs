@@ -12,7 +12,7 @@ makePrimitives primitives =
 numberPrimitives = makePrimitives [
   ("pow", numericBinop ((^) . fromIntegral)),
   ("mul", numericBinop (*)),
-  ("floordiv", numericBinop div),
+  ("div", numericBinop div),
   ("mod", numericBinop mod),
   ("add", numericBinop (+)),
   ("sub", numericBinop (-))]
