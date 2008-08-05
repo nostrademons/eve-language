@@ -11,16 +11,27 @@ import Control.Monad.Error hiding (join)
 -- Runtime data
 
 data EveData = 
-    Int Int
-  | Bool Bool
-  | String String
-  | Symbol String
-  | Tuple [EveData]
-  | SequenceIter EveData Int
-  | Record [(String, EveData)]
-  | RecordIter EveData Int
-  | Primitive String ([EveData] -> EveM EveData)
-  | Function [String] EveExpr Env 
+    Int Int EveData
+  | Bool Bool EveData  
+  | String String EveData
+  | Symbol String EveData
+  | Tuple [EveData] EveData
+  | SequenceIter EveData Int EveData
+  | Record [(String, EveData)] EveData
+  | RecordIter EveData Int EveData
+  | Primitive String ([EveData] -> EveM EveData) EveData
+  | Function [String] EveExpr Env EveData
+
+prototype (Int _ proto) = proto
+prototype (Bool _ proto) = proto
+prototype (String _ proto) = proto
+prototype (Symbol _ proto) = proto
+prototype (Tuple _ proto) = proto
+prototype (SequenceIter _ _ proto) = proto
+prototype (Record _ proto) = proto
+prototype (RecordIter _ _ proto) = proto
+prototype (Primitive _ _ proto) = proto
+prototype (Function _ _ _ proto) = proto
 
 sortRecord = sortBy fieldCompare 
   where fieldCompare (x, _) (y, _) = compare x y
@@ -31,29 +42,29 @@ eqTuple x1 x2 = and $ zipWith (==) x1 x2
 eqRecord x1 x2 = and $ zipWith (==) (sortRecord x1) (sortRecord x2)
 
 instance Eq EveData where
-  Int x == Int y = x == y
-  Bool x == Bool y = x == y
-  String x == String y = x == y
-  Symbol x == Symbol y = x == y
-  Tuple x1 == Tuple x2 = eqTuple x1 x2
-  SequenceIter x1 i1 == SequenceIter x2 i2 = i1 == i2 && x1 == x2
-  Record x1 == Record x2 = eqRecord x1 x2
-  RecordIter x1 i1 == RecordIter x2 i2 = i1 == i2 && x1 == x2
-  Primitive name1 _ == Primitive name2 _ = name1 == name2
-  Function _ body1 _ == Function _ body2 _ = body1 == body2
+  Int x _ == Int y _ = x == y
+  Bool x _ == Bool y _ = x == y
+  String x _== String y _ = x == y
+  Symbol x _ == Symbol y _ = x == y
+  Tuple x1 _ == Tuple x2 _ = eqTuple x1 x2
+  SequenceIter x1 i1 _ == SequenceIter x2 i2 _ = i1 == i2 && x1 == x2
+  Record x1 _ == Record x2 _ = eqRecord x1 x2
+  RecordIter x1 i1 _ == RecordIter x2 i2 _ = i1 == i2 && x1 == x2
+  Primitive name1 _ _ == Primitive name2 _ _ = name1 == name2
+  Function _ body1 _ _ == Function _ body2 _ _ = body1 == body2
   _ == _ = False
 
 instance Show EveData where
-  show (Int val) = show val
-  show (Bool val) = if val then "True" else "False"
-  show (String val) = "'" ++ val ++ "'"
-  show (Symbol val) = ":" ++ val
-  show (Tuple val) = showTuple val
-  show (SequenceIter val index) = "Iterator(" ++ show index ++ ") for " ++ show val
-  show (Record val) = showRecord val
-  show (RecordIter val index) = "Iterator(" ++ show index ++ ") for " ++ show val
-  show (Primitive name _) = name
-  show (Function args body _) = show $ Lambda args body
+  show (Int val _) = show val
+  show (Bool val _) = if val then "True" else "False"
+  show (String val _) = "'" ++ val ++ "'"
+  show (Symbol val _) = ":" ++ val
+  show (Tuple val _) = showTuple val
+  show (SequenceIter val index _) = "Iterator(" ++ show index ++ ") for " ++ show val
+  show (Record val _) = showRecord val
+  show (RecordIter val index _) = "Iterator(" ++ show index ++ ") for " ++ show val
+  show (Primitive name _ _) = name
+  show (Function args body _ _) = show $ Lambda args body
 
 type Env = [(String, EveData)]
 

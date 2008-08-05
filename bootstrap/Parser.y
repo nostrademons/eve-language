@@ -3,6 +3,7 @@ module Parser(parseRepl, parseFile, EveData(..), EveExpr(..)) where
 import Control.Monad.Error hiding (join)
 import Lexer
 import Data
+import Primitives
 }
 
 %name file File
@@ -133,7 +134,7 @@ CondClauseList : CondClause                     { [$1] }
                 | CondClauseList EOL CondClause { $3 : $1 }
 
 Expr : Operand             { $1 }
-     | '-' Expr %prec NEG  { binop "-" (Literal (Int 0)) $2 }
+     | '-' Expr %prec NEG  { binop "-" (Literal (makeInt 0)) $2 }
      | Expr '**' Expr { binop "pow" $1 $3 }
      | Expr '*' Expr { binop "mul" $1 $3 }
      | Expr '/' Expr { binop "div" $1 $3 }
@@ -155,7 +156,7 @@ Expr : Operand             { $1 }
      | Expr '[' ']'     { Funcall (Variable "get") [$1] }
      | Expr '[' Expr ']' { Funcall (Variable "get") [$3, $1] }
      | 'if' Expr 'then' Expr 'else' Expr
-       { Cond [($2, $4), (Literal (Bool True), $6)] }
+       { Cond [($2, $4), (Literal (makeBool True), $6)] }
 
 
 Operand     : Literal                      { Literal $1 }
@@ -169,11 +170,11 @@ Operand     : Literal                      { Literal $1 }
                                                 Lambda args newBody }
             | Operand 'as' TypeExpr        { TypeCheck ($1, $3) $1 }
 
-Literal     : INT                          { Int $1 }
-            | BOOL                         { Bool $1 }
-            | STR                          { String $1 }
-            | SYM                          { Symbol $1 }
-            | '[' ']'                      { Tuple [] }
+Literal     : INT                          { makeInt $1 }
+            | BOOL                         { makeBool $1 }
+            | STR                          { makeString $1 }
+            | SYM                          { makeSymbol $1 }
+            | '[' ']'                      { makeTuple [] }
 
 Label       : STR                      { $1 }
             | VAR                      { $1 }

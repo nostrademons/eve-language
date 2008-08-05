@@ -1,13 +1,14 @@
-module Primitives(primitiveEnv) where
+module Primitives(makeInt, makeBool, makeString, makeSymbol, 
+    makeTuple, makeRecord, makePrimitive, makeFunction) where
 import Data
 import Utils
 import Control.Monad.Error
 
-makePrimitives primitives = 
-    zip names $ map (uncurry Primitive) (zip names values)
+makePrimitives primitives = zip names $ map makePrimitive (zip names values)
   where 
     (names, values) = unzip primitives
 
+-- Individual method lists for different types
 
 numberPrimitives = makePrimitives [
   ("pow", numericBinop ((^) . fromIntegral)),
@@ -17,11 +18,13 @@ numberPrimitives = makePrimitives [
   ("add", numericBinop (+)),
   ("sub", numericBinop (-))]
 
+eqPrimitives = makePrimitives [
+  ("eq", numBoolBinop (==)),
+  ("ne", numBoolBinop (/=))]
+
 orderedPrimitives = makePrimitives [
   ("lt", numBoolBinop (<)),
   ("gt", numBoolBinop (>)),
-  ("eq", numBoolBinop (==)),
-  ("ne", numBoolBinop (/=)),
   ("ge", numBoolBinop (>=)),
   ("le", numBoolBinop (<=))]
 
@@ -43,13 +46,28 @@ sequencePrimitives = makePrimitives [
 
 typePrimitives = makePrimitives [
   ("type", typeOf),
-  ("Int", makeInt),
-  ("Bool", makeBool),
-  ("Str", makeString),
-  ("Sym", makeSymbol),
-  ("Tuple", makeList Tuple),
+  ("Int", convertToInt),
+  ("Bool", convertToBool),
+  ("Str", convertToString),
+  ("Sym", convertToSymbol),
+  ("Tuple", convertToTuple),
   ("Record", typeObject),
   ("Function", typeObject)]
+
+-- Factories that bundle a basic data type up with the primitives associated
+-- with it
+
+makePrototype = makeRecord . concat
+makeInt val = Int val $ makePrototype [numberPrimitives, eqPrimitives, 
+                                        orderedPrimitives, typePrimitives]
+makeBool val = Bool val $ makePrototype [eqPrimitives, boolPrimitives, typePrimitives]
+makeString val = String val $ makePrototype [eqPrimitives, orderedPrimitives, 
+                            sequencePrimitives, typePrimitives]
+makeSymbol val = Symbol val $ makePrototype [eqPrimitives, typePrimitives]
+makeTuple val = Tuple val $ makePrototype [eqPrimitives, sequencePrimitives, typePrimitives]
+makeRecord val = Record val $ makePrototype [eqPrimitives, sequencePrimitives, typePrimitives]
+makePrimitive (name, fn) = Primitive name fn $ makePrototype [eqPrimitives, typePrimitives]
+makeFunction args body env = Function args body env $ makePrototype [eqPrimitives, typePrimitives]
 
 primitiveEnv = foldr (++) [] [
     numberPrimitives, orderedPrimitives, boolPrimitives,
@@ -58,31 +76,32 @@ primitiveEnv = foldr (++) [] [
 typeError = throwError . TypeError
 
 numericBinop :: (Int -> Int -> Int) -> [EveData] -> EveM EveData
-numericBinop f [Int arg1, Int arg2] = return $ Int $ f arg1 arg2
+numericBinop f [Int arg1 _, Int arg2 _] = return $ makeInt $ f arg1 arg2
 numericBinop f _ = typeError "Numeric operator expects 2 ints"
 
-numBoolBinop f [Int arg1, Int arg2] = return $ Bool $ f arg1 arg2
+numBoolBinop f [Int arg1 _, Int arg2 _] = return $ makeBool $ f arg1 arg2
 numBoolBinop f _ = typeError "Boolean operator expects 2 ints"
 
-boolBoolBinop f [Bool arg1, Bool arg2] = return $ Bool $ f arg1 arg2
+boolBoolBinop f [Bool arg1 _, Bool arg2 _] = return $ makeBool $ f arg1 arg2
 boolBoolBinop f _ = typeError "Boolean operator expects 2 bools"
 
-boolOp f [Bool arg] = return $ Bool $ f arg
+boolOp f [Bool arg _] = return $ makeBool $ f arg
 boolOp f _ = typeError "Expects a boolean"
 
-typeOf [Int _] = return $ Primitive "Int" makeInt
-typeOf [Bool _] = return $ Primitive "Bool" makeBool
-typeOf [String _] = return $ Primitive "Str" makeString
-typeOf [Symbol _] = return $ Primitive "Sym" makeSymbol
-typeOf [Tuple _] = return $ Primitive "Tuple" $ makeList Tuple
-typeOf [Record _] = return $ Primitive "Record" typeObject
-typeOf [Function _ _ _] = return $ Primitive "Function" typeObject
-typeOf [Primitive _ _] = return $ Primitive "Function" typeObject
+typeOf [Int _ _] = return $ makePrimitive ("Int", convertToInt)
+typeOf [Bool _ _] = return $ makePrimitive ("Bool", convertToBool)
+typeOf [String _ _] = return $ makePrimitive ("Str", convertToString)
+typeOf [Symbol _ _] = return $ makePrimitive ("Sym", convertToSymbol)
+typeOf [Tuple _ _] = return $ makePrimitive ("Tuple", convertToTuple)
+typeOf [Record _ _] = return $ makePrimitive ("Record", typeObject)
+typeOf [Function _ _ _ _] = return $ makePrimitive ("Function", typeObject)
+typeOf [Primitive _ _ _] = return $ makePrimitive ("Function", typeObject)
 
-lenHelper xs = return . Int $ length xs
-len [String xs] = lenHelper xs
-len [Tuple xs] = lenHelper xs
-len [Record xs] = lenHelper xs
+lenHelper xs = return . makeInt $ length xs
+len :: [EveData] -> EveM EveData
+len [String xs _] = lenHelper xs
+len [Tuple xs _] = lenHelper xs
+len [Record xs _] = lenHelper xs
 len _ = typeError "Length requires a sequence or container"
 
 fixNegative xs index = if index < 0 then length xs + index else index
@@ -92,66 +111,67 @@ sliceHelper constr xs fields = do
     end <- lookupField "stop"
     return . constr $ take (end - start) (drop start xs)
   where
-    extract (Int num) = return $ fixNegative xs num
+    extract (Int num _) = return $ fixNegative xs num
     extract _ = typeError "Index is not an integer"
     lookupField field = maybe (typeError $ "No " ++ field ++ " field") extract $ lookup field fields
 
-get [Int index, String xs] = getHelper xs index >>= \c -> return (String [c])
-get [Int index, Tuple xs] = getHelper xs index
-get [String index, Record xs] = 
+get [Int index _, String xs _] = getHelper xs index >>= \c -> return (makeString [c])
+get [Int index _, Tuple xs _] = getHelper xs index
+get [String index _, Record xs _] = 
     maybe (typeError $ "Unknown field " ++ index) return $ lookup index xs
-get [Record fields, String xs] = sliceHelper String xs fields
-get [Record fields, Tuple xs] = sliceHelper Tuple xs fields
-get [Tuple xs] = getHelper xs 0
-get [SequenceIter (String xs) index] = return $ String [xs !! index]
-get [SequenceIter (Tuple xs) index] = return $ xs !! index
-get [RecordIter (Record xs) index] = return $ Tuple [String $ fst pair, snd pair]
+get [Record fields _, String xs _] = sliceHelper makeString xs fields
+get [Record fields _, Tuple xs _] = sliceHelper makeTuple xs fields
+get [Tuple xs _] = getHelper xs 0
+get [SequenceIter (String xs _) index _] = return $ makeString [xs !! index]
+get [SequenceIter (Tuple xs _) index _] = return $ xs !! index
+get [RecordIter (Record xs _) index _] = return $ makeTuple [makeString $ fst pair, snd pair]
   where pair = xs !! index
 get (val:_) = typeError (show val ++ " is not indexable")
 get _ = typeError "get requires at least one argument"
 
-iter [val@(String _)] = return $ SequenceIter val 0
-iter [val@(Tuple _)] = return $ SequenceIter val 0
-iter [val@(Record _)] = return $ RecordIter val 0
-iter [val@(SequenceIter _ _)] = return val
-iter [val@(RecordIter _ _)] = return val
+allIterPrimitives = makePrototype [eqPrimitives, iterPrimitives, typePrimitives]
+iter [val@(String _ _)] = return $ SequenceIter val 0 allIterPrimitives
+iter [val@(Tuple _ _)] = return $ SequenceIter val 0 allIterPrimitives
+iter [val@(Record _ _)] = return $ RecordIter val 0 allIterPrimitives
+iter [val@(SequenceIter _ _ _)] = return val
+iter [val@(RecordIter _ _ _)] = return val
 iter val = typeError (show val ++ " is not iterable")
 
 -- TODO: these just expose a Haskell error if you overshoot the end of the
 -- sequence, instead of raising a nice EveError
-iterNext [SequenceIter val index] = return $ SequenceIter val (index + 1)
-iterNext [RecordIter val index] = return $ RecordIter val (index + 1)
+iterNext [SequenceIter val index proto] = return $ SequenceIter val (index + 1) proto
+iterNext [RecordIter val index proto] = return $ RecordIter val (index + 1) proto
 iterNext _ = typeError "Not an iterator."
 
-iterHasNextHelper xs index = return . Bool $ index < length xs
-iterHasNext [SequenceIter (String xs) index] = iterHasNextHelper xs index
-iterHasNext [SequenceIter (Tuple xs) index] = iterHasNextHelper xs index
-iterHasNext [RecordIter (Record xs) index] = iterHasNextHelper xs index
+iterHasNextHelper xs index = return . makeBool $ index < length xs
+iterHasNext [SequenceIter (String xs _) index _] = iterHasNextHelper xs index
+iterHasNext [SequenceIter (Tuple xs _) index _] = iterHasNextHelper xs index
+iterHasNext [RecordIter (Record xs _) index _] = iterHasNextHelper xs index
 iterHasNext _ = typeError "Not an iterator."
 
-concat' [String xs, String ys] = return $ String (xs ++ ys)
-concat' [Tuple xs, Tuple ys] = return $ Tuple (xs ++ ys)
+concat' [String xs _, String ys _] = return $ makeString (xs ++ ys)
+concat' [Tuple xs _, Tuple ys _] = return $ makeTuple (xs ++ ys)
 concat' _ = typeError "Concatenation needs a sequence"
 
 typeObject _ = typeError "Pure type objects cannot be applied."
 
-makeInt [Int x] = return . Int $ x
-makeInt [Bool x] = return . Int $ if x then 1 else 0
-makeInt [String x] = return . Int $ read x
-makeInt _ = typeError "Int expects a single Int, Bool, or String"
+convertToInt [Int x _] = return . makeInt $ x
+convertToInt [Bool x _] = return . makeInt $ if x then 1 else 0
+convertToInt [String x _] = return . makeInt $ read x
+convertToInt _ = typeError "Int expects a single Int, Bool, or String"
 
-makeBool [Int x] = return . Bool $ x /= 0
-makeBool [Bool x] = return . Bool $ x
-makeBool [String x] = return . Bool $ length x > 0
-makeBool [Tuple xs] = return . Bool $ length xs > 0
-makeBool _ = typeError "Bool expects a single Int, Bool, String, Tuple, or List"
+convertToBool [Int x _] = return . makeBool $ x /= 0
+convertToBool [Bool x _] = return . makeBool $ x
+convertToBool [String x _] = return . makeBool $ length x > 0
+convertToBool [Tuple xs _] = return . makeBool $ length xs > 0
+convertToBool _ = typeError "Bool expects a single Int, Bool, String, Tuple, or List"
 
-makeString [x] = return . String $ show x
-makeString _ = typeError "String expects a single argument"
+convertToString [x] = return . makeString $ show x
+convertToString _ = typeError "String expects a single argument"
 
-makeSymbol [String x] = return $ Symbol x
-makeSymbol _ = typeError "Sym expects a string"
+convertToSymbol [String x _] = return $ makeSymbol x
+convertToSymbol _ = typeError "Sym expects a string"
 
-makeList constr [Tuple xs] = return $ constr xs
-makeList constr [x] = return $ constr [x]
-makeList constr xs = return $ constr xs
+convertToTuple [Tuple xs _] = return $ makeTuple xs
+convertToTuple [x] = return $ makeTuple [x]
+convertToTuple xs = return $ makeTuple xs

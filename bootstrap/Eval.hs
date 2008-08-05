@@ -12,7 +12,7 @@ import Primitives
 autoImports = ["eve.data.range"]
 -- autoImports = []
 
-startingEnv = [("apply", Primitive "apply" applyPrimitive)] ++ primitiveEnv
+startingEnv = [("apply", makePrimitive ("apply", applyPrimitive))]
 
 categorize (Import x) (i, b, d, t) = (x : i, b, d, t)
 categorize x@(Binding _ _) (i, b, d, t) = (i, x : b, d, t)
@@ -83,38 +83,36 @@ evalLetrec :: Env -> [(String, EveExpr)] -> Env
 evalLetrec env defs = result
   where
     result = map makeBinding defs
-    makeBinding (name, Lambda args body) = (name, Function args body (result ++ env))
+    makeBinding (name, Lambda args body) = (name, makeFunction args body (result ++ env))
 
 eval :: Env -> EveExpr -> EveM EveData
 eval env (Literal val) = return val
-eval env (TupleLiteral args) = mapM (eval env) args >>= return . Tuple
-eval env (RecordLiteral args) = mapM evalRecord args >>= return . Record
+eval env (TupleLiteral args) = mapM (eval env) args >>= return . makeTuple
+eval env (RecordLiteral args) = mapM evalRecord args >>= return . makeRecord
   where evalRecord (label, expr) = 
             do value <- eval env expr
                return (label, value)
 eval env (Variable var) = maybe (throwError $ UnboundVar var) return $ lookup var env
-  where
-    isFunction (Function _ _ _) = True
-    isFunction (Primitive _ _) = True
-    isFunction _ = False
 eval env (Funcall fnExpr argExpr) = 
     tryEvalFuncall env fnExpr argExpr `catchError` tryEvalRecordField env fnExpr argExpr
 eval env (Cond ((pred, action):rest)) = do
   predResult <- eval env pred
-  if predResult == Bool True then eval env action else eval env (Cond rest)
-eval env (Lambda args body) = return $ Function args body env
+  case predResult of
+    Bool True _ -> eval env action 
+    otherwise -> eval env (Cond rest)
+eval env (Lambda args body) = return $ makeFunction args body env
 eval env (Letrec bindings body) = eval (evalLetrec env bindings ++ env) body
 eval env (TypeCheck (tested, typeDecl) body) = 
     eval env tested >>= throwIfInvalid typeDecl >> eval env body
   where
-    throwIfInvalid (TPrim "Int") val@(Int _) = return val
-    throwIfInvalid (TPrim "Bool") val@(Bool _) = return val
-    throwIfInvalid (TPrim "Str") val@(String _) = return val
-    throwIfInvalid (TPrim "Sym") val@(Symbol _) = return val
+    throwIfInvalid (TPrim "Int") val@(Int _ _) = return val
+    throwIfInvalid (TPrim "Bool") val@(Bool _ _) = return val
+    throwIfInvalid (TPrim "Str") val@(String _ _) = return val
+    throwIfInvalid (TPrim "Sym") val@(Symbol _ _) = return val
     throwIfInvalid (TLiteral expected) val | val == expected = return val
     -- TODO: function types
-    throwIfInvalid (TTuple types) val@(Tuple fields) = checkAll types fields val
-    throwIfInvalid (TRecord types) val@(Record fields) = 
+    throwIfInvalid (TTuple types) val@(Tuple fields _) = checkAll types fields val
+    throwIfInvalid (TRecord types) val@(Record fields _) = 
         checkAll (extractVals types) (extractVals fields) val
     throwIfInvalid typeDecl val = throwError $ TypeError (show val ++ " is not a " ++ show typeDecl)
     checkAll types fields val = sequence_ (zipWith throwIfInvalid types fields) >> return val
@@ -127,14 +125,14 @@ tryEvalFuncall env fnExpr argExpr = do
 tryEvalRecordField env (Variable field) [argExpr] err@(UnboundVar _) = do
   value <- eval env argExpr
   case value of 
-    Record fields -> maybe (throwError $ MissingField value field) return $
+    Record fields _ -> maybe (throwError $ MissingField value field) return $
                     lookup field fields
     otherwise -> throwError err
 tryEvalRecordField env _ _ err = throwError err
 
 apply :: EveData -> [EveData] -> EveM EveData
-apply (Primitive name fn) args = fn args
-apply (Function argNames body env) args = if length argNames == length args
+apply (Primitive name fn _) args = fn args
+apply (Function argNames body env _) args = if length argNames == length args
     then eval (zip argNames args ++ env) body
     else throwError $ TypeError $ "Wrong number of arguments: expected " 
                             ++ show argNames ++ ", found " ++ show args
@@ -143,7 +141,7 @@ apply val args = throwError $ TypeError $ show val ++ " is not a function"
 iterableValues :: EveData -> EveM [EveData]
 iterableValues iter = do
     env <- getEnv
-    Bool hasNext <- iterCall env "has_next"
+    Bool hasNext _ <- iterCall env "has_next"
     if hasNext then do
         val <- iterCall env "get"
         next <- iterCall env "next"
