@@ -122,12 +122,16 @@ tryEvalFuncall env fnExpr argExpr = do
   fn <- eval env fnExpr
   args <- mapM (eval env) argExpr
   apply fn args
-tryEvalRecordField env (Variable field) [argExpr] err@(UnboundVar _) = do
-  value <- eval env argExpr
-  case value of 
-    Record fields _ -> maybe (throwError $ MissingField value field) return $
-                    lookup field fields
-    otherwise -> throwError err
+tryEvalRecordField env (Variable field) args@(firstArg : restArgs) err@(UnboundVar _) = do
+    newFn <- eval env firstArg >>= recordLookup 
+    args <- mapM (eval env) args
+    apply newFn args
+  where 
+    tryPrototype (Bool False _) = throwError err
+    tryPrototype proto = recordLookup proto
+    recordLookup value = case value of 
+        Record fields proto -> maybe (tryPrototype proto) return $ lookup field fields
+        value -> tryPrototype (prototype value)
 tryEvalRecordField env _ _ err = throwError err
 
 apply :: EveData -> [EveData] -> EveM EveData

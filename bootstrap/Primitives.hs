@@ -57,7 +57,7 @@ typePrimitives = makePrimitives [
 -- Factories that bundle a basic data type up with the primitives associated
 -- with it
 
-makePrototype = makeRecord . concat
+makePrototype primitives = Record (concat primitives) (makeBool False)
 makeInt val = Int val $ makePrototype [numberPrimitives, eqPrimitives, 
                                         orderedPrimitives, typePrimitives]
 makeBool val = Bool val $ makePrototype [eqPrimitives, boolPrimitives, typePrimitives]

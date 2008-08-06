@@ -1,7 +1,7 @@
 module Data(EveToken(..), AlexPosn(..), 
             EveExpr(..), EveReplLine(..), EveFileLine(..), 
             EveError(..), EveData(..), EveType(..), Env, 
-            ModuleDef, getAccessibleBindings, sortRecord,
+            ModuleDef, getAccessibleBindings, sortRecord, prototype, 
             EveM, runEveM, getEnv, eveCall, addTopLevelBinding, 
             modules, getStateField, join) where
 import Data.List
