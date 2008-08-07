@@ -1,0 +1,9 @@
+import eve.lang.class
+import eve.data.stream
+
+typedef Sequence(Stream): {
+    empty: Sequence -> Sequence,
+    add: Sequence -> Any,
+}
+
+Sequence = 

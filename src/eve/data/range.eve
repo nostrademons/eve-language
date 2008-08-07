@@ -1,7 +1,11 @@
 import eve.lang.class
 import eve.data.sequence
 
-typedef Range: { start: Int, stop: Int, step: Int }
+typedef Range: { 
+    start: Int, 
+    stop: Int, 
+    step: Int 
+}
 
 def init(start=0, stop, step=1): locals()
 def iter(self): self

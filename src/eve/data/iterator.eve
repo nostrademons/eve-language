@@ -1,0 +1,7 @@
+import eve.lang.class
+
+typedef Iterator: {
+    get: Iterator -> Any,
+    next: Iterator -> Iterator,
+    has_next: Iterator -> Bool
+}

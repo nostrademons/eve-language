@@ -1,0 +1,23 @@
+import eve.lang.class
+import eve.data.iterator
+
+typedef Stream: {
+    iter: Sequence -> Iterator,
+}
+
+def reduce(self, f, accum, breakout=constant(False), not_found=None):
+    i = self.iter()
+    cond:
+        breakout(i.get()): accum
+        i.has_next(): i.next().reduce(f(i.get(), accum)
+        True: not_found
+
+def len(self): self.reduce(? + 1, 0)
+def find(self, val): self.reduce(? + 1, 0, ? == val, -1)
+def contains(self, val): self.find(val) != -1
+def any(self, pred=Bool): self.reduce(constant(True), True, ? == True, False)
+def all(self, pred=Bool): self.reduce(constant(True), True, ? == False, True)
+def min(self): self.reduce({| val, last | if val < last then val else last }, self[0])
+def max(self): self.reduce({| val, last | if val > last then val else last }, self[0])
+
+Stream = globals()
