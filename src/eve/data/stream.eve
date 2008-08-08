@@ -1,9 +1,0 @@
-import eve.lang.class
-import eve.data.iterator
-
-typedef Stream: {
-    iter: Sequence -> Iterator,
-}
-
-
-Stream = globals()
