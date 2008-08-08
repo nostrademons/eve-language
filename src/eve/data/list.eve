@@ -1,28 +1,14 @@
-def Cons(contents, rest): [contents, rest]
-def head(cons): cons[0]
-def tail(cons): cons[1]
+import eve.lang.class
+import eve.data.sequence
 
-def List(iterable):
-    '''
-    Constructs a list from any iterable object.
-    '''
-    List(iterable->iter)
-
-def List(i):
-    '''
-    Constructs a list from an iterator.
-    '''
-    if i->has_next then Cons(i->get, List(i->next)) else []
-
-# TODO: we really need to straighten out multimethods, because this is hiding
-# all the primitive multimethods
-def iter(list):
-    '''
-    Returns an iterator over this list.  List objects are their own iterators.
-    '''
-    list
-
-def get(list): head(list)
-def next(list): tail(list)
-def has_next(list): list != []
-
+@namespace
+def List():
+    def init(seq=[]):
+        iter = seq.iter()
+        if iter.has_next() then [iter.get(), List(iter.next())] else []
+    def get(self): self[0]
+    def next(self): self[1]
+    def has_next(self): self.next() != []
+    def empty(self): []
+    def add(self, val): [val, self]
+    make_class(Sequence, locals())

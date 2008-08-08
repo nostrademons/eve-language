@@ -1,0 +1,23 @@
+def bind_if_function(self, method):
+    if is_instance(method, Function) 
+        then {| *args | method(self, *args) } 
+        else method
+
+def make_class(superclass, methods):
+    prototype = methods | { proto: superclass }
+    def constructor(*args):
+        methods.init(*args) | {
+            proto: prototype,
+            get_attr: {| self, method_name | bind_if_function(self, self[method_name] }
+        }
+    constructor | prototype
+
+def ignore_self(f): {| self, *args | f(*args) }
+def super(self): 
+    self.proto | { get_attr: 
+        {| receiver, method_name | bind_if_function(self, receiver[method_name]) } }
+
+def add_superclass(superclass, obj):
+    # TODO: should really trace down to the end of the prototype chain to preserve
+    # the new superclass's class hierarchy.
+    obj | { proto: superclass | { proto: obj.proto } }
