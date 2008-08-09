@@ -1,10 +1,10 @@
 Eve>>> x = 3
 x=3
 Eve>>> 2*x
-\*(2, x)
+mul(2, x)
 Eve>>> y=2+x
-y=\+(2, x)
+y=add(2, x)
 Eve>>> x*y
-\*(x, y)
-Eve>>> \+(x, y)
-\+(x, y)
+mul(x, y)
+Eve>>> add(x, y)
+add(x, y)

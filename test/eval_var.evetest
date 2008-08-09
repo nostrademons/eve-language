@@ -6,5 +6,5 @@ Eve>>> y=2+x
 5
 Eve>>> x*y
 15
-Eve>>> \+(x, y)
+Eve>>> add(x, y)
 8

@@ -12,7 +12,7 @@ File>>> def swap(tuple2): \
 bar = swap([2, 3])
 [def swap(tuple2): [a, b],bar=swap([2, 3])]
 File>>> def double(x): x * 2
-[def double(x): \*(x, 2)]
+[def double(x): mul(x, 2)]
 File>>> def length_if_large(s):\
     strlen = len(s)\
     if strlen > 5 then Str(strlen) else s\

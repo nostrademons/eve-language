@@ -1,2 +1,2 @@
-Eve>>> apply(\+, [2, 3])
+Eve>>> apply(add, [2, 3])
 5

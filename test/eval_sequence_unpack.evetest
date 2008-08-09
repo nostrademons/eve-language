@@ -1,4 +1,4 @@
 Eve>>> import test.test_sequence_unpack
-{|| apply({|b, a| Letrec in \+(a, b):}, [2, 3])}
+{|| apply({|b, a| Letrec in add(a, b):}, [2, 3])}
 Eve>>> five()
 5
