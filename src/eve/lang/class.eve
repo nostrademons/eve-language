@@ -12,6 +12,7 @@ def make_class(superclass, methods):
         }
     constructor | prototype
 
+def namespace(fn): fn() | fn
 def ignore_self(f): {| self, *args | f(*args) }
 def super(self): 
     self.proto | { get_attr: 
