@@ -1,6 +1,6 @@
 Eve>>> add(2, 3)
 5
-Eve>>> \>(3, 2)
+Eve>>> gt(3, 2)
 True
 Eve>>> add(mul(3, 2), 5)
 11
