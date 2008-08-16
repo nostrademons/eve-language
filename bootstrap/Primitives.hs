@@ -57,7 +57,7 @@ typePrimitives = makePrimitives [
 -- Factories that bundle a basic data type up with the primitives associated
 -- with it
 
-makePrototype primitives = Record (concat primitives) (makeBool False)
+makePrototype primitives = [("proto", Record $ ("proto", (makeBool False)) : (concat primitives))]
 makeInt val = Int val $ makePrototype [numberPrimitives, eqPrimitives, 
                                         orderedPrimitives, typePrimitives]
 makeBool val = Bool val $ makePrototype [eqPrimitives, boolPrimitives, typePrimitives]
@@ -65,7 +65,7 @@ makeString val = String val $ makePrototype [eqPrimitives, orderedPrimitives,
                             sequencePrimitives, typePrimitives]
 makeSymbol val = Symbol val $ makePrototype [eqPrimitives, typePrimitives]
 makeTuple val = Tuple val $ makePrototype [eqPrimitives, sequencePrimitives, typePrimitives]
-makeRecord val = Record val $ makePrototype [eqPrimitives, sequencePrimitives, typePrimitives]
+makeRecord val = Record (makePrototype [eqPrimitives, sequencePrimitives, typePrimitives] ++ val)
 makePrimitive (name, fn) = Primitive name fn $ makePrototype [eqPrimitives, typePrimitives]
 makeFunction args body env = Function args body env $ makePrototype [eqPrimitives, typePrimitives]
 
@@ -93,7 +93,7 @@ typeOf [Bool _ _] = return $ makePrimitive ("Bool", convertToBool)
 typeOf [String _ _] = return $ makePrimitive ("Str", convertToString)
 typeOf [Symbol _ _] = return $ makePrimitive ("Sym", convertToSymbol)
 typeOf [Tuple _ _] = return $ makePrimitive ("Tuple", convertToTuple)
-typeOf [Record _ _] = return $ makePrimitive ("Record", typeObject)
+typeOf [Record _] = return $ makePrimitive ("Record", typeObject)
 typeOf [Function _ _ _ _] = return $ makePrimitive ("Function", typeObject)
 typeOf [Primitive _ _ _] = return $ makePrimitive ("Function", typeObject)
 
@@ -101,7 +101,7 @@ lenHelper xs = return . makeInt $ length xs
 len :: [EveData] -> EveM EveData
 len [String xs _] = lenHelper xs
 len [Tuple xs _] = lenHelper xs
-len [Record xs _] = lenHelper xs
+len [Record xs] = lenHelper $ recordFields xs
 len _ = typeError "Length requires a sequence or container"
 
 fixNegative xs index = if index < 0 then length xs + index else index
@@ -117,14 +117,14 @@ sliceHelper constr xs fields = do
 
 get [Int index _, String xs _] = getHelper xs index >>= \c -> return (makeString [c])
 get [Int index _, Tuple xs _] = getHelper xs index
-get [String index _, Record xs _] = 
+get [String index _, Record xs] = 
     maybe (typeError $ "Unknown field " ++ index) return $ lookup index xs
-get [Record fields _, String xs _] = sliceHelper makeString xs fields
-get [Record fields _, Tuple xs _] = sliceHelper makeTuple xs fields
+get [Record fields, String xs _] = sliceHelper makeString xs fields
+get [Record fields, Tuple xs _] = sliceHelper makeTuple xs fields
 get [Tuple xs _] = getHelper xs 0
 get [SequenceIter (String xs _) index _] = return $ makeString [xs !! index]
 get [SequenceIter (Tuple xs _) index _] = return $ xs !! index
-get [RecordIter (Record xs _) index _] = return $ makeTuple [makeString $ fst pair, snd pair]
+get [RecordIter (Record xs) index _] = return $ makeTuple [makeString $ fst pair, snd pair]
   where pair = xs !! index
 get (val:_) = typeError (show val ++ " is not indexable")
 get _ = typeError "get requires at least one argument"
@@ -132,7 +132,7 @@ get _ = typeError "get requires at least one argument"
 allIterPrimitives = makePrototype [eqPrimitives, iterPrimitives, typePrimitives]
 iter [val@(String _ _)] = return $ SequenceIter val 0 allIterPrimitives
 iter [val@(Tuple _ _)] = return $ SequenceIter val 0 allIterPrimitives
-iter [val@(Record _ _)] = return $ RecordIter val 0 allIterPrimitives
+iter [val@(Record _)] = return $ RecordIter val 0 allIterPrimitives
 iter [val@(SequenceIter _ _ _)] = return val
 iter [val@(RecordIter _ _ _)] = return val
 iter val = typeError (show val ++ " is not iterable")
@@ -146,7 +146,7 @@ iterNext _ = typeError "Not an iterator."
 iterHasNextHelper xs index = return . makeBool $ index < length xs
 iterHasNext [SequenceIter (String xs _) index _] = iterHasNextHelper xs index
 iterHasNext [SequenceIter (Tuple xs _) index _] = iterHasNextHelper xs index
-iterHasNext [RecordIter (Record xs _) index _] = iterHasNextHelper xs index
+iterHasNext [RecordIter (Record xs) index _] = iterHasNextHelper xs index
 iterHasNext _ = typeError "Not an iterator."
 
 concat' [String xs _, String ys _] = return $ makeString (xs ++ ys)

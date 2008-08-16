@@ -1,7 +1,7 @@
 module Data(EveToken(..), AlexPosn(..), 
             EveExpr(..), EveReplLine(..), EveFileLine(..), 
             EveError(..), EveData(..), EveType(..), Env, 
-            ModuleDef, getAccessibleBindings, sortRecord, prototype, 
+            ModuleDef, getAccessibleBindings, recordFields, sortRecord, prototype, 
             EveM, runEveM, getEnv, eveCall, addTopLevelBinding, 
             modules, getStateField, join) where
 import Data.List
@@ -10,34 +10,43 @@ import Control.Monad.Error hiding (join)
 
 -- Runtime data
 
-data EveData = 
-    Int Int EveData
-  | Bool Bool EveData  
-  | String String EveData
-  | Symbol String EveData
-  | Tuple [EveData] EveData
-  | SequenceIter EveData Int EveData
-  | Record [(String, EveData)] EveData
-  | RecordIter EveData Int EveData
-  | Primitive String ([EveData] -> EveM EveData) EveData
-  | Function [String] EveExpr Env EveData
+type Env = [(String, EveData)]
 
-prototype (Int _ proto) = proto
-prototype (Bool _ proto) = proto
-prototype (String _ proto) = proto
-prototype (Symbol _ proto) = proto
-prototype (Tuple _ proto) = proto
-prototype (SequenceIter _ _ proto) = proto
-prototype (Record _ proto) = proto
-prototype (RecordIter _ _ proto) = proto
-prototype (Primitive _ _ proto) = proto
-prototype (Function _ _ _ proto) = proto
+data EveData = 
+    Int Int Env
+  | Bool Bool Env  
+  | String String Env
+  | Symbol String Env
+  | Tuple [EveData] Env
+  | SequenceIter EveData Int Env
+  | Record Env
+  | RecordIter EveData Int Env
+  | Primitive String ([EveData] -> EveM EveData) Env
+  | Function [String] EveExpr Env Env
+
+findPrototype :: Env -> EveData
+findPrototype fields = maybe (Bool False []) id $ lookup "proto" fields
+
+prototype (Int _ fields) = findPrototype fields
+prototype (Bool _ fields) = findPrototype fields
+prototype (String _ fields) = findPrototype fields
+prototype (Symbol _ fields) = findPrototype fields
+prototype (Tuple _ fields) = findPrototype fields
+prototype (SequenceIter _ _ fields) = findPrototype fields
+prototype (Record fields) = findPrototype fields
+prototype (RecordIter _ _ fields) = findPrototype fields
+prototype (Primitive _ _ fields) = findPrototype fields
+prototype (Function _ _ _ fields) = findPrototype fields
+
+-- Under current representation, first element of a record is always the prototype
+recordFields fields = drop 1 fields
 
 sortRecord = sortBy fieldCompare 
   where fieldCompare (x, _) (y, _) = compare x y
 showFields (label, value) = "'" ++ label ++ "': " ++ show value
 showTuple val = "[" ++ join ", " (map show val) ++ "]"
-showRecord val = "{" ++ join ", " (map showFields val) ++ "}"
+showRecord val = "{" ++ join ", " (map showFields $ recordFields val) ++ "}"
+showAttributes fields = if fields == [] then "" else " | " ++ showRecord fields
 eqTuple x1 x2 = and $ zipWith (==) x1 x2
 eqRecord x1 x2 = and $ zipWith (==) (sortRecord x1) (sortRecord x2)
 
@@ -48,25 +57,25 @@ instance Eq EveData where
   Symbol x _ == Symbol y _ = x == y
   Tuple x1 _ == Tuple x2 _ = eqTuple x1 x2
   SequenceIter x1 i1 _ == SequenceIter x2 i2 _ = i1 == i2 && x1 == x2
-  Record x1 _ == Record x2 _ = eqRecord x1 x2
+  Record x1 == Record x2 = eqRecord x1 x2
   RecordIter x1 i1 _ == RecordIter x2 i2 _ = i1 == i2 && x1 == x2
   Primitive name1 _ _ == Primitive name2 _ _ = name1 == name2
   Function _ body1 _ _ == Function _ body2 _ _ = body1 == body2
   _ == _ = False
 
 instance Show EveData where
-  show (Int val _) = show val
-  show (Bool val _) = if val then "True" else "False"
-  show (String val _) = "'" ++ val ++ "'"
-  show (Symbol val _) = ":" ++ val
-  show (Tuple val _) = showTuple val
-  show (SequenceIter val index _) = "Iterator(" ++ show index ++ ") for " ++ show val
-  show (Record val _) = showRecord val
-  show (RecordIter val index _) = "Iterator(" ++ show index ++ ") for " ++ show val
-  show (Primitive name _ _) = name
-  show (Function args body _ _) = show $ Lambda args body
-
-type Env = [(String, EveData)]
+  show (Int val fields) = show val ++ showAttributes fields
+  show (Bool val fields) = (if val then "True" else "False") ++ showAttributes fields
+  show (String val fields) = "'" ++ val ++ "'" ++ showAttributes fields
+  show (Symbol val fields) = ":" ++ val ++ showAttributes fields
+  show (Tuple val fields) = showTuple val ++ showAttributes fields
+  show (SequenceIter val index fields) = "Iterator(" ++ show index ++ ") for " ++ show val 
+        ++ showAttributes fields
+  show (Record fields) = showRecord fields
+  show (RecordIter val index fields) = "Iterator(" ++ show index ++ ") for " ++ show val 
+        ++ showAttributes fields
+  show (Primitive name _ fields) = name ++ showAttributes fields
+  show (Function args body _ fields) = (show $ Lambda args body) ++ showAttributes fields
 
 -- Modules
 

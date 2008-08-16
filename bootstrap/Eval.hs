@@ -112,8 +112,8 @@ eval env (TypeCheck (tested, typeDecl) body) =
     throwIfInvalid (TLiteral expected) val | val == expected = return val
     -- TODO: function types
     throwIfInvalid (TTuple types) val@(Tuple fields _) = checkAll types fields val
-    throwIfInvalid (TRecord types) val@(Record fields _) = 
-        checkAll (extractVals types) (extractVals fields) val
+    throwIfInvalid (TRecord types) val@(Record fields) = 
+        checkAll (extractVals types) (extractVals $ recordFields fields) val
     throwIfInvalid typeDecl val = throwError $ TypeError (show val ++ " is not a " ++ show typeDecl)
     checkAll types fields val = sequence_ (zipWith throwIfInvalid types fields) >> return val
     extractVals = snd . unzip . sortRecord
