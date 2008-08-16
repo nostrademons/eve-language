@@ -134,7 +134,7 @@ CondClauseList : CondClause                     { [$1] }
                 | CondClauseList EOL CondClause { $3 : $1 }
 
 Expr : Operand             { $1 }
-     | '-' Expr %prec NEG  { binop "-" (Literal (makeInt 0)) $2 }
+     | '-' Expr %prec NEG  { binop "sub" (Literal (makeInt 0)) $2 }
      | Expr '**' Expr { binop "pow" $1 $3 }
      | Expr '*' Expr { binop "mul" $1 $3 }
      | Expr '/' Expr { binop "div" $1 $3 }
