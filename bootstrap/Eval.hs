@@ -12,7 +12,7 @@ import Primitives
 -- autoImports = ["eve.data.range"]
 autoImports = []
 
-startingEnv = makePrimitives [
+startingEnv = primitiveEnv ++ makePrimitives [
     ("apply", applyPrimitive),
     ("add", binopPrimitive "add"),
     ("sub", binopPrimitive "sub"),

@@ -1,5 +1,5 @@
 module Primitives(makeInt, makeBool, makeString, makeSymbol, 
-    makeTuple, makeRecord, makePrimitive, makeFunction, makePrimitives) where
+    makeTuple, makeRecord, makePrimitive, makeFunction, makePrimitives, primitiveEnv) where
 import Data
 import Utils
 import Control.Monad.Error
@@ -7,7 +7,6 @@ import Control.Monad.Error
 makePrimitives primitives = zip names $ map makePrimitive (zip names values)
   where 
     (names, values) = unzip primitives
-
 
 -- Individual method lists for different types
 
@@ -55,24 +54,21 @@ typePrimitives = makePrimitives [
   ("Record", typeObject),
   ("Function", typeObject)]
 
+-- Global primitives.  Augmented in Eval by the primitives that need access to apply
+primitiveEnv = typePrimitives
+
 -- Factories that bundle a basic data type up with the primitives associated
 -- with it
 
 makePrototype primitives = [("proto", Record $ ("proto", (makeBool False)) : (concat primitives))]
-makeInt val = Int val $ makePrototype [numberPrimitives, eqPrimitives, 
-                                        orderedPrimitives, typePrimitives]
-makeBool val = Bool val $ makePrototype [eqPrimitives, boolPrimitives, typePrimitives]
-makeString val = String val $ makePrototype [eqPrimitives, orderedPrimitives, 
-                            sequencePrimitives, typePrimitives]
-makeSymbol val = Symbol val $ makePrototype [eqPrimitives, typePrimitives]
-makeTuple val = Tuple val $ makePrototype [eqPrimitives, sequencePrimitives, typePrimitives]
-makeRecord val = Record (makePrototype [eqPrimitives, sequencePrimitives, typePrimitives] ++ val)
-makePrimitive (name, fn) = Primitive name fn $ makePrototype [eqPrimitives, typePrimitives]
-makeFunction args body env = Function args body env $ makePrototype [eqPrimitives, typePrimitives]
-
-primitiveEnv = foldr (++) [] [
-    numberPrimitives, orderedPrimitives, boolPrimitives,
-    iterPrimitives, sequencePrimitives, typePrimitives]
+makeInt val = Int val $ makePrototype [numberPrimitives, eqPrimitives, orderedPrimitives]
+makeBool val = Bool val $ makePrototype [eqPrimitives, boolPrimitives]
+makeString val = String val $ makePrototype [eqPrimitives, orderedPrimitives, sequencePrimitives]
+makeSymbol val = Symbol val $ makePrototype [eqPrimitives]
+makeTuple val = Tuple val $ makePrototype [eqPrimitives, sequencePrimitives]
+makeRecord val = Record (makePrototype [eqPrimitives, sequencePrimitives] ++ val)
+makePrimitive (name, fn) = Primitive name fn $ makePrototype [eqPrimitives]
+makeFunction args body env = Function args body env $ makePrototype [eqPrimitives]
 
 typeError = throwError . TypeError
 
