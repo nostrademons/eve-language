@@ -40,7 +40,8 @@ iterPrimitives = makePrimitives [
   ("has_next", iterHasNext)]
 
 sequencePrimitives = makePrimitives [
-  ("\\&", concat'),
+  ("add", concat'),
+  ("mul", repeat'),
   ("len", len),
   ("get", get)]
 
@@ -149,6 +150,10 @@ iterHasNext _ = typeError "Not an iterator."
 concat' [String xs _, String ys _] = return $ makeString (xs ++ ys)
 concat' [Tuple xs _, Tuple ys _] = return $ makeTuple (xs ++ ys)
 concat' _ = typeError "Concatenation needs a sequence"
+
+repeat' [String xs _, Int num _] = return . makeString . concat $ replicate num xs
+repeat' [Tuple xs _, Int num _] = return . makeTuple . concat $ replicate num xs
+repeat' _ = typeError "Repetition needs a sequence and an int"
 
 typeObject _ = typeError "Pure type objects cannot be applied."
 

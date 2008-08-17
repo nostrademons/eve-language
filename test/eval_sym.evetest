@@ -2,5 +2,5 @@ Eve>>> :foo2
 :foo2
 Eve>>> Sym('foo')
 :foo
-Eve>>> Sym('foo' & 'bar')
+Eve>>> Sym('foo' + 'bar')
 :foobar

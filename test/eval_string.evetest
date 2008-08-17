@@ -1,7 +1,9 @@
 Eve>>> "foo"
 'foo'
-Eve>>> "foo" & "bar"
+Eve>>> "foo" + "bar"
 'foobar'
+Eve>>> "foo" * 2
+'foofoo'
 Eve>>> ''
 ''
 Eve>>> '''test'''
