@@ -1,6 +1,6 @@
 Eve>>> 2 > 3 and 3 < 2
-\and(gt(2, 3), lt(3, 2))
+and_(gt(2, 3), lt(3, 2))
 Eve>>> 2 > 3 or 3 < 2
-\or(gt(2, 3), lt(3, 2))
+or_(gt(2, 3), lt(3, 2))
 Eve>>> 3 == 2 + 1 and 3 * 2 == 6
-\and(eq(3, add(2, 1)), eq(mul(3, 2), 6))
+and_(eq(3, add(2, 1)), eq(mul(3, 2), 6))

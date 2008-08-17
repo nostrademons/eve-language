@@ -149,10 +149,9 @@ Expr : Operand             { $1 }
      | Expr '<' Expr  { binop "lt" $1 $3 }
      | Expr '>=' Expr { binop "ge" $1 $3 }
      | Expr '<=' Expr { binop "le" $1 $3 }
-     | Expr '&' Expr    { binop "\\&" $1 $3 }
-     | Expr 'and' Expr  { binop "\\and" $1 $3 }
-     | Expr 'or' Expr   { binop "\\or" $1 $3 }
-     | 'not' Expr       { funcall "\\not" [$2] }
+     | Expr 'and' Expr  { binop "and_" $1 $3 }
+     | Expr 'or' Expr   { binop "or_" $1 $3 }
+     | 'not' Expr       { funcall "not_" [$2] }
      | Expr '->' Expr   { Funcall $3 [$1] }
      | Expr '[' ']'     { funcall "get" [$1] }
      | Expr '[' Expr ']' { funcall "get" [$3, $1] }

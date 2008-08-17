@@ -56,14 +56,14 @@ typePrimitives = makePrimitives [
   ("Function", typeObject)]
 
 -- Global primitives.  Augmented in Eval by the primitives that need access to apply
-primitiveEnv = typePrimitives
+primitiveEnv = typePrimitives ++ boolPrimitives
 
 -- Factories that bundle a basic data type up with the primitives associated
 -- with it
 
 makePrototype primitives = [("proto", Record $ ("proto", (makeBool False)) : (concat primitives))]
 makeInt val = Int val $ makePrototype [numberPrimitives, eqPrimitives, orderedPrimitives]
-makeBool val = Bool val $ makePrototype [eqPrimitives, boolPrimitives]
+makeBool val = Bool val $ makePrototype [eqPrimitives]
 makeString val = String val $ makePrototype [eqPrimitives, orderedPrimitives, sequencePrimitives]
 makeSymbol val = Symbol val $ makePrototype [eqPrimitives]
 makeTuple val = Tuple val $ makePrototype [eqPrimitives, sequencePrimitives]
