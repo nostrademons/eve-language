@@ -28,7 +28,6 @@ DEDENT { (_, TokDedent) }
 '-'   { (_, TokKeyword "-") }
 '<'   { (_, TokOp "<") }
 '>'   { (_, TokOp ">") }
-'&'   { (_, TokOp "&") }
 '<='  { (_, TokOp "<=") }
 '>='  { (_, TokOp ">=") }
 '=='  { (_, TokOp "==") }
@@ -48,7 +47,9 @@ DEDENT { (_, TokDedent) }
 'typedef'   { (_, TokKeyword "typedef") }
 ','   { (_, TokKeyword ",") }
 '.'   { (_, TokOp ".") }
-'|'   { (_, TokKeyword "|") }
+'|'   { (_, TokOp "|") }
+'&'   { (_, TokOp "&") }
+'~'   { (_, TokOp "~") }
 ':'   { (_, TokKeyword ":") }
 '@'   { (_, TokKeyword "@") }
 '('   { (_, TokDelim '(') }
@@ -60,7 +61,8 @@ DEDENT { (_, TokDedent) }
 'import' { (_, TokKeyword "import") }
 'export' { (_, TokKeyword "export") }
 
-%left '&'
+%left '&' '~'
+%left '|'
 %left 'and' 'or'
 %nonassoc 'not'
 %nonassoc '!=' '==' '>=' '<=' '>' '<'
@@ -152,6 +154,9 @@ Expr : Operand             { $1 }
      | Expr 'and' Expr  { binop "and_" $1 $3 }
      | Expr 'or' Expr   { binop "or_" $1 $3 }
      | 'not' Expr       { funcall "not_" [$2] }
+     | Expr '|' Expr    { binop "extend" $1 $3 }
+     | Expr '&' Expr    { binop "restrict" $1 $3 }
+     | Expr '~' Expr    { binop "exclude" $1 $3 }
      | Expr '->' Expr   { Funcall $3 [$1] }
      | Expr '[' ']'     { funcall "get" [$1] }
      | Expr '[' Expr ']' { funcall "get" [$3, $1] }
