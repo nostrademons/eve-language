@@ -1,7 +1,8 @@
 module Data(EveToken(..), AlexPosn(..), 
             EveExpr(..), EveReplLine(..), EveFileLine(..), 
             EveError(..), EveData(..), EveType(..), Env, 
-            ModuleDef, getAccessibleBindings, recordFields, sortRecord, prototype, 
+            ModuleDef, getAccessibleBindings, 
+            recordFields, sortRecord, prototype, getAttr, hasAttr,
             EveM, runEveM, getEnv, eveCall, addTopLevelBinding, 
             modules, getStateField, join) where
 import Data.List
@@ -27,16 +28,27 @@ data EveData =
 findPrototype :: Env -> EveData
 findPrototype fields = maybe (Bool False []) id $ lookup "proto" fields
 
-prototype (Int _ fields) = findPrototype fields
-prototype (Bool _ fields) = findPrototype fields
-prototype (String _ fields) = findPrototype fields
-prototype (Symbol _ fields) = findPrototype fields
-prototype (Tuple _ fields) = findPrototype fields
-prototype (SequenceIter _ _ fields) = findPrototype fields
-prototype (Record fields) = findPrototype fields
-prototype (RecordIter _ _ fields) = findPrototype fields
-prototype (Primitive _ _ fields) = findPrototype fields
-prototype (Function _ _ _ fields) = findPrototype fields
+attributes (Int _ fields) = fields
+attributes (Bool _ fields) = fields
+attributes (String _ fields) = fields
+attributes (Symbol _ fields) = fields
+attributes (Tuple _ fields) = fields
+attributes (SequenceIter _ _ fields) = fields
+attributes (Record fields) = fields
+attributes (RecordIter _ _ fields) = fields
+attributes (Primitive _ _ fields) = fields
+attributes (Function _ _ _ fields) = fields
+
+prototype = findPrototype . attributes
+
+lookupAttr missing found name val = maybe (followPrototype $ prototype val) found 
+                                        $ lookup name $ attributes val
+  where
+    followPrototype (Bool False []) = missing
+    followPrototype proto = lookupAttr missing found name $ Record $ attributes proto
+
+hasAttr = lookupAttr False $ const True
+getAttr name val = lookupAttr (throwError $ MissingField val name) return name val
 
 -- Under current representation, first element of a record is always the prototype
 recordFields fields = drop 1 fields
@@ -46,7 +58,7 @@ sortRecord = sortBy fieldCompare
 showFields (label, value) = "'" ++ label ++ "': " ++ show value
 showTuple val = "[" ++ join ", " (map show val) ++ "]"
 showRecord val = "{" ++ join ", " (map showFields $ recordFields val) ++ "}"
-showAttributes fields = if fields == [] then "" else " | " ++ showRecord fields
+showAttributes fields = if recordFields fields == [] then "" else " | " ++ showRecord fields
 eqTuple x1 x2 = and $ zipWith (==) x1 x2
 eqRecord x1 x2 = and $ zipWith (==) (sortRecord x1) (sortRecord x2)
 

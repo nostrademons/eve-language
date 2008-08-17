@@ -141,7 +141,8 @@ Expr : Operand             { $1 }
      | Expr '%' Expr { binop "mod" $1 $3 }
      | Expr '+' Expr { binop "add" $1 $3 }
      | Expr '-' Expr { binop "sub" $1 $3 }
-     | Expr '..' Expr { Funcall (Variable "Range") [$1, $3] }
+     | Expr '..' Expr { funcall "Range" [$1, $3] }
+     | Expr '..' Expr { funcall "Range" [$1, $3] }
      | Expr '==' Expr { binop "eq" $1 $3 }
      | Expr '!=' Expr { binop "ne" $1 $3 }
      | Expr '>' Expr  { binop "gt" $1 $3 }
@@ -151,10 +152,10 @@ Expr : Operand             { $1 }
      | Expr '&' Expr    { binop "\\&" $1 $3 }
      | Expr 'and' Expr  { binop "\\and" $1 $3 }
      | Expr 'or' Expr   { binop "\\or" $1 $3 }
-     | 'not' Expr       { Funcall (Variable "\\not") [$2] }
+     | 'not' Expr       { funcall "\\not" [$2] }
      | Expr '->' Expr   { Funcall $3 [$1] }
-     | Expr '[' ']'     { Funcall (Variable "get") [$1] }
-     | Expr '[' Expr ']' { Funcall (Variable "get") [$3, $1] }
+     | Expr '[' ']'     { funcall "get" [$1] }
+     | Expr '[' Expr ']' { funcall "get" [$3, $1] }
      | 'if' Expr 'then' Expr 'else' Expr
        { Cond [($2, $4), (Literal (makeBool True), $6)] }
 
@@ -245,7 +246,8 @@ findLastExpr docString defLines = (lines, docString, last)
   where
     (lines, [NakedExpr last]) = splitAt (length defLines - 1) defLines
 
-binop name left right = Funcall (Variable (name)) [left, right]
+funcall name args = Funcall (Variable name) args
+binop name left right = funcall name [left, right]
 
 happyError ((posn, token):whatever) = throwError $ ParseError token posn
 }

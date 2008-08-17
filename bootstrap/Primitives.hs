@@ -1,5 +1,5 @@
 module Primitives(makeInt, makeBool, makeString, makeSymbol, 
-    makeTuple, makeRecord, makePrimitive, makeFunction) where
+    makeTuple, makeRecord, makePrimitive, makeFunction, makePrimitives) where
 import Data
 import Utils
 import Control.Monad.Error
@@ -7,6 +7,7 @@ import Control.Monad.Error
 makePrimitives primitives = zip names $ map makePrimitive (zip names values)
   where 
     (names, values) = unzip primitives
+
 
 -- Individual method lists for different types
 

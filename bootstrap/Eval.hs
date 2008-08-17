@@ -12,7 +12,20 @@ import Primitives
 -- autoImports = ["eve.data.range"]
 autoImports = []
 
-startingEnv = [("apply", makePrimitive ("apply", applyPrimitive))]
+startingEnv = makePrimitives [
+    ("apply", applyPrimitive),
+    ("add", binopPrimitive "add"),
+    ("sub", binopPrimitive "sub"),
+    ("pow", binopPrimitive "pow"),
+    ("mul", binopPrimitive "mul"),
+    ("div", binopPrimitive "div"),
+    ("mod", binopPrimitive "mod"),
+    ("eq", cmpPrimitive "eq"),
+    ("ne", cmpPrimitive "ne"),
+    ("gt", cmpPrimitive "gt"),
+    ("ge", cmpPrimitive "ge"),
+    ("lt", cmpPrimitive "lt"),
+    ("le", cmpPrimitive "le")]
 
 categorize (Import x) (i, b, d, t) = (x : i, b, d, t)
 categorize x@(Binding _ _) (i, b, d, t) = (i, x : b, d, t)
@@ -93,8 +106,10 @@ eval env (RecordLiteral args) = mapM evalRecord args >>= return . makeRecord
             do value <- eval env expr
                return (label, value)
 eval env (Variable var) = maybe (throwError $ UnboundVar var) return $ lookup var env
-eval env (Funcall fnExpr argExpr) = 
-    tryEvalFuncall env fnExpr argExpr `catchError` tryEvalRecordField env fnExpr argExpr
+eval env (Funcall fnExpr argExpr) = do
+  fn <- eval env fnExpr
+  args <- mapM (eval env) argExpr
+  apply fn args
 eval env (Cond ((pred, action):rest)) = do
   predResult <- eval env pred
   case predResult of
@@ -117,22 +132,6 @@ eval env (TypeCheck (tested, typeDecl) body) =
     throwIfInvalid typeDecl val = throwError $ TypeError (show val ++ " is not a " ++ show typeDecl)
     checkAll types fields val = sequence_ (zipWith throwIfInvalid types fields) >> return val
     extractVals = snd . unzip . sortRecord
-
-tryEvalFuncall env fnExpr argExpr = do
-  fn <- eval env fnExpr
-  args <- mapM (eval env) argExpr
-  apply fn args
-tryEvalRecordField env (Variable field) args@(firstArg : restArgs) err@(UnboundVar _) = do
-    newFn <- eval env firstArg >>= recordLookup 
-    args <- mapM (eval env) args
-    apply newFn args
-  where 
-    tryPrototype (Bool False _) = throwError err
-    tryPrototype proto = recordLookup proto
-    recordLookup value = case value of 
-        Record fields proto -> maybe (tryPrototype proto) return $ lookup field fields
-        value -> tryPrototype (prototype value)
-tryEvalRecordField env _ _ err = throwError err
 
 apply :: EveData -> [EveData] -> EveM EveData
 apply (Primitive name fn _) args = fn args
@@ -161,3 +160,23 @@ applyPrimitive [fn, sequence] = do
     iter <- eval env $ eveCall "iter" [sequence]
     values <- iterableValues iter
     apply fn $ values
+
+binopPrimitive name [left, right] = tryLeftAttr `catchError` const tryRightAttr 
+  where
+    tryLeftAttr = getAttr name left >>= flip apply [left, right]
+    tryRightAttr = getAttr ('r' : name) right >>= flip apply [right, left]
+
+cmpPrimitive name [left, right] = tryMethod 
+        `catchError` const tryReflection 
+        `catchError` const tryCmp
+  where 
+    reflections = [
+        ("eq", ("eq", (== 0))), ("ne", ("ne", (/= 0))),
+        ("gt", ("le", (> 0))), ("le", ("gt", (<= 0))),
+        ("lt", ("ge", (< 0))), ("ge", ("lt", (>= 0)))]
+    (ref, cmpPred) = maybe (error (name ++ " not a cmp function")) id $ lookup name reflections
+    tryMethod = getAttr name left >>= flip apply [left, right]
+    tryReflection = getAttr ref right >>= flip apply [right, left]
+    tryCmp = getAttr "cmp" left >>= flip apply [left, right] >>= cmpResult
+    cmpResult (Int num _) = return $ if cmpPred num then makeBool True else makeBool False
+    cmpResult _ = throwError $ TypeError "cmp should return an int"
