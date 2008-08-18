@@ -190,9 +190,10 @@ extendPrimitive [dest, source] = return . setAttributes dest $
 
 filterRecord fn [dest, fields] = trySequence `catchError` const tryFields
   where
-    trySequence = sequenceValues fields >>= mapM extractString >>= modify
-    tryFields = modify . attrNames $ fields
+    trySequence = sequenceValues fields >>= mapM extractString >>= modifyFields
+    tryFields = modifyFields . attrNames $ fields
     extractString (String val _) = return val
     extractString _ = throwError $ TypeError "Second element of restrict must be sequence of strings"
-    modify source = return . setAttributes dest . 
+    modifyFields :: [String] -> EveM EveData
+    modifyFields source = return . setAttributes dest . 
                     filter (\(key, val) -> fn key source) $ attributes dest
