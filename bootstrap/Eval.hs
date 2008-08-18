@@ -27,6 +27,7 @@ startingEnv = primitiveEnv ++ makePrimitives [
     ("lt", cmpPrimitive "lt"),
     ("le", cmpPrimitive "le"),
     ("extend", extendPrimitive),
+    ("attr", attrPrimitive),
     ("restrict", filterRecord elem),
     ("exclude", filterRecord notElem)]
 
@@ -187,6 +188,9 @@ extendPrimitive [dest, source] = return . setAttributes dest $
         (attributes source ++ dropAttrs (attrNames source) dest)
   where
     exclude dest source = filter (\(key, val) -> key `notElem` source) dest
+
+attrPrimitive [obj, String field _] = getAttr field obj
+attrPrimitive _ = throwError $ TypeError "Field access requires an object and a string"
 
 filterRecord fn [dest, fields] = trySequence `catchError` const tryFields
   where

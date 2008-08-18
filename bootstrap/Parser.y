@@ -171,6 +171,7 @@ Operand     : Literal                      { Literal $1 }
             | '(' Expr ')'                 { $2 }
             | Expr '(' ExprList ')'        { Funcall $1 (reverse $3) }
             | Expr '(' ')'                 { Funcall $1 [] }
+            | Expr '.' VAR                 { funcall "attr" [$1, Literal (makeString $3)] }
             | '{' '|' ArgList '|' Expr '}' { let (args, newBody) = collectTypeDecls $3 $5 in
                                                 Lambda args newBody }
             | Operand 'as' TypeExpr        { TypeCheck ($1, $3) $1 }
