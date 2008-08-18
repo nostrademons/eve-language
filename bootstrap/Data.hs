@@ -2,7 +2,8 @@ module Data(EveToken(..), AlexPosn(..),
             EveExpr(..), EveReplLine(..), EveFileLine(..), 
             EveError(..), EveData(..), EveType(..), Env, 
             ModuleDef, getAccessibleBindings, 
-            recordFields, sortRecord, prototype, getAttr, hasAttr,
+            recordFields, sortRecord, prototype, 
+            attributes, setAttributes, getAttr, hasAttr, dropAttrs, attrNames,
             EveM, runEveM, getEnv, eveCall, addTopLevelBinding, 
             modules, getStateField, join) where
 import Data.List
@@ -39,6 +40,16 @@ attributes (RecordIter _ _ fields) = fields
 attributes (Primitive _ _ fields) = fields
 attributes (Function _ _ _ fields) = fields
 
+setAttributes (Int val fields) newFields = Int val newFields
+setAttributes (Bool val fields) newFields = Bool val newFields
+setAttributes (String val fields) newFields = String val newFields
+setAttributes (Symbol val fields) newFields = Symbol val newFields
+setAttributes (Tuple val fields) newFields = Tuple val newFields
+setAttributes (SequenceIter val index fields) newFields = SequenceIter val index newFields
+setAttributes (Record fields) newFields = Record newFields
+setAttributes (Primitive name fn fields) newFields = Primitive name fn newFields
+setAttributes (Function args body env fields) newFields = Function args body env newFields
+
 prototype = findPrototype . attributes
 
 lookupAttr missing found name val = maybe (followPrototype $ prototype val) found 
@@ -49,15 +60,17 @@ lookupAttr missing found name val = maybe (followPrototype $ prototype val) foun
 
 hasAttr = lookupAttr False $ const True
 getAttr name val = lookupAttr (throwError $ MissingField val name) return name val
+dropAttrFields names = filter (\(key, val) -> key `notElem` names)
+dropAttrs names val = dropAttrFields names $ attributes val
+attrNames = fst . unzip . attributes
 
--- Under current representation, first element of a record is always the prototype
-recordFields fields = drop 1 fields
+recordFields fields = dropAttrFields ["proto"] fields
 
 sortRecord = sortBy fieldCompare 
   where fieldCompare (x, _) (y, _) = compare x y
 showFields (label, value) = "'" ++ label ++ "': " ++ show value
 showTuple val = "[" ++ join ", " (map show val) ++ "]"
-showRecord val = "{" ++ join ", " (map showFields $ recordFields val) ++ "}"
+showRecord fields = "{" ++ join ", " (map showFields $ recordFields fields) ++ "}"
 showAttributes fields = if recordFields fields == [] then "" else " | " ++ showRecord fields
 eqTuple x1 x2 = and $ zipWith (==) x1 x2
 eqRecord x1 x2 = and $ zipWith (==) (sortRecord x1) (sortRecord x2)

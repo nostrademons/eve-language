@@ -25,7 +25,10 @@ startingEnv = primitiveEnv ++ makePrimitives [
     ("gt", cmpPrimitive "gt"),
     ("ge", cmpPrimitive "ge"),
     ("lt", cmpPrimitive "lt"),
-    ("le", cmpPrimitive "le")]
+    ("le", cmpPrimitive "le"),
+    ("extend", extendPrimitive),
+    ("restrict", filterRecord elem),
+    ("exclude", filterRecord notElem)]
 
 categorize (Import x) (i, b, d, t) = (x : i, b, d, t)
 categorize x@(Binding _ _) (i, b, d, t) = (i, x : b, d, t)
@@ -101,7 +104,7 @@ evalLetrec env defs = result
 eval :: Env -> EveExpr -> EveM EveData
 eval env (Literal val) = return val
 eval env (TupleLiteral args) = mapM (eval env) args >>= return . makeTuple
-eval env (RecordLiteral args) = mapM evalRecord args >>= return . makeRecord
+eval env (RecordLiteral args) = mapM evalRecord args >>= return . Record
   where evalRecord (label, expr) = 
             do value <- eval env expr
                return (label, value)
@@ -154,12 +157,11 @@ iterableValues iter = do
         return []
   where iterCall env name = eval env $ eveCall name [iter]
 
+sequenceValues :: EveData -> EveM [EveData]
+sequenceValues sequence = getEnv >>= (flip eval $ eveCall "iter" [sequence]) >>= iterableValues
+
 applyPrimitive :: [EveData] -> EveM EveData
-applyPrimitive [fn, sequence] = do
-    env <- getEnv
-    iter <- eval env $ eveCall "iter" [sequence]
-    values <- iterableValues iter
-    apply fn $ values
+applyPrimitive [fn, sequence] = sequenceValues sequence >>= apply fn
 
 binopPrimitive name [left, right] = tryLeftAttr `catchError` const tryRightAttr 
   where
@@ -180,3 +182,17 @@ cmpPrimitive name [left, right] = tryMethod
     tryCmp = getAttr "cmp" left >>= flip apply [left, right] >>= cmpResult
     cmpResult (Int num _) = return $ if cmpPred num then makeBool True else makeBool False
     cmpResult _ = throwError $ TypeError "cmp should return an int"
+
+extendPrimitive [dest, source] = return . setAttributes dest $ 
+        (attributes source ++ dropAttrs (attrNames source) dest)
+  where
+    exclude dest source = filter (\(key, val) -> key `notElem` source) dest
+
+filterRecord fn [dest, fields] = trySequence `catchError` const tryFields
+  where
+    trySequence = sequenceValues fields >>= mapM extractString >>= modify
+    tryFields = modify . attrNames $ fields
+    extractString (String val _) = return val
+    extractString _ = throwError $ TypeError "Second element of restrict must be sequence of strings"
+    modify source = return . setAttributes dest . 
+                    filter (\(key, val) -> fn key source) $ attributes dest

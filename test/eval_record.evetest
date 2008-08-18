@@ -2,6 +2,10 @@ Eve>>> { 'foo': 2, 'bar': 2 + 4 }
 {'foo': 2, 'bar': 6}
 Eve>>> { 'foo': ?, 'bar': 4}(3)
 {'foo': 3, 'bar': 4}
+Eve>>> { foo: 1 } | { bar: 2 }
+{'bar': 2, 'foo': 1}
+Eve>>> 2 | { foo: 'bar' }
+2 | {'foo': 'bar'}
 Eve>>> { 'foo': 3, 'bar': 4 } -> foo
 3
 Eve>>> bar({ 'foo': 3, 'bar': 4 })
