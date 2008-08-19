@@ -8,9 +8,9 @@ Eve>>> [1,2,3][0..-1]
 [1, 2]
 Eve>>> iter([1,2,3,4])[]
 1
-Eve>>> iter([1,2,3,4])->next->next->get
+Eve>>> iter([1,2,3,4]).next().next().get()
 3
-Eve>>> [1,2,3]->iter->next->next->next->has_next
+Eve>>> [1,2,3].iter().next().next().next().has_next()
 False
 Eve>>> len([1,2,3])
 3

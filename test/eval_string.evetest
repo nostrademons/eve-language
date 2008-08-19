@@ -32,7 +32,7 @@ Eve>>> "Bar"[-1]
 'r'
 Eve>>> len("Foo")
 3
-Eve>>> "Frob"->iter->next->get
+Eve>>> "Frob".iter().next().get()
 'r'
 Eve>>> "Foobar"[1..4]
 'oob'
