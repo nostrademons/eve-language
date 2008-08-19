@@ -189,6 +189,8 @@ extendPrimitive [dest, source] = return . setAttributes dest $
   where
     exclude dest source = filter (\(key, val) -> key `notElem` source) dest
 
+attrPrimitive [obj, field@(String _ _)] | hasAttr "attr" obj =
+    getAttr "attr" obj >>= flip apply [obj, field]
 attrPrimitive [obj, String field _] = getAttr field obj
 attrPrimitive _ = throwError $ TypeError "Field access requires an object and a string"
 
