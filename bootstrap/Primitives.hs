@@ -61,7 +61,7 @@ primitiveEnv = typePrimitives ++ boolPrimitives
 -- Factories that bundle a basic data type up with the primitives associated
 -- with it
 
-makePrototype primitives = [("proto", Record $ ("proto", (makeBool False)) : (concat primitives))]
+makePrototype primitives = [("proto", Record $ ("proto", (Bool False [])) : (concat primitives))]
 makeInt val = Int val $ makePrototype [numberPrimitives, eqPrimitives, orderedPrimitives]
 makeBool val = Bool val $ makePrototype [eqPrimitives]
 makeString val = String val $ makePrototype [eqPrimitives, orderedPrimitives, sequencePrimitives]
