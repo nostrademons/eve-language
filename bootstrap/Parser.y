@@ -84,10 +84,10 @@ FileLine : SequenceUnpack               { $1 }
          | 'typedef' VAR ':' TypeExpr   { TypeDef $2 $4 }
          | DefDecl                      { $1 }
 
-DefDecl     : 'def' VAR '(' ArgList ')' TypeDecl ':' DefBody
+DefDecl     : 'def' VAR '(' VarArgList ')' TypeDecl ':' DefBody
     { let (lines, docString, body) = $8 in 
-        let (args, newBody) = collectTypeDecls $4 body in 
-            Def $2 args docString $6 lines newBody }
+        let (args, newBody) = collectTypeDecls (fst $4) body in 
+            Def $2 args (snd $4) docString $6 lines newBody }
 
 DocString   : {- Empty -}       { "" }
             | STR EOL           { $1 }
@@ -172,8 +172,8 @@ Operand     : Literal                      { Literal $1 }
             | Expr '(' ExprList ')'        { Funcall $1 (reverse $3) }
             | Expr '(' ')'                 { Funcall $1 [] }
             | Expr '.' VAR                 { funcall "attr" [$1, Literal (makeString $3)] }
-            | '{' '|' ArgList '|' Expr '}' { let (args, newBody) = collectTypeDecls $3 $5 in
-                                                Lambda args newBody }
+            | '{' '|' VarArgList '|' Expr '}' { let (args, newBody) = collectTypeDecls (fst $3) $5 in
+                                                Lambda args (snd $3) newBody }
             | Operand 'as' TypeExpr        { TypeCheck ($1, $3) $1 }
 
 Literal     : INT                          { makeInt $1 }
@@ -196,6 +196,9 @@ VarList     : VAR                      { [$1] }
 ArgList     : {- empty -}              { [] }
             | VAR TypeDecl             { [($1, $2)] }
             | ArgList ',' VAR TypeDecl { ($3, $4) : $1 }
+VarArgList  : ArgList                  { ($1, Nothing) }
+            | '*' VAR                  { ([], Just $2) }
+            | ArgList ',' '*' VAR      { ($1, Just $4) }
 LabeledList : LabeledPair                   { [$1] }
             | LabeledList ',' LabeledPair   { $3 : $1 }
 
@@ -224,14 +227,14 @@ replacePartials (RecordLiteral pairs) = maybeLambda reconstruct $ snd $ unzip pa
 replacePartials (Variable var) = Variable var
 replacePartials (Cond condList) = Cond $ map handleClause condList
   where handleClause (pred, action) = (replacePartials pred, replacePartials action)
-replacePartials (Lambda args body) = Lambda args $ replacePartials body
+replacePartials (Lambda args varargs body) = Lambda args varargs $ replacePartials body
 replacePartials (Funcall expr args) = maybeLambda (Funcall (replacePartials expr)) args
 replacePartials (TypeCheck (tested, typeDecl) expr) = 
     TypeCheck (replacePartials tested, typeDecl) $ replacePartials expr
 
 maybeLambda exprConstr args =
   if numParams > 0
-    then Lambda lambdaList . exprConstr $ substParams lambdaList args
+    then Lambda lambdaList Nothing . exprConstr $ substParams lambdaList args
     else exprConstr (map replacePartials args)
   where
     numParams = length . filter (== Variable "?") $ args

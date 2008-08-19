@@ -70,7 +70,7 @@ makeSymbol val = Symbol val $ makePrototype [eqPrimitives]
 makeTuple val = Tuple val $ makePrototype [eqPrimitives, sequencePrimitives]
 makeRecord val = Record (makePrototype [eqPrimitives, sequencePrimitives] ++ val)
 makePrimitive (name, fn) = Primitive name fn $ makePrototype [eqPrimitives]
-makeFunction args body env = Function args body env $ makePrototype [eqPrimitives]
+makeFunction args varargs body env = Function args varargs body env $ makePrototype [eqPrimitives]
 
 typeError = throwError . TypeError
 
@@ -93,7 +93,7 @@ typeOf [String _ _] = return $ makePrimitive ("Str", convertToString)
 typeOf [Symbol _ _] = return $ makePrimitive ("Sym", convertToSymbol)
 typeOf [Tuple _ _] = return $ makePrimitive ("Tuple", convertToTuple)
 typeOf [Record _] = return $ makePrimitive ("Record", typeObject)
-typeOf [Function _ _ _ _] = return $ makePrimitive ("Function", typeObject)
+typeOf [Function _ _ _ _ _] = return $ makePrimitive ("Function", typeObject)
 typeOf [Primitive _ _ _] = return $ makePrimitive ("Function", typeObject)
 
 lenHelper xs = return . makeInt $ length xs

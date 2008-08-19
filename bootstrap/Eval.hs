@@ -34,22 +34,22 @@ startingEnv = primitiveEnv ++ makePrimitives [
 
 categorize (Import x) (i, b, d, t) = (x : i, b, d, t)
 categorize x@(Binding _ _) (i, b, d, t) = (i, x : b, d, t)
-categorize x@(Def _ _ _ _ _ _) (i, b, d, t) = (i, b, x : d, t)
+categorize x@(Def _ _ _ _ _ _ _) (i, b, d, t) = (i, b, x : d, t)
 categorize x@(TypeDef _ _) (i, b, d, t) = (i, b, d, x : t)
 
 parseFileLines = foldr categorize ([], [], [], [])
 
-parseDef typeEnv (Def name args docstring typeDecl lines body) = (name, convertedBody)
+parseDef typeEnv (Def name args varargs docstring typeDecl lines body) = (name, convertedBody)
   where
     (_, bindings, defs, _) = parseFileLines lines
     defBody = Letrec (map (parseDef typeEnv) defs) body
-    convertedBody = Lambda args $ 
+    convertedBody = Lambda args varargs $ 
         (maybe id (addTypeCheck . convertTypeDefs) typeDecl) $
         foldr convertBinding defBody bindings
     addTypeCheck typeDecl body = TypeCheck (body, typeDecl) body
     convertBinding (Binding (Left vars) expr) rest = 
-        Funcall (Variable "apply") [Lambda vars rest, expr]
-    convertBinding (Binding (Right var) expr) rest = Funcall (Lambda [var] rest) [expr]
+        Funcall (Variable "apply") [Lambda vars Nothing rest, expr]
+    convertBinding (Binding (Right var) expr) rest = Funcall (Lambda [var] Nothing rest) [expr]
     convertTypeDefs :: EveType -> EveType
     convertTypeDefs (TPrim name) = maybe (TPrim name) id $ lookup name typeEnv
     convertTypeDefs (TLiteral datum) = TLiteral datum
@@ -101,7 +101,8 @@ evalLetrec :: Env -> [(String, EveExpr)] -> Env
 evalLetrec env defs = result
   where
     result = map makeBinding defs
-    makeBinding (name, Lambda args body) = (name, makeFunction args body (result ++ env))
+    makeBinding (name, Lambda args varargs body) = 
+        (name, makeFunction args varargs body (result ++ env))
 
 eval :: Env -> EveExpr -> EveM EveData
 eval env (Literal val) = return val
@@ -120,7 +121,7 @@ eval env (Cond ((pred, action):rest)) = do
   case predResult of
     Bool True _ -> eval env action 
     otherwise -> eval env (Cond rest)
-eval env (Lambda args body) = return $ makeFunction args body env
+eval env (Lambda args varargs body) = return $ makeFunction args varargs body env
 eval env (Letrec bindings body) = eval (evalLetrec env bindings ++ env) body
 eval env (TypeCheck (tested, typeDecl) body) = 
     eval env tested >>= throwIfInvalid typeDecl >> eval env body
@@ -140,10 +141,16 @@ eval env (TypeCheck (tested, typeDecl) body) =
 
 apply :: EveData -> [EveData] -> EveM EveData
 apply (Primitive name fn _) args = fn args
-apply (Function argNames body env _) args = if length argNames == length args
+apply (Function argNames Nothing body env _) args = if length argNames == length args
     then eval (zip argNames args ++ env) body
     else throwError $ TypeError $ "Wrong number of arguments: expected " 
                             ++ show argNames ++ ", found " ++ show args
+apply (Function argNames (Just varargs) body env _) args = case length argNames of
+    numArgs | numArgs == length args -> eval (zip argNames args ++ env) body
+    numArgs | numArgs < length args -> 
+        eval ((varargs, makeTuple $ drop numArgs args) : (zip argNames $ take numArgs args) ++ env) body
+    numArgs | numArgs > length args -> 
+        throwError $ TypeError $ "Wrong number of arguments: expected at least " ++ show numArgs
 apply val args = throwError $ TypeError $ show val ++ " is not a function"
 
 iterableValues :: EveData -> EveM [EveData]
