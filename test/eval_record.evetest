@@ -12,6 +12,8 @@ Eve>>> attr({foo: 2}, 'fo' + 'o')
 2
 Eve>>> { attr: {| self, field | field }}.bar
 'bar'
+Eve>>> { foo: 2, attr: {| self, field | _attr(self, 'foo') }}.bar
+2
 Eve>>> { foo: 3, bar: 4}['foo']
 3
 Eve>>> (1..5)['start']

@@ -27,6 +27,7 @@ startingEnv = primitiveEnv ++ makePrimitives [
     ("lt", cmpPrimitive "lt"),
     ("le", cmpPrimitive "le"),
     ("extend", extendPrimitive),
+    ("_attr", attrRawPrimitive),
     ("attr", attrPrimitive),
     ("restrict", filterRecord elem),
     ("exclude", filterRecord notElem)]
@@ -193,6 +194,9 @@ attrPrimitive [obj, field@(String _ _)] | hasAttr "attr" obj =
     getAttr "attr" obj >>= flip apply [obj, field]
 attrPrimitive [obj, String field _] = getAttr field obj
 attrPrimitive _ = throwError $ TypeError "Field access requires an object and a string"
+
+attrRawPrimitive [obj, String field _] = getAttr field obj
+attrRawPrimitive _ = throwError $ TypeError "Field access requires an object and a string"
 
 filterRecord fn [dest, fields] = trySequence `catchError` const tryFields
   where
