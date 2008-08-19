@@ -113,12 +113,12 @@ sliceHelper constr xs fields = do
     extract _ = typeError "Index is not an integer"
     lookupField field = maybe (typeError $ "No " ++ field ++ " field") extract $ lookup field fields
 
-get [Int index _, String xs _] = getHelper xs index >>= \c -> return (makeString [c])
-get [Int index _, Tuple xs _] = getHelper xs index
-get [String index _, Record xs] = 
+get [String xs _, Int index _] = getHelper xs index >>= \c -> return (makeString [c])
+get [Tuple xs _, Int index _] = getHelper xs index
+get [Record xs, String index _] = 
     maybe (typeError $ "Unknown field " ++ index) return $ lookup index xs
-get [Record fields, String xs _] = sliceHelper makeString xs fields
-get [Record fields, Tuple xs _] = sliceHelper makeTuple xs fields
+get [String xs _, Record fields] = sliceHelper makeString xs fields
+get [Tuple xs _, Record fields] = sliceHelper makeTuple xs fields
 get [Tuple xs _] = getHelper xs 0
 get [SequenceIter (String xs _) index _] = return $ makeString [xs !! index]
 get [SequenceIter (Tuple xs _) index _] = return $ xs !! index
