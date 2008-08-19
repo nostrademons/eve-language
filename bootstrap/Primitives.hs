@@ -42,6 +42,7 @@ iterPrimitives = makePrimitives [
 sequencePrimitives = makePrimitives [
   ("add", concat'),
   ("mul", repeat'),
+  ("iter", iter),
   ("len", len),
   ("get", get)]
 
