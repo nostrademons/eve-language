@@ -171,6 +171,9 @@ Operand     : Literal                      { Literal $1 }
             | '(' Expr ')'                 { $2 }
             | Expr '(' ExprList ')'        { Funcall $1 (reverse $3) }
             | Expr '(' ')'                 { Funcall $1 [] }
+            | Expr '(' '*' Operand ')'     { funcall "apply" [$1, $4] }
+            | Expr '(' ExprList ',' '*' Operand ')' 
+                { funcall "apply" [$1, funcall "add" [TupleLiteral (reverse $3), $6]] }
             | Expr '.' VAR                 { funcall "attr" [$1, Literal (makeString $3)] }
             | '{' '|' VarArgList '|' Expr '}' { let (args, newBody) = collectTypeDecls (fst $3) $5 in
                                                 Lambda args (snd $3) newBody }
@@ -189,8 +192,6 @@ DottedIdent : VAR { [$1] }
             | DottedIdent '.' VAR      { $3 : $1 }
 LabeledPair : Label ':' Expr           { ($1, $3) }
 
-ExprList    : Expr                     { [$1] }
-            | ExprList ',' Expr        { $3 : $1 }
 VarList     : VAR                      { [$1] }
             | VarList ',' VAR          { $3 : $1 }
 ArgList     : {- empty -}              { [] }
@@ -199,6 +200,8 @@ ArgList     : {- empty -}              { [] }
 VarArgList  : ArgList                  { ($1, Nothing) }
             | '*' VAR                  { ([], Just $2) }
             | ArgList ',' '*' VAR      { ($1, Just $4) }
+ExprList    : Expr                     { [$1] }
+            | ExprList ',' Expr        { $3 : $1 }
 LabeledList : LabeledPair                   { [$1] }
             | LabeledList ',' LabeledPair   { $3 : $1 }
 

@@ -4,3 +4,7 @@ Eve>>> gt(3, 2)
 True
 Eve>>> add(mul(3, 2), 5)
 11
+Eve>>> {| x, y | x + y }(*[2, 3])
+5
+Eve>>> {| x, y, z | x + y + z }(2, *[3, 4])
+9
