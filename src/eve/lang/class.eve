@@ -6,10 +6,7 @@ def bind_if_function(self, method):
 def make_class(superclass, methods):
     prototype = methods | { proto: superclass }
     def constructor(*args):
-        methods.init(*args) | {
-            proto: prototype,
-            get_attr: {| self, method_name | bind_if_function(self, self[method_name] }
-        }
+        methods.init(*args) | { proto: prototype }
     constructor | prototype
 
 def namespace(fn): fn() | fn

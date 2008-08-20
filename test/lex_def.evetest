@@ -17,6 +17,12 @@ def lenlth_if_large(s):\
     if strlen > 5 then Str(strlen) else s\
 def
 ["def","double","(","x",")",":","2","EOL","foo","=","2","EOL","def","lenlth_if_large","(","s",")",":","EOL","INDENT","strlen","=","len","(","s",")","EOL","if","strlen",">","5","then","Str","(","strlen",")","else","s","DEDENT","EOL","def"]
+Eve>>> def bind_if_function(self, method):\
+    if is_instance(method, Function)\
+        then {| *args | method(self, *args) }\
+        else method\
+def
+["def"]
 Eve>>> def double(x):\
     2\
 \

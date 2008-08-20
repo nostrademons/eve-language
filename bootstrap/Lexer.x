@@ -141,20 +141,19 @@ hasLineBreak :: (AlexPosn, EveToken) -> [(AlexPosn, EveToken)] -> Bool
 hasLineBreak (AlexPn _ line _, _) ((AlexPn _ nextLine _, _):rest) = line < nextLine
 hasLineBreak _ [] = False
 
-startDelim incr c state pos rest = (pos, TokDelim c) : addNewlines (incr state) rest
-
 addNewlines :: DelimState -> [(AlexPosn, EveToken)] -> [(AlexPosn, EveToken)]
 addNewlines delims@(parens, braces, brackets) (tok@(pos, TokDelim c) : rest)
-  | c == '(' || c == '{' || c == '[' = startDelim addDelim c delims pos rest
-  | noDelims newDelims && hasLineBreak tok rest = 
-            tok : (pos, TokNewline) : addNewlines newDelims rest
-  | otherwise = tok : addNewlines newDelims rest
+  | c == '(' || c == '{' || c == '[' = startDelim $ addDelim delims
+  | noDelims subDelim && hasLineBreak tok rest = 
+            tok : (pos, TokNewline) : addNewlines subDelim rest
+  | otherwise = tok : addNewlines subDelim rest
   where 
+    startDelim newDelims = (pos, TokDelim c) : addNewlines newDelims rest
     addDelim = case c of
       '(' -> \(parens, braces, brackets) -> (parens + 1, braces, brackets)
       '{' -> \(parens, braces, brackets) -> (parens, braces + 1, brackets)
       '[' -> \(parens, braces, brackets) -> (parens, braces, brackets + 1)
-    newDelims = case c of
+    subDelim = case c of
       ')' -> if parens > 0 then (parens - 1, braces, brackets) else delims
       '}' -> if braces > 0 then (parens, braces - 1, brackets) else delims
       ']' -> if brackets > 0 then (parens, braces, brackets - 1) else delims
