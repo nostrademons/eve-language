@@ -22,7 +22,7 @@ Eve>>> def bind_if_function(self, method):\
         then {| *args | method(self, *args) }\
         else method\
 def
-["def"]
+["def","bind_if_function","(","self",",","method",")",":","EOL","INDENT","if","is_instance","(","method",",","Function",")","then","{","|","*","args","|","method","(","self",",","*","args",")","}","else","method","DEDENT","EOL","def"]
 Eve>>> def double(x):\
     2\
 \

@@ -138,6 +138,8 @@ noDelims :: DelimState -> Bool
 noDelims (parens, braces, brackets) = parens == 0 && braces == 0 && brackets == 0
 
 hasLineBreak :: (AlexPosn, EveToken) -> [(AlexPosn, EveToken)] -> Bool
+hasLineBreak (_, TokOp _) _ = False
+hasLineBreak _ ((_, TokOp _):_) = False
 hasLineBreak (AlexPn _ line _, _) ((AlexPn _ nextLine _, _):rest) = line < nextLine
 hasLineBreak _ [] = False
 
@@ -157,8 +159,6 @@ addNewlines delims@(parens, braces, brackets) (tok@(pos, TokDelim c) : rest)
       ')' -> if parens > 0 then (parens - 1, braces, brackets) else delims
       '}' -> if braces > 0 then (parens, braces - 1, brackets) else delims
       ']' -> if brackets > 0 then (parens, braces, brackets - 1) else delims
-addNewlines delims (tok@(pos, TokOp _) : rest) = tok : addNewlines delims rest
-addNewlines delims (tok : op@(pos, TokOp _) : rest) = tok : op : addNewlines delims rest
 addNewlines delims (tok@(pos, _) : rest) = if noDelims delims && hasLineBreak tok rest
   then tok : (pos, TokNewline) : addNewlines delims rest
   else tok : addNewlines delims rest
