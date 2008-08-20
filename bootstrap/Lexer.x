@@ -10,7 +10,7 @@ import Utils
 
 $digit = [0-9]	      	        -- digits
 $alnum = [A-Za-z]               -- alphanumeric
-$oper = [\+\*\/\|\&\~=\<\>\%\!\^]  -- operators (plus -, which needs to be support for "3 + -2")
+$oper = [\+\/\|\&\~=\<\>\%\!\^]  -- operators (plus -, which needs to be support for "3 + -2")
 $delim = [\( \) \[ \] \{ \}]    -- delimiters
 $singleQuoteChar = [$printable \r\n] # \'
 $doubleQuoteChar = [$printable \r\n] # \"
@@ -26,6 +26,7 @@ tokens :-
   <0> "."                           { tokenStr TokOp }
   <0> ".."                          { tokenStr TokOp }
   <0> "?"                           { tokenStr TokVar }
+  <0> "*"                           { tokenStr TokOp }
   <0> $delim                        { tokenChar TokDelim }
   <0> $digit+                       { tokenStr $ TokInt . read }
 

@@ -158,8 +158,8 @@ Expr : Operand             { $1 }
      | Expr '&' Expr    { binop "restrict" $1 $3 }
      | Expr '~' Expr    { binop "exclude" $1 $3 }
      | Expr '->' Expr   { Funcall $3 [$1] }
-     | Expr '[' ']'     { funcall "get" [$1] }
-     | Expr '[' Expr ']' { funcall "get" [$3, $1] }
+     | Expr '[' ']'     { Funcall (funcall "attr" [$1, Literal $ makeString "get"]) [] }
+     | Expr '[' Expr ']' { Funcall (funcall "attr" [$1, Literal $ makeString "get"]) [$3] }
      | 'if' Expr 'then' Expr 'else' Expr
        { Cond [($2, $4), (Literal (makeBool True), $6)] }
 

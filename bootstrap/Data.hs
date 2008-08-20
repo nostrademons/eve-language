@@ -4,7 +4,7 @@ module Data(EveToken(..), AlexPosn(..),
             ModuleDef, getAccessibleBindings, 
             recordFields, sortRecord, prototype, 
             attributes, setAttributes, getAttr, hasAttr, dropAttrs, attrNames,
-            EveM, runEveM, getEnv, eveCall, addTopLevelBinding, 
+            EveM, runEveM, getEnv, addTopLevelBinding, 
             modules, getStateField, join) where
 import Data.List
 import Control.Monad.State hiding (join)
@@ -72,7 +72,7 @@ showFields (label, value) = "'" ++ label ++ "': " ++ show value
 showTuple val = "[" ++ join ", " (map show val) ++ "]"
 showRecord fields = "{" ++ join ", " (map showFields $ recordFields fields) ++ "}"
 showAttributes fields = if recordFields fields == [] then "" else " | " ++ showRecord fields
-showArgList args varargs = join ", " (args ++ maybe [] (:[]) varargs) 
+showArgList args varargs = join ", " (args ++ maybe [] (\argName -> ["*" ++ argName]) varargs) 
 eqTuple x1 x2 = and $ zipWith (==) x1 x2
 eqRecord x1 x2 = and $ zipWith (==) (sortRecord x1) (sortRecord x2)
 
@@ -218,10 +218,6 @@ data EveExpr =
   | Letrec [(String, EveExpr)] EveExpr
   | TypeCheck (EveExpr, EveType) EveExpr
   deriving (Eq)
-
--- Utility function to generate code fragments for calling other Eve functions
-eveCall :: String -> [EveData] -> EveExpr
-eveCall name args = Funcall (Variable name) $ map Literal args
 
 join sep [] = ""
 join sep ws = foldr1 (\w s -> w ++ sep ++ s) ws

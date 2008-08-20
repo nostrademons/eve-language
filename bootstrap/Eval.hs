@@ -146,12 +146,15 @@ apply (Function argNames Nothing body env _) args = if length argNames == length
     else throwError $ TypeError $ "Wrong number of arguments: expected " 
                             ++ show argNames ++ ", found " ++ show args
 apply (Function argNames (Just varargs) body env _) args = case length argNames of
-    numArgs | numArgs == length args -> eval (zip argNames args ++ env) body
+    numArgs | numArgs == length args -> eval ((varargs, makeTuple []) : zip argNames args ++ env) body
     numArgs | numArgs < length args -> 
         eval ((varargs, makeTuple $ drop numArgs args) : (zip argNames $ take numArgs args) ++ env) body
     numArgs | numArgs > length args -> 
         throwError $ TypeError $ "Wrong number of arguments: expected at least " ++ show numArgs
 apply val args = throwError $ TypeError $ show val ++ " is not a function"
+
+eveMethodCall :: EveData -> String -> [EveData] -> EveM EveData
+eveMethodCall obj name args = getAttr name obj >>= flip apply (obj : args)
 
 iterableValues :: EveData -> EveM [EveData]
 iterableValues iter = do
@@ -164,13 +167,16 @@ iterableValues iter = do
         return $ val : rest
       else
         return []
-  where iterCall env name = eval env $ eveCall name [iter]
+  where iterCall env name = eveMethodCall iter name []
 
 sequenceValues :: EveData -> EveM [EveData]
-sequenceValues sequence = getEnv >>= (flip eval $ eveCall "iter" [sequence]) >>= iterableValues
+sequenceValues sequence = do
+    env <- getEnv 
+    eveMethodCall sequence "iter" [] >>= iterableValues
 
 applyPrimitive :: [EveData] -> EveM EveData
 applyPrimitive [fn, sequence] = sequenceValues sequence >>= apply fn
+applyPrimitive _ = throwError $ TypeError $ "Apply takes a function and a sequence"
 
 binopPrimitive name [left, right] = tryLeftAttr `catchError` const tryRightAttr 
   where
@@ -197,9 +203,19 @@ extendPrimitive [dest, source] = return . setAttributes dest $
   where
     exclude dest source = filter (\(key, val) -> key `notElem` source) dest
 
-attrPrimitive [obj, field@(String _ _)] | hasAttr "attr" obj =
-    getAttr "attr" obj >>= flip apply [obj, field]
-attrPrimitive [obj, String field _] = getAttr field obj
+attrPrimitive [obj, field@(String name _)] = tryRecord `catchError` tryAttr
+  where
+    tryRecord = getAttr name obj >>= return . maybeMakeMethod
+    tryAttr e | hasAttr "attr" obj = getAttr "attr" obj >>= flip apply [obj, field]
+    tryAttr e = throwError e
+    wrappedFunction fn env = Function [] (Just "args") 
+        (Funcall (Variable "apply") [Literal fn, 
+            Funcall (Variable "add") [Literal $ makeTuple [obj], Variable "args"]]) 
+        env [("im_self", obj), ("im_func", fn)]
+    maybeMakeMethod fn@(Primitive _ _ _) = wrappedFunction fn startingEnv
+    maybeMakeMethod fn@(Function [] _ _ _ _) = fn
+    maybeMakeMethod fn@(Function _ _ _ env _) = wrappedFunction fn env
+    maybeMakeMethod val = val
 attrPrimitive _ = throwError $ TypeError "Field access requires an object and a string"
 
 attrRawPrimitive [obj, String field _] = getAttr field obj

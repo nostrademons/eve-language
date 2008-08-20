@@ -48,7 +48,7 @@ testLines filename fn [] = return ()
 testLines filename fn (rawInput:output:rest) = 
     runTest `catchError` printError >> testLines filename fn rest
   where
-    printError = liftIO . putStrLn . (("Error in " ++ filename ++ ": ") ++) . show
+    printError = liftIO . putStrLn . (("Error in " ++ filename ++ " (\"" ++ input ++ "\"): ") ++) . show
     (prompt, notPrompt) = span (/= '>') rawInput
     input = drop 4 notPrompt
     runTest = do
@@ -97,7 +97,7 @@ readDocStrings filename = do
 
 extractDocstrings :: [EveFileLine] -> [(String, String)]
 extractDocstrings [] = []
-extractDocstrings ((Def name args docstring _ _ _):xs) = 
+extractDocstrings ((Def name args varargs docstring _ _ _):xs) = 
     (name ++ "(" ++ join ", " args ++ ")", docstring) : extractDocstrings xs
 extractDocstrings (_:xs) = extractDocstrings xs
 
