@@ -30,7 +30,7 @@ Eve>>> "Foo"[0]
 'F'
 Eve>>> "Bar"[-1]
 'r'
-Eve>>> len("Foo")
+Eve>>> "Foo".len()
 3
 Eve>>> "Frob".iter().next().get()
 'r'
