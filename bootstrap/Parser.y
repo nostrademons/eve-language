@@ -161,8 +161,8 @@ Expr : Operand             { $1 }
      | Expr '&' Expr    { binop "restrict" $1 $3 }
      | Expr '~' Expr    { binop "exclude" $1 $3 }
      | Expr '->' Expr   { Funcall $3 [$1] }
-     | Expr '[' ']'     { Funcall (funcall "attr" [$1, Literal $ makeString "get"]) [] }
-     | Expr '[' Expr ']' { Funcall (funcall "attr" [$1, Literal $ makeString "get"]) [$3] }
+     | Expr '[' ']'     { methodcall "get" $1 [] }
+     | Expr '[' Expr ']' { methodcall "get" $1 [$3] }
      | 'if' Expr 'then' Expr 'else' Expr
        { Cond [($2, $4), (Literal (makeBool True), $6)] }
 
@@ -268,6 +268,7 @@ findLastExpr docString defLines = (lines, docString, last)
     (lines, [NakedExpr last]) = splitAt (length defLines - 1) defLines
 
 funcall name args = Funcall (Variable name) args
+methodcall name obj args = Funcall (funcall "attr" [obj, Literal $ makeString name]) args
 binop name left right = funcall name [left, right]
 
 happyError ((posn, token):whatever) = throwError $ ParseError token posn
