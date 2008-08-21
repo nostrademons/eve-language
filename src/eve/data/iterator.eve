@@ -1,9 +1,9 @@
 import eve.lang.class
 
 typedef Iterable: {
-    get: Iterable -> Any,
-    next: Iterable -> Iterable,
-    has_next: Iterable -> Bool
+    get: (Iterable -> Any),
+    next: (Iterable -> Iterable),
+    has_next: (Iterable -> Bool)
 }
 
 Iterable = make_class(Object, { iter: id })
