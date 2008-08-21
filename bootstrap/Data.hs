@@ -24,7 +24,7 @@ data EveData =
   | Record Env
   | RecordIter EveData Int Env
   | Primitive String ([EveData] -> EveM EveData) Env
-  | Function [String] (Maybe String) EveExpr Env Env
+  | Function [String] [(String, EveData)] (Maybe String) EveExpr Env Env
 
 findPrototype :: Env -> EveData
 findPrototype fields = maybe (Bool False []) id $ lookup "proto" fields
@@ -38,7 +38,7 @@ attributes (SequenceIter _ _ fields) = fields
 attributes (Record fields) = fields
 attributes (RecordIter _ _ fields) = fields
 attributes (Primitive _ _ fields) = fields
-attributes (Function _ _ _ _ fields) = fields
+attributes (Function _ _ _ _ _ fields) = fields
 
 setAttributes (Int val fields) newFields = Int val newFields
 setAttributes (Bool val fields) newFields = Bool val newFields
@@ -48,7 +48,8 @@ setAttributes (Tuple val fields) newFields = Tuple val newFields
 setAttributes (SequenceIter val index fields) newFields = SequenceIter val index newFields
 setAttributes (Record fields) newFields = Record newFields
 setAttributes (Primitive name fn fields) newFields = Primitive name fn newFields
-setAttributes (Function args varargs body env fields) newFields = Function args varargs body env newFields
+setAttributes (Function args defaults varargs body env fields) newFields = 
+    Function args defaults varargs body env newFields
 
 prototype = findPrototype . attributes
 
@@ -72,7 +73,10 @@ showFields (label, value) = "'" ++ label ++ "': " ++ show value
 showTuple val = "[" ++ join ", " (map show val) ++ "]"
 showRecord fields = "{" ++ join ", " (map showFields $ recordFields fields) ++ "}"
 showAttributes fields = if recordFields fields == [] then "" else " | " ++ showRecord fields
-showArgList args varargs = join ", " (args ++ maybe [] (\argName -> ["*" ++ argName]) varargs) 
+showArgList args defaults varargs = join ", " varArgList
+  where
+    varArgList = map displayArg args ++ maybe [] (\argName -> ["*" ++ argName]) varargs 
+    displayArg arg = maybe arg (\val -> arg ++ "=" ++ show val) $ lookup arg defaults
 eqTuple x1 x2 = and $ zipWith (==) x1 x2
 eqRecord x1 x2 = and $ zipWith (==) (sortRecord x1) (sortRecord x2)
 
@@ -86,7 +90,7 @@ instance Eq EveData where
   Record x1 == Record x2 = eqRecord x1 x2
   RecordIter x1 i1 _ == RecordIter x2 i2 _ = i1 == i2 && x1 == x2
   Primitive name1 _ _ == Primitive name2 _ _ = name1 == name2
-  Function args1 varargs1 body1 _ _ == Function args2 varargs2 body2 _ _ = 
+  Function args1 defaults1 varargs1 body1 _ _ == Function args2 defaults2 varargs2 body2 _ _ = 
         args1 == args2 && varargs1 == varargs2 && body1 == body2
   _ == _ = False
 
@@ -102,8 +106,8 @@ instance Show EveData where
   show (RecordIter val index fields) = "Iterator(" ++ show index ++ ") for " ++ show val 
         ++ showAttributes fields
   show (Primitive name _ fields) = name ++ showAttributes fields
-  show (Function args varargs body _ fields) = 
-        (show $ Lambda args varargs body) ++ showAttributes fields
+  show (Function args defaults varargs body _ fields) = 
+        (show $ Lambda args defaults varargs body) ++ showAttributes fields
 
 -- Modules
 
@@ -172,7 +176,7 @@ data EveFileLine =
   | NakedExpr EveExpr
   | Binding (Either [String] String) EveExpr
   | TypeDef String EveType
-  | Def String [String] (Maybe String) String (Maybe EveType) [EveFileLine] EveExpr
+  | Def String [String] [(String, EveData)] (Maybe String) String (Maybe EveType) [EveFileLine] EveExpr
 
 instance Show EveFileLine where
   show (Export bindings) = "export " ++ join ", " bindings ++ "\n"
@@ -181,10 +185,10 @@ instance Show EveFileLine where
   show (Binding (Left vars) expr) = join ", " vars ++ "=" ++ show expr
   show (Binding (Right var) expr) = var ++ "=" ++ show expr
   show (TypeDef name value) = "typedef " ++ name ++ ": " ++ show value
-  show (Def name args varargs docstring Nothing defines body) = 
-    "def " ++ name ++ "(" ++ showArgList args varargs ++ "): " ++ show body
-  show (Def name args varargs docstring (Just typeExpr) defines body) = 
-    "@type(" ++ show typeExpr ++ ")\ndef " ++ name ++ "(" ++ showArgList args varargs ++ "): " ++ show body
+  show (Def name args defaults varargs docstring Nothing defines body) = 
+    "def " ++ name ++ "(" ++ showArgList args defaults varargs ++ "): " ++ show body
+  show (Def name args defaults varargs docstring (Just typeExpr) defines body) = 
+    "@type(" ++ show typeExpr ++ ")\ndef " ++ name ++ "(" ++ showArgList args defaults varargs ++ "): " ++ show body
 
 data EveType =
     TPrim String
@@ -214,7 +218,7 @@ data EveExpr =
   | Variable String
   | Cond [(EveExpr, EveExpr)]
   | Funcall EveExpr [EveExpr]
-  | Lambda [String] (Maybe String) EveExpr
+  | Lambda [String] [(String, EveData)] (Maybe String) EveExpr
   | Letrec [(String, EveExpr)] EveExpr
   | TypeCheck (EveExpr, EveType) EveExpr
   deriving (Eq)
@@ -230,7 +234,7 @@ instance Show EveExpr where
   show (Funcall name args) = show name ++ "(" ++ join ", " (map show args) ++ ")"
   show (Cond args) = "Cond: " ++ join ", " (map showClause args)
     where showClause (pred, expr) = show pred ++ "->" ++ show expr
-  show (Lambda args varargs body) = "{|" ++ showArgList args varargs ++ "| " ++ show body ++ "}"
+  show (Lambda args defaults varargs body) = "{|" ++ showArgList args defaults varargs ++ "| " ++ show body ++ "}"
   show (Letrec clauses body) = "Letrec in " ++ show body ++ ":" 
                                 ++ join ", " (map showClause clauses)
     where showClause (name, expr) = name ++ " = " ++ show expr

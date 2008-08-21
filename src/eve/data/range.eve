@@ -1,5 +1,4 @@
 import eve.lang.class
-import eve.data.sequence
 
 typedef Range: { 
     start: Int, 

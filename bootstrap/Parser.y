@@ -86,11 +86,14 @@ FileLine : SequenceUnpack               { $1 }
 
 DefDecl     : 'def' VAR '(' VarArgList ')' TypeDecl ':' DefBody
     { let (lines, docString, body) = $8 in 
-        let (args, newBody) = collectTypeDecls (fst $4) body in 
-            Def $2 args (snd $4) docString $6 lines newBody }
+        let (args, defaults, newBody) = parseArgList (fst $4) body in 
+            Def $2 args defaults (snd $4) docString $6 lines newBody }
 
 DocString   : {- Empty -}       { "" }
             | STR EOL           { $1 }
+
+DefaultDecl : {- Empty -}       { Nothing }
+            | '=' Literal       { Just $2 }
 
 TypeDecl    : {- Empty -}       { Nothing }
             | 'as' TypeExpr     { Just $2 }
@@ -175,8 +178,8 @@ Operand     : Literal                      { Literal $1 }
             | Expr '(' ExprList ',' '*' Operand ')' 
                 { funcall "apply" [$1, funcall "add" [TupleLiteral (reverse $3), $6]] }
             | Expr '.' VAR                 { funcall "attr" [$1, Literal (makeString $3)] }
-            | '{' '|' VarArgList '|' Expr '}' { let (args, newBody) = collectTypeDecls (fst $3) $5 in
-                                                Lambda args (snd $3) newBody }
+            | '{' '|' VarArgList '|' Expr '}' { let (args, defaults, newBody) = parseArgList (fst $3) $5 in
+                                                Lambda args defaults (snd $3) newBody }
             | Operand 'as' TypeExpr        { TypeCheck ($1, $3) $1 }
 
 Literal     : INT                          { makeInt $1 }
@@ -194,9 +197,9 @@ LabeledPair : Label ':' Expr           { ($1, $3) }
 
 VarList     : VAR                      { [$1] }
             | VarList ',' VAR          { $3 : $1 }
-ArgList     : {- empty -}              { [] }
-            | VAR TypeDecl             { [($1, $2)] }
-            | ArgList ',' VAR TypeDecl { ($3, $4) : $1 }
+ArgList     : {- empty -}                          { [] }
+            | VAR DefaultDecl TypeDecl             { [($1, $2, $3)] }
+            | ArgList ',' VAR DefaultDecl TypeDecl { ($3, $4, $5) : $1 }
 VarArgList  : ArgList                  { ($1, Nothing) }
             | '*' VAR                  { ([], Just $2) }
             | ArgList ',' '*' VAR      { ($1, Just $4) }
@@ -230,14 +233,14 @@ replacePartials (RecordLiteral pairs) = maybeLambda reconstruct $ snd $ unzip pa
 replacePartials (Variable var) = Variable var
 replacePartials (Cond condList) = Cond $ map handleClause condList
   where handleClause (pred, action) = (replacePartials pred, replacePartials action)
-replacePartials (Lambda args varargs body) = Lambda args varargs $ replacePartials body
+replacePartials (Lambda args defaults varargs body) = Lambda args defaults varargs $ replacePartials body
 replacePartials (Funcall expr args) = maybeLambda (Funcall (replacePartials expr)) args
 replacePartials (TypeCheck (tested, typeDecl) expr) = 
     TypeCheck (replacePartials tested, typeDecl) $ replacePartials expr
 
 maybeLambda exprConstr args =
   if numParams > 0
-    then Lambda lambdaList Nothing . exprConstr $ substParams lambdaList args
+    then Lambda lambdaList [] Nothing . exprConstr $ substParams lambdaList args
     else exprConstr (map replacePartials args)
   where
     numParams = length . filter (== Variable "?") $ args
@@ -247,11 +250,18 @@ maybeLambda exprConstr args =
     substParams params (arg:args) = replacePartials arg : substParams params args
     substParams params [] = []
 
-collectTypeDecls argList body = (reverse $ fst $ unzip argList, newBody)
+-- argList comes in reversed, which is good for our purposes
+parseArgList argList body = (reverse $ names, argDefaults, newBody)
   where 
     newBody = foldr makeTypeCheck body argList
-    makeTypeCheck (varName, Nothing) = id
-    makeTypeCheck (varName, Just typeDecl) = TypeCheck (Variable varName, typeDecl)
+    (names, defaults, types) = unzip3 argList
+    argDefaults = map unpack $ filter hasDefault $ zip names defaults
+    hasDefault (name, Nothing) = False
+    hasDefault (name, Just argDefault) = True
+    unpack (name, Just val) = (name, val)
+    unpack pair = error $ "Bad default argument: " ++ show pair
+    makeTypeCheck (varName, _, Nothing) = id
+    makeTypeCheck (varName, _, Just typeDecl) = TypeCheck (Variable varName, typeDecl)
 
 findLastExpr docString defLines = (lines, docString, last)
   where
