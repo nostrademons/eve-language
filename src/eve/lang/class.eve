@@ -9,6 +9,7 @@ def make_class(superclass, methods):
         methods.init(*args) | { proto: prototype }
     constructor | prototype
 
+def id(val): val
 def namespace(fn): fn() | fn
 def ignore_self(f): {| self, *args | f(*args) }
 def super(self): 

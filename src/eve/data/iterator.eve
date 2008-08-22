@@ -8,16 +8,13 @@ typedef Iterable: {
 
 Iterable = make_class(Object, { iter: id })
 
-@namespace
-def ProxyIterator():
+class ProxyIterator(Iterable):
     def init(original): add_superclass(Iterator, { original: original.iter() })
     def get(self): self.original.get()
     def next(self): self | { original: self.original.next() }
     def has_next(self): self.original.has_next()
-    make_class(Iterable, locals())
 
-@namespace
-def chain()
+class chain(ProxyIterator):
     def init(*iterables): 
         master = iterables.iter()
         ProxyIterator.init(master.get()) | { master: master }
@@ -27,26 +24,20 @@ def chain()
             else chain(*self.master.next())
     def has_next(self):
         super(self).has_next() or self.master.has_next()
-    make_class(ProxyIterator, locals())
 
-@namespace
-def repeat():
+class repeat(Iterable):
     def init(value): locals()
     def get(self): self.value
     def next(self): self
     def has_next(self): True
-    make_class(Iterable, locals())
 
-@namespace
-def iterate():
+class iterate(Iterable):
     def init(initial, f): { current: initial, f: ignore_self(f) }
     def get(self): self.current
     def next(self): self | { current: self.f(self.current) }
     def has_next(self): True
-    make_class(Iterable, locals())
 
-@namespace
-def cycle():
+class cycle(ProxyIterator):
     def init(original): 
         i = original -> iter
         { original: i, start: i }
@@ -55,58 +46,46 @@ def cycle():
             then super(self).next(self) 
             else self | { original: start }
     def has_next(self): True
-    make_class(ProxyIterator, locals())
 
-@namespace 
-def map():
+class map(ProxyIterator):
     def init(original, f): { original: original -> iter, f: ignore_self(f) }
     def get(self): return self.f(super(self).get())
     make_class(ProxyIterator, locals())
 
-@namespace
-def filter():
+class filter(ProxyIterator):
     def next_legal(self):
         next_iter = super(self).next
         if self.pred(next_iter.get()) then next_iter else next__legal(next_iter)
     def init(original, pred): 
         next_legal({ original: original, pred: ignore_self(pred) })
     def next(self): self | { original: next_legal(self) }
-    make_class(ProxyIterator, locals() ~ ['next_legal'])
 
-@namespace
-def take_while():
+class take_while(ProxyIterator):
     def init(original, pred):  { 
         original: original, 
         pred: ignore_receiver(pred),
     }
     def has_next(self): super(self).has_next() and self.pred(self.next().get())
-    make_class(ProxyIterator, locals())
 
-@namespace
-def take():
+class take(take_while):
     def init(original, num): { 
         original: original,
         index: 0,
         pred: {| self, val | self.index < num }
     }
     def next(self): super(self).next() | { index: self.index + 1 }
-    make_class(take_while, locals())
 
-@namespace
-def drop_while():
+class drop_while(ProxyIterator):
     def init(original, pred):
         if pred(original.get())
             then init(original.next(), pred)
             else { original: original }
-    make_class(ProxyIterator, locals())
 
-@namespace
-def drop():
+class drop(ProxyIterator):
     def init(original, num):
         if num > 0 and original.has_next()
             then init(original.next(), num - 1)
             else { original: original }
-    make_class(ProxyIterator, locals())
 
 def slice(original, start, end):
     drop(original, start) -> take(?, end - start)
