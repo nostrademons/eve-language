@@ -97,8 +97,8 @@ readDocStrings filename = do
 
 extractDocstrings :: [EveFileLine] -> [(String, String)]
 extractDocstrings [] = []
-extractDocstrings ((Def name args defaults varargs docstring _ _ _):xs) = 
-    (name ++ "(" ++ join ", " args ++ ")", docstring) : extractDocstrings xs
+extractDocstrings ((Def name argData docstring _ _ _):xs) = 
+    (name ++ "(" ++ show argData ++ ")", docstring) : extractDocstrings xs
 extractDocstrings (_:xs) = extractDocstrings xs
 
 extractTests :: [String] -> [(String, String)]

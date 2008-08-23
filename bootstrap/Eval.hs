@@ -34,22 +34,22 @@ startingEnv = primitiveEnv ++ makePrimitives [
 
 categorize (Import x) (i, b, d, t) = (x : i, b, d, t)
 categorize x@(Binding _ _) (i, b, d, t) = (i, x : b, d, t)
-categorize x@(Def _ _ _ _ _ _ _ _) (i, b, d, t) = (i, b, x : d, t)
+categorize x@(Def _ _ _ _ _ _) (i, b, d, t) = (i, b, x : d, t)
 categorize x@(TypeDef _ _) (i, b, d, t) = (i, b, d, x : t)
 
 parseFileLines = foldr categorize ([], [], [], [])
 
-parseDef typeEnv (Def name args defaults varargs docstring typeDecl lines body) = (name, convertedBody)
+parseDef typeEnv (Def name argData docstring typeDecl lines body) = (name, convertedBody)
   where
     (_, bindings, defs, _) = parseFileLines lines
     defBody = Letrec (map (parseDef typeEnv) defs) body
-    convertedBody = Lambda args defaults varargs $ 
+    convertedBody = Lambda argData $ 
         (maybe id (addTypeCheck . convertTypeDefs) typeDecl) $
         foldr convertBinding defBody bindings
     addTypeCheck typeDecl body = TypeCheck (body, typeDecl) body
     convertBinding (Binding (Left vars) expr) rest = 
-        Funcall (Variable "apply") [Lambda vars [] Nothing rest, expr]
-    convertBinding (Binding (Right var) expr) rest = Funcall (Lambda [var] [] Nothing rest) [expr]
+        Funcall (Variable "apply") [Lambda (Args vars [] Nothing) rest, expr]
+    convertBinding (Binding (Right var) expr) rest = Funcall (Lambda (Args [var] [] Nothing) rest) [expr]
     convertTypeDefs :: EveType -> EveType
     convertTypeDefs (TPrim name) = maybe (TPrim name) id $ lookup name typeEnv
     convertTypeDefs (TLiteral datum) = TLiteral datum
@@ -101,8 +101,8 @@ evalLetrec :: Env -> [(String, EveExpr)] -> Env
 evalLetrec env defs = result
   where
     result = map makeBinding defs
-    makeBinding (name, Lambda args defaults varargs body) = 
-        (name, makeFunction args defaults varargs body (result ++ env))
+    makeBinding (name, Lambda argData body) = 
+        (name, makeFunction argData body (result ++ env))
 
 eval :: Env -> EveExpr -> EveM EveData
 eval env (Literal val) = return val
@@ -121,7 +121,7 @@ eval env (Cond ((pred, action):rest)) = do
   case predResult of
     Bool True _ -> eval env action 
     otherwise -> eval env (Cond rest)
-eval env (Lambda args defaults varargs body) = return $ makeFunction args defaults varargs body env
+eval env (Lambda argData body) = return $ makeFunction argData body env
 eval env (Letrec bindings body) = eval (evalLetrec env bindings ++ env) body
 eval env (TypeCheck (tested, typeDecl) body) = 
     eval env tested >>= throwIfInvalid typeDecl >> eval env body
@@ -141,7 +141,7 @@ eval env (TypeCheck (tested, typeDecl) body) =
 
 apply :: EveData -> [EveData] -> EveM EveData
 apply (Primitive name fn _) args = fn args
-apply (Function argNames defaults Nothing body env _) args = case length argNames of
+apply (Function (Args argNames defaults Nothing) body env _) args = case length argNames of
     numArgs | numArgs == numProvided -> evalWithArgs []
     numArgs | numArgs > numProvided && defaultsTaken <= length defaults -> 
             evalWithArgs $ take defaultsTaken defaults
@@ -151,7 +151,7 @@ apply (Function argNames defaults Nothing body env _) args = case length argName
     numProvided = length args
     defaultsTaken = length argNames - numProvided
     evalWithArgs extraArgs = eval (extraArgs ++ zip argNames args ++ env) body
-apply (Function argNames defaults (Just varargs) body env _) args = case length argNames of
+apply (Function (Args argNames defaults (Just varargs)) body env _) args = case length argNames of
     numArgs | numArgs == numProvided -> eval ((varargs, makeTuple []) : zip argNames args ++ env) body
     numArgs | numArgs < numProvided -> 
         evalWithArgs $ (varargs, makeTuple $ drop numArgs args) : (zip argNames $ take numArgs args)
@@ -219,13 +219,13 @@ attrPrimitive [obj, field@(String name _)] = tryRecord `catchError` tryAttr
     tryRecord = getAttr name obj >>= return . maybeMakeMethod
     tryAttr e | hasAttr "attr" obj = getAttr "attr" obj >>= flip apply [obj, field]
     tryAttr e = throwError e
-    wrappedFunction fn env = Function [] [] (Just "args") 
+    wrappedFunction fn env = Function (Args [] [] (Just "args")) 
         (Funcall (Variable "apply") [Literal fn, 
             Funcall (Variable "add") [Literal $ makeTuple [obj], Variable "args"]]) 
         env [("im_self", obj), ("im_func", fn)]
     maybeMakeMethod fn@(Primitive _ _ _) = wrappedFunction fn startingEnv
-    maybeMakeMethod fn@(Function [] _ _ _ _ _) = fn
-    maybeMakeMethod fn@(Function _ _ _ _ env _) = wrappedFunction fn env
+    maybeMakeMethod fn@(Function (Args [] _ _) _ _ _) = fn
+    maybeMakeMethod fn@(Function _ _ env _) = wrappedFunction fn env
     maybeMakeMethod val = val
 attrPrimitive _ = throwError $ TypeError "Field access requires an object and a string"
 

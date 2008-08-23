@@ -89,7 +89,7 @@ FileLine : SequenceUnpack               { $1 }
 DefDecl     : 'def' VAR '(' VarArgList ')' TypeDecl ':' DefBody
     { let (lines, docString, body) = findLastExpr $8 in 
         let (args, defaults, newBody) = parseArgList (fst $4) body in 
-            Def $2 args defaults (snd $4) docString $6 lines newBody }
+            Def $2 (Args args defaults (snd $4)) docString $6 lines newBody }
 
 ClassDecl   : 'class' VAR SubClassDecl ':' DefBody   { makeClass $2 $3 $5 }
 
@@ -186,7 +186,7 @@ Operand     : Literal                      { Literal $1 }
                 { funcall "apply" [$1, funcall "add" [TupleLiteral (reverse $3), $6]] }
             | Expr '.' VAR                 { funcall "attr" [$1, Literal (makeString $3)] }
             | '{' '|' VarArgList '|' Expr '}' { let (args, defaults, newBody) = parseArgList (fst $3) $5 in
-                                                Lambda args defaults (snd $3) newBody }
+                                                Lambda (Args args defaults (snd $3)) newBody }
             | Operand 'as' TypeExpr        { TypeCheck ($1, $3) $1 }
 
 Literal     : INT                          { makeInt $1 }
@@ -240,14 +240,14 @@ replacePartials (RecordLiteral pairs) = maybeLambda reconstruct $ snd $ unzip pa
 replacePartials (Variable var) = Variable var
 replacePartials (Cond condList) = Cond $ map handleClause condList
   where handleClause (pred, action) = (replacePartials pred, replacePartials action)
-replacePartials (Lambda args defaults varargs body) = Lambda args defaults varargs $ replacePartials body
+replacePartials (Lambda argData body) = Lambda argData $ replacePartials body
 replacePartials (Funcall expr args) = maybeLambda (Funcall (replacePartials expr)) args
 replacePartials (TypeCheck (tested, typeDecl) expr) = 
     TypeCheck (replacePartials tested, typeDecl) $ replacePartials expr
 
 maybeLambda exprConstr args =
   if numParams > 0
-    then Lambda lambdaList [] Nothing . exprConstr $ substParams lambdaList args
+    then Lambda (Args lambdaList [] Nothing) . exprConstr $ substParams lambdaList args
     else exprConstr (map replacePartials args)
   where
     numParams = length . filter (== Variable "?") $ args
@@ -277,7 +277,7 @@ findLastExpr (docString, defLines) = (lines, docString, last)
 -- This is so not the final behavior: it creates a def (the constructor) which invokes the
 -- init method, then updates the prototype of the resulting datum with the other methods.
 makeClass name superDecl (docString, lines) =
-    Def name [] [] (Just "args") docString Nothing lines classBody
+    Def name (Args [] [] (Just "args")) docString Nothing lines classBody
   where
     classBody = funcall "extend" [funcall "apply" [Variable "init", Variable "args"], proto]
     proto = RecordLiteral [("proto", RecordLiteral $ buildProto superDecl)]
@@ -287,7 +287,7 @@ makeClass name superDecl (docString, lines) =
     addMethod (NakedExpr _) rest = rest
     addMethod (Binding (Left _) _) rest = rest
     addMethod (Binding (Right name) _) rest = (name, Variable name) : rest
-    addMethod (Def name _ _ _ _ _ _ _) rest = (name, Variable name) : rest
+    addMethod (Def name _ _ _ _ _) rest = (name, Variable name) : rest
 
 funcall name args = Funcall (Variable name) args
 methodcall name obj args = Funcall (funcall "attr" [obj, Literal $ makeString name]) args

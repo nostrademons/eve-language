@@ -23,10 +23,10 @@ check: test
 
 all: $(EXECS)
 
-Lexer.hs: $(LEX_SPEC)
+Lexer.hs: Data.hs $(LEX_SPEC)
 	$(ALEX) $(LEX_SPEC)
 
-Parser.hs: $(PARSE_SPEC)
+Parser.hs: Data.hs $(PARSE_SPEC)
 	$(HAPPY) $(PARSE_SPEC)
 
 clean-bak:
