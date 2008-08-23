@@ -143,13 +143,13 @@ apply :: EveData -> [EveData] -> EveM EveData
 apply (Primitive name fn _) args = fn args
 apply (Function argNames defaults Nothing body env _) args = case length argNames of
     numArgs | numArgs == numProvided -> evalWithArgs []
-    numArgs | numArgs < numProvided && defaultsTaken <= length defaults -> 
+    numArgs | numArgs > numProvided && defaultsTaken <= length defaults -> 
             evalWithArgs $ take defaultsTaken defaults
     _ -> throwError $ TypeError $ "Wrong number of arguments: expected " 
                             ++ show argNames ++ ", found " ++ show args
   where
     numProvided = length args
-    defaultsTaken = numProvided - length argNames
+    defaultsTaken = length argNames - numProvided
     evalWithArgs extraArgs = eval (extraArgs ++ zip argNames args ++ env) body
 apply (Function argNames defaults (Just varargs) body env _) args = case length argNames of
     numArgs | numArgs == numProvided -> eval ((varargs, makeTuple []) : zip argNames args ++ env) body

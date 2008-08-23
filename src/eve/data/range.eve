@@ -1,3 +1,5 @@
+import eve.data.iterator
+
 typedef Range: { 
     start: Int, 
     stop: Int, 
@@ -5,7 +7,7 @@ typedef Range: {
 }
 
 class Range(Iterator):
-    def init(start=0, stop, step=1): locals()
+    def init(start=0, stop, step=1): { start: start, stop: stop, step: step }
     def iter(self): self
     def get(self): self.start
     def next(self): self & { start: self.start + self.step }
