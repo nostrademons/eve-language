@@ -6,7 +6,8 @@ typedef Iterable: {
     has_next: (Iterable -> Bool)
 }
 
-Iterable = make_class(Object, { iter: id })
+Iterable = make_class('Iterable', 'Any object that can produce an iterator',
+                        Object, { iter: id })
 
 class ProxyIterator(Iterable):
     def init(original): add_superclass(Iterator, { original: original.iter() })
@@ -37,73 +38,71 @@ class iterate(Iterable):
     def next(self): self | { current: self.f(self.current) }
     def has_next(self): True
 
-class cycle(ProxyIterator):
-    def init(original): 
-        i = original -> iter
-        { original: i, start: i }
-    def next(self):
-        if super(self).has_next(self) 
-            then super(self).next(self) 
-            else self | { original: start }
-    def has_next(self): True
+class Iterator(Iterable):
+    class cycle(ProxyIterator):
+        def init(self): 
+            i = self -> iter
+            { self: i, start: i }
+        def next(self):
+            if super(self).has_next(self) 
+                then super(self).next(self) 
+                else self | { original: start }
+        def has_next(self): True
 
-class map(ProxyIterator):
-    def init(original, f): { original: original -> iter, f: ignore_self(f) }
-    def get(self): return self.f(super(self).get())
-    make_class(ProxyIterator, locals())
+    class map(ProxyIterator):
+        def init(self, f): { original: original -> iter, f: ignore_self(f) }
+        def get(self): return self.f(super(self).get())
+        make_class(ProxyIterator, locals())
 
-class filter(ProxyIterator):
-    def next_legal(self):
-        next_iter = super(self).next
-        if self.pred(next_iter.get()) then next_iter else next__legal(next_iter)
-    def init(original, pred): 
-        next_legal({ original: original, pred: ignore_self(pred) })
-    def next(self): self | { original: next_legal(self) }
+    class filter(ProxyIterator):
+        def next_legal(self):
+            next_iter = super(self).next
+            if self.pred(next_iter.get()) then next_iter else next__legal(next_iter)
+        def init(self, pred): 
+            next_legal({ original: self, pred: ignore_self(pred) })
+        def next(self): self | { original: next_legal(self) }
 
-class take_while(ProxyIterator):
-    def init(original, pred):  { 
-        original: original, 
-        pred: ignore_receiver(pred),
-    }
-    def has_next(self): super(self).has_next() and self.pred(self.next().get())
+    class take_while(ProxyIterator):
+        def init(self, pred):  { 
+            original: self, 
+            pred: ignore_receiver(pred),
+        }
+        def has_next(self): super(self).has_next() and self.pred(self.next().get())
 
-class take(take_while):
-    def init(original, num): { 
-        original: original,
-        index: 0,
-        pred: {| self, val | self.index < num }
-    }
-    def next(self): super(self).next() | { index: self.index + 1 }
+    class take(take_while):
+        def init(self, num): { 
+            original: self,
+            index: 0,
+            pred: {| self, val | self.index < num }
+        }
+        def next(self): super(self).next() | { index: self.index + 1 }
 
-class drop_while(ProxyIterator):
-    def init(original, pred):
-        if pred(original.get())
-            then init(original.next(), pred)
-            else { original: original }
+    class drop_while(ProxyIterator):
+        def init(self, pred):
+            if pred(self.get())
+                then init(self.next(), pred)
+                else { original: self }
 
-class drop(ProxyIterator):
-    def init(original, num):
-        if num > 0 and original.has_next()
-            then init(original.next(), num - 1)
-            else { original: original }
+    class drop(ProxyIterator):
+        def init(self, num):
+            if num > 0 and self.has_next()
+                then init(self.next(), num - 1)
+                else { original: self }
 
-def slice(original, start, end):
-    drop(original, start) -> take(?, end - start)
+    def slice(self, start, end):
+        drop(self, start) -> take(?, end - start)
 
-def reduce(self, f, accum, breakout=constant(False), not_found=None):
-    i = self.iter()
-    cond:
-        breakout(i.get()): accum
-        i.has_next(): i.next().reduce(f(i.get(), accum)
-        True: not_found
+    def reduce(self, f, accum, breakout=constant(False), not_found=None):
+        i = self.iter()
+        cond:
+            breakout(i.get()): accum
+            i.has_next(): i.next().reduce(f(i.get(), accum)
+            True: not_found
 
-def len(self): self.reduce(? + 1, 0)
-def find(self, val): self.reduce(? + 1, 0, ? == val, -1)
-def contains(self, val): self.find(val) != -1
-def any(self, pred=Bool): self.reduce(constant(True), True, ? == True, False)
-def all(self, pred=Bool): self.reduce(constant(True), True, ? == False, True)
-def min(self): self.reduce({| val, last | if val < last then val else last }, self[0])
-def max(self): self.reduce({| val, last | if val > last then val else last }, self[0])
-
-Iterator = make_class(Iterable, globals() 
-    ~ [:Iterable, :ProxyIterator, :chain, :repeat, :iterate])
+    def len(self): self.reduce(? + 1, 0)
+    def find(self, val): self.reduce(? + 1, 0, ? == val, -1)
+    def contains(self, val): self.find(val) != -1
+    def any(self, pred=Bool): self.reduce(constant(True), True, ? == True, False)
+    def all(self, pred=Bool): self.reduce(constant(True), True, ? == False, True)
+    def min(self): self.reduce({| val, last | if val < last then val else last }, self[0])
+    def max(self): self.reduce({| val, last | if val > last then val else last }, self[0])

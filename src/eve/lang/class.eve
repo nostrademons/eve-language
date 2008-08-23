@@ -3,11 +3,11 @@ def bind_if_function(self, method):
         then {| *args | method(self, *args) } 
         else method
 
-def make_class(superclass, methods):
+def make_class(name, doc, superclass, methods):
     prototype = methods | { proto: superclass }
     def constructor(*args):
         methods.init(*args) | { proto: prototype }
-    constructor | prototype
+    constructor | methods | { name: name, doc: doc }
 
 def id(val): val
 def namespace(fn): fn() | fn
