@@ -39,6 +39,7 @@ DEDENT { (_, TokDedent) }
 'or'  { (_, TokOp "or") }
 'not' { (_, TokOp "not") }
 'def' { (_, TokKeyword "def") }
+'class'{(_, TokKeyword "class") }
 'if'  { (_, TokKeyword "if") }
 'then'{ (_, TokOp "then") }
 'else'{ (_, TokOp "else") }
@@ -83,11 +84,17 @@ FileLine : SequenceUnpack               { $1 }
          | 'export' VarList             { Export (reverse $2) }
          | 'typedef' VAR ':' TypeExpr   { TypeDef $2 $4 }
          | DefDecl                      { $1 }
+         | ClassDecl                    { $1 }
 
 DefDecl     : 'def' VAR '(' VarArgList ')' TypeDecl ':' DefBody
-    { let (lines, docString, body) = $8 in 
+    { let (lines, docString, body) = findLastExpr $8 in 
         let (args, defaults, newBody) = parseArgList (fst $4) body in 
             Def $2 args defaults (snd $4) docString $6 lines newBody }
+
+ClassDecl   : 'class' VAR SubClassDecl ':' DefBody   { makeClass $2 $3 $5 }
+
+SubClassDecl    : {- Empty -}   { Nothing }
+                | '(' VAR ')'   { Just $2 }
 
 DocString   : {- Empty -}       { "" }
             | STR EOL           { $1 }
@@ -112,14 +119,14 @@ LabeledTypePair     : Label ':' TypeExpr    { ($1, $3) }
 LabeledTypeList     : LabeledTypePair                       { [$1] }
                     | LabeledTypeList ',' LabeledTypePair   { $3 : $1 }
 
-DefBody : Expr                              { ([], "", $1) }
-        | EOL INDENT DocString DefLineList DEDENT    
-                                            { findLastExpr $3 (reverse $4) }
+DefBody : Expr                                      { ("", [NakedExpr $1]) }
+        | EOL INDENT DocString DefLineList DEDENT   { ($3, reverse $4) }
 
 DefLine : Expr                  { NakedExpr $1 }
         | MultiLineExpr         { NakedExpr $1 }
         | SequenceUnpack        { $1 }
         | DefDecl               { $1 }
+        | ClassDecl             { $1 }
 
 DefLineList     : DefLine                   { [$1] }
                 | DefLineList EOL DefLine { $3 : $1 }
@@ -263,9 +270,24 @@ parseArgList argList body = (reverse $ names, argDefaults, newBody)
     makeTypeCheck (varName, _, Nothing) = id
     makeTypeCheck (varName, _, Just typeDecl) = TypeCheck (Variable varName, typeDecl)
 
-findLastExpr docString defLines = (lines, docString, last)
+findLastExpr (docString, defLines) = (lines, docString, last)
   where
     (lines, [NakedExpr last]) = splitAt (length defLines - 1) defLines
+
+-- This is so not the final behavior: it creates a def (the constructor) which invokes the
+-- init method, then updates the prototype of the resulting datum with the other methods.
+makeClass name superDecl (docString, lines) =
+    Def name [] [] (Just "args") docString Nothing lines classBody
+  where
+    classBody = funcall "extend" [funcall "apply" [Variable "init", Variable "args"], proto]
+    proto = RecordLiteral [("proto", RecordLiteral $ buildProto superDecl)]
+    buildProto (Just superclass) = ("proto", Variable superclass) : methods
+    buildProto Nothing = methods
+    methods = foldr addMethod [] lines
+    addMethod (NakedExpr _) rest = rest
+    addMethod (Binding (Left _) _) rest = rest
+    addMethod (Binding (Right name) _) rest = (name, Variable name) : rest
+    addMethod (Def name _ _ _ _ _ _ _) rest = (name, Variable name) : rest
 
 funcall name args = Funcall (Variable name) args
 methodcall name obj args = Funcall (funcall "attr" [obj, Literal $ makeString name]) args

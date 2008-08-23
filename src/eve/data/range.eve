@@ -1,16 +1,13 @@
-import eve.lang.class
-
 typedef Range: { 
     start: Int, 
     stop: Int, 
     step: Int 
 }
 
-def init(start=0, stop, step=1): locals()
-def iter(self): self
-def get(self): self.start
-def next(self): self & { start: self.start + self.step }
-def has_next(self): self.start + self.step < self.stop
-def len(self): (self.stop - self.start) / self.step
-
-Range = make_class(Sequence, globals())
+class Range(Iterator):
+    def init(start=0, stop, step=1): locals()
+    def iter(self): self
+    def get(self): self.start
+    def next(self): self & { start: self.start + self.step }
+    def has_next(self): self.start + self.step < self.stop
+    def len(self): (self.stop - self.start) / self.step

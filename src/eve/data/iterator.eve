@@ -1,13 +1,12 @@
-import eve.lang.class
-
 typedef Iterable: {
     get: (Iterable -> Any),
     next: (Iterable -> Iterable),
     has_next: (Iterable -> Bool)
 }
 
-Iterable = make_class('Iterable', 'Any object that can produce an iterator',
-                        Object, { iter: id })
+class Iterable:
+    'Any object that can produce an iterator'
+    def iter(self): self
 
 class ProxyIterator(Iterable):
     def init(original): add_superclass(Iterator, { original: original.iter() })
@@ -51,7 +50,7 @@ class Iterator(Iterable):
 
     class map(ProxyIterator):
         def init(self, f): { original: original -> iter, f: ignore_self(f) }
-        def get(self): return self.f(super(self).get())
+        def get(self): self.f(super(self).get())
         make_class(ProxyIterator, locals())
 
     class filter(ProxyIterator):
@@ -65,7 +64,7 @@ class Iterator(Iterable):
     class take_while(ProxyIterator):
         def init(self, pred):  { 
             original: self, 
-            pred: ignore_receiver(pred),
+            pred: ignore_receiver(pred)
         }
         def has_next(self): super(self).has_next() and self.pred(self.next().get())
 
@@ -92,17 +91,18 @@ class Iterator(Iterable):
     def slice(self, start, end):
         drop(self, start) -> take(?, end - start)
 
-    def reduce(self, f, accum, breakout=constant(False), not_found=None):
+    def reduce(self, f, accum, breakout=False, not_found=False):
         i = self.iter()
+        breakout_fn = if breakout then breakout else const(False)
         cond:
             breakout(i.get()): accum
-            i.has_next(): i.next().reduce(f(i.get(), accum)
+            i.has_next(): i.next().reduce(f(i.get(), accum))
             True: not_found
 
     def len(self): self.reduce(? + 1, 0)
     def find(self, val): self.reduce(? + 1, 0, ? == val, -1)
     def contains(self, val): self.find(val) != -1
-    def any(self, pred=Bool): self.reduce(constant(True), True, ? == True, False)
-    def all(self, pred=Bool): self.reduce(constant(True), True, ? == False, True)
+    def any(self, pred): self.reduce(constant(True), True, ? == True, False)
+    def all(self, pred): self.reduce(constant(True), True, ? == False, True)
     def min(self): self.reduce({| val, last | if val < last then val else last }, self[0])
     def max(self): self.reduce({| val, last | if val > last then val else last }, self[0])
