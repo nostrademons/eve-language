@@ -49,8 +49,8 @@ parseDef typeEnv (Def name argData docstring typeDecl lines body) = (name, conve
         foldr convertBinding defBody bindings
     addTypeCheck typeDecl body = TypeCheck (body, typeDecl) body
     convertBinding (Binding (Left vars) expr) rest = 
-        Funcall (Variable "apply") [Lambda (Args vars [] Nothing) rest, expr]
-    convertBinding (Binding (Right var) expr) rest = Funcall (Lambda (Args [var] [] Nothing) rest) [expr]
+        Funcall (Variable "apply") [Lambda (ArgExpr vars [] Nothing) rest, expr]
+    convertBinding (Binding (Right var) expr) rest = Funcall (Lambda (ArgExpr [var] [] Nothing) rest) [expr]
     convertTypeDefs :: EveType -> EveType
     convertTypeDefs (TPrim name) = maybe (TPrim name) id $ lookup name typeEnv
     convertTypeDefs (TLiteral datum) = TLiteral datum
@@ -61,11 +61,12 @@ parseDef typeEnv (Def name argData docstring typeDecl lines body) = (name, conve
 
 readModule :: String -> EveM ModuleDef
 readModule fileText = do
-    (imports, bindings, defs, typedefs) <- lexer fileText >>= parseFile 
+    (imports, bindings, defs, typeDefs) <- lexer fileText >>= parseFile 
                  >>= return . parseFileLines
     importEnv <- mapM loadModule imports >>= return . (startingEnv ++) . concat
     evalEnv <- foldl (>>=) (return importEnv) $ map evalBinding bindings
-    defEnv <- return $ evalLetrec evalEnv $ map (parseDef $ map parseType typedefs) defs
+    defResults <- mapM (evalPair evalEnv . parseDef (map parseType typeDefs)) defs
+    defEnv <- return $ closeOverBindings defResults
     return $ take (length bindings) evalEnv ++ defEnv
   where
     parseType (TypeDef name val) = (name, val)
@@ -98,12 +99,21 @@ evalRepl env (Assignment var expr) = do
   addTopLevelBinding var value
   return value
 
-evalLetrec :: Env -> [(String, EveExpr)] -> Env
-evalLetrec env defs = result
+closeOverBindings bindings = result
   where
-    result = map makeBinding defs
-    makeBinding (name, Lambda argData body) = 
-        (name, makeFunction argData body (result ++ env))
+    result = map editFunctionEnv bindings
+    editFunctionEnv (name, (Function argData body env fields)) = 
+        (name, Function argData body (result ++ env) fields)
+
+evalDefaults env (ArgExpr args defaults varargs) = do
+    values <- mapM (eval env) defaultExprs
+    return $ Args args (zip names values) varargs
+  where
+    (names, defaultExprs) = unzip defaults
+
+evalPair env (name, body) = do
+    result <- eval env body
+    return (name, result)
 
 eval :: Env -> EveExpr -> EveM EveData
 eval env (Literal val) = return val
@@ -122,8 +132,12 @@ eval env (Cond ((pred, action):rest)) = do
   case predResult of
     Bool True _ -> eval env action 
     otherwise -> eval env (Cond rest)
-eval env (Lambda argData body) = return $ makeFunction argData body env
-eval env (Letrec bindings body) = eval (evalLetrec env bindings ++ env) body
+eval env (Lambda argExpr body) = do
+    argData <- evalDefaults env argExpr
+    return $ makeFunction argData body env
+eval env (Letrec bindings body) = do
+    fns <- mapM (evalPair env) bindings
+    eval (closeOverBindings fns ++ env) body
 eval env (TypeCheck (tested, typeDecl) body) = 
     eval env tested >>= throwIfInvalid typeDecl >> eval env body
   where

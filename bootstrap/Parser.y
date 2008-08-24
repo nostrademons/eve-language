@@ -89,7 +89,7 @@ FileLine : SequenceUnpack               { $1 }
 DefDecl     : 'def' VAR '(' VarArgList ')' TypeDecl ':' DefBody
     { let (lines, docString, body) = findLastExpr $8 in 
         let (args, defaults, newBody) = parseArgList (fst $4) body in 
-            Def $2 (Args args defaults (snd $4)) docString $6 lines newBody }
+            Def $2 (ArgExpr args defaults (snd $4)) docString $6 lines newBody }
 
 ClassDecl   : 'class' VAR SubClassDecl ':' DefBody   { makeClass $2 $3 $5 }
 
@@ -99,8 +99,8 @@ SubClassDecl    : {- Empty -}   { Nothing }
 DocString   : {- Empty -}       { "" }
             | STR EOL           { $1 }
 
-DefaultDecl : {- Empty -}       { Nothing }
-            | '=' Literal       { Just $2 }
+DefaultDecl : {- Empty -}           { Nothing }
+            | '=' Operand           { Just $2 }
 
 TypeDecl    : {- Empty -}       { Nothing }
             | 'as' TypeExpr     { Just $2 }
@@ -173,20 +173,19 @@ Expr : Operand             { $1 }
      | 'if' Expr 'then' Expr 'else' Expr
        { Cond [($2, $4), (Literal (makeBool True), $6)] }
 
-
 Operand     : Literal                      { Literal $1 }
             | VAR                          { Variable $1 }
             | '[' ExprList ']'             { TupleLiteral (reverse $2) }
             | '{' LabeledList '}'          { RecordLiteral (reverse $2) }
             | '(' Expr ')'                 { $2 }
-            | Expr '(' ExprList ')'        { Funcall $1 (reverse $3) }
-            | Expr '(' ')'                 { Funcall $1 [] }
-            | Expr '(' '*' Operand ')'     { funcall "apply" [$1, $4] }
-            | Expr '(' ExprList ',' '*' Operand ')' 
+            | Operand '(' ExprList ')'        { Funcall $1 (reverse $3) }
+            | Operand '(' ')'                 { Funcall $1 [] }
+            | Operand '(' '*' Operand ')'     { funcall "apply" [$1, $4] }
+            | Operand '(' ExprList ',' '*' Operand ')' 
                 { funcall "apply" [$1, funcall "add" [TupleLiteral (reverse $3), $6]] }
-            | Expr '.' VAR                 { funcall "attr" [$1, Literal (makeString $3)] }
+            | Operand '.' VAR                 { funcall "attr" [$1, Literal (makeString $3)] }
             | '{' '|' VarArgList '|' Expr '}' { let (args, defaults, newBody) = parseArgList (fst $3) $5 in
-                                                Lambda (Args args defaults (snd $3)) newBody }
+                                                Lambda (ArgExpr args defaults (snd $3)) newBody }
             | Operand 'as' TypeExpr        { TypeCheck ($1, $3) $1 }
 
 Literal     : INT                          { makeInt $1 }
@@ -247,7 +246,7 @@ replacePartials (TypeCheck (tested, typeDecl) expr) =
 
 maybeLambda exprConstr args =
   if numParams > 0
-    then Lambda (Args lambdaList [] Nothing) . exprConstr $ substParams lambdaList args
+    then Lambda (ArgExpr lambdaList [] Nothing) . exprConstr $ substParams lambdaList args
     else exprConstr (map replacePartials args)
   where
     numParams = length . filter (== Variable "?") $ args
@@ -276,8 +275,14 @@ findLastExpr (docString, defLines) = (lines, docString, last)
 
 -- This is so not the final behavior: it creates a def (the constructor) which invokes the
 -- init method, then updates the prototype of the resulting datum with the other methods.
+
+-- TODO: apparently, we need to assign the methods to the object we create as well.  This
+-- is tricky, since we're trying to avoid calling eval at module-read time, yet there's no
+-- place to hang the fields elsewhere.  Maybe we should just bite the bullet and have the
+-- module reading functions run in the EveM monad, letting us eval things in the environment
+-- of the imports
 makeClass name superDecl (docString, lines) =
-    Def name (Args [] [] (Just "args")) docString Nothing lines classBody
+    Def name (ArgExpr [] [] (Just "args")) docString Nothing lines classBody
   where
     classBody = funcall "extend" [funcall "apply" [Variable "init", Variable "args"], proto]
     proto = RecordLiteral [("proto", RecordLiteral $ buildProto superDecl)]

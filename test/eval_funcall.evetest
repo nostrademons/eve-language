@@ -8,11 +8,15 @@ Eve>>> {| x, y | x + y }(*[2, 3])
 5
 Eve>>> {| x, y, z | x + y + z }(2, *[3, 4])
 9
-Eve>>> {| x, y=2| x - y  }(5)
+Eve>>> {| x, y=2 | x - y }(5)
 3
-Eve>>> {| x=5, y| x - y }(3)
+Eve>>> {| x=5, y | x - y }(3)
 2
 Eve>>> {| x=5, *args | args }(2, 3, 4)
 [3, 4]
 Eve>>> {| x=5, *args | args }()
 []
+Eve>>> FOO = 2
+2
+Eve>>> {| y = FOO | y }()
+2

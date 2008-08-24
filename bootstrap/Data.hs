@@ -1,4 +1,4 @@
-module Data(EveToken(..), AlexPosn(..), ArgData(..),
+module Data(EveToken(..), AlexPosn(..), ArgData(..), ArgExpr(..),
             EveExpr(..), EveReplLine(..), EveFileLine(..), 
             EveError(..), EveData(..), EveType(..), Env, 
             ModuleDef, getAccessibleBindings, 
@@ -18,6 +18,14 @@ data ArgData = Args [String] [(String, EveData)] (Maybe String) deriving (Eq)
 
 instance Show ArgData where
     show (Args args defaults varargs) = join ", " varArgList
+      where
+        varArgList = map displayArg args ++ maybe [] (\argName -> ["*" ++ argName]) varargs 
+        displayArg arg = maybe arg (\val -> arg ++ "=" ++ show val) $ lookup arg defaults
+
+data ArgExpr = ArgExpr [String] [(String, EveExpr)] (Maybe String) deriving (Eq)
+
+instance Show ArgExpr where
+    show (ArgExpr args defaults varargs) = join ", " varArgList
       where
         varArgList = map displayArg args ++ maybe [] (\argName -> ["*" ++ argName]) varargs 
         displayArg arg = maybe arg (\val -> arg ++ "=" ++ show val) $ lookup arg defaults
@@ -110,7 +118,7 @@ instance Show EveData where
         ++ showAttributes fields
   show (Primitive name _ fields) = name ++ showAttributes fields
   show (Function argData body _ fields) = 
-        (show $ Lambda argData body) ++ showAttributes fields
+        "{| " ++ show argData ++ " | " ++ show body ++ " }" ++ showAttributes fields
 
 -- Modules
 
@@ -179,7 +187,7 @@ data EveFileLine =
   | NakedExpr EveExpr
   | Binding (Either [String] String) EveExpr
   | TypeDef String EveType
-  | Def String ArgData String (Maybe EveType) [EveFileLine] EveExpr
+  | Def String ArgExpr String (Maybe EveType) [EveFileLine] EveExpr
 
 instance Show EveFileLine where
   show (Export bindings) = "export " ++ join ", " bindings ++ "\n"
@@ -221,7 +229,7 @@ data EveExpr =
   | Variable String
   | Cond [(EveExpr, EveExpr)]
   | Funcall EveExpr [EveExpr]
-  | Lambda ArgData EveExpr
+  | Lambda ArgExpr EveExpr
   | Letrec [(String, EveExpr)] EveExpr
   | TypeCheck (EveExpr, EveType) EveExpr
   deriving (Eq)
