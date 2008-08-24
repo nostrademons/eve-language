@@ -9,8 +9,8 @@ import Lexer
 import Parser
 import Primitives
 
--- autoImports = ["eve.data.range"]
-autoImports = []
+autoImports = ["eve.data.iterator", "eve.data.range"]
+-- autoImports = []
 
 startingEnv = primitiveEnv ++ makePrimitives [
     ("apply", applyPrimitive),
