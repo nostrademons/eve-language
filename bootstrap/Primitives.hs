@@ -128,18 +128,23 @@ get [RecordIter (Record xs) index _] = return $ makeTuple [makeString $ fst pair
 get (val:_) = typeError (show val ++ " is not indexable")
 get _ = typeError "get requires at least one argument"
 
-allIterPrimitives = makePrototype [eqPrimitives, iterPrimitives, typePrimitives]
-iter [val@(String _ _)] = return $ SequenceIter val 0 allIterPrimitives
-iter [val@(Tuple _ _)] = return $ SequenceIter val 0 allIterPrimitives
-iter [val@(Record _)] = return $ RecordIter val 0 allIterPrimitives
+allIterPrimitives = concat [eqPrimitives, iterPrimitives, typePrimitives]
+makeIter constr val = do
+    env <- getEnv
+    return $ constr val 0 $ ("proto", findIterator env) : allIterPrimitives
+  where
+    findIterator env = maybe (error "Iterator prototype not loaded") id $ lookup "Iterator" env
+iter [val@(String _ _)] = makeIter SequenceIter val
+iter [val@(Tuple _ _)] = makeIter SequenceIter val
+iter [val@(Record _)] = makeIter RecordIter val
 iter [val@(SequenceIter _ _ _)] = return val
 iter [val@(RecordIter _ _ _)] = return val
 iter val = typeError (show val ++ " is not iterable")
 
 -- TODO: these just expose a Haskell error if you overshoot the end of the
 -- sequence, instead of raising a nice EveError
-iterNext [SequenceIter val index proto] = return $ SequenceIter val (index + 1) proto
-iterNext [RecordIter val index proto] = return $ RecordIter val (index + 1) proto
+iterNext [SequenceIter val index fields] = return $ SequenceIter val (index + 1) fields
+iterNext [RecordIter val index fields] = return $ RecordIter val (index + 1) fields
 iterNext _ = typeError "Not an iterator."
 
 iterHasNextHelper xs index = return . makeBool $ index < length xs

@@ -32,6 +32,7 @@ startingEnv = primitiveEnv ++ makePrimitives [
     ("restrict", filterRecord elem),
     ("exclude", filterRecord notElem)]
 
+categorize (NakedExpr _) val = val
 categorize (Import x) (i, b, d, t) = (x : i, b, d, t)
 categorize x@(Binding _ _) (i, b, d, t) = (i, x : b, d, t)
 categorize x@(Def _ _ _ _ _ _) (i, b, d, t) = (i, b, x : d, t)
