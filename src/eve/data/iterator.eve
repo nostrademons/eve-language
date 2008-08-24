@@ -91,9 +91,8 @@ class Iterator(Iterable):
     def slice(self, start, end):
         drop(self, start) -> take(?, end - start)
 
-    def reduce(self, f, accum, breakout=False, not_found=False):
+    def reduce(self, f, accum, breakout=const(False), not_found=False):
         i = self.iter()
-        breakout_fn = if breakout then breakout else const(False)
         cond:
             breakout(i.get()): accum
             i.has_next(): i.next().reduce(f(i.get(), accum))
@@ -102,7 +101,7 @@ class Iterator(Iterable):
     def len(self): self.reduce(? + 1, 0)
     def find(self, val): self.reduce(? + 1, 0, ? == val, -1)
     def contains(self, val): self.find(val) != -1
-    def any(self, pred): self.reduce(constant(True), True, ? == True, False)
-    def all(self, pred): self.reduce(constant(True), True, ? == False, True)
+    def any(self, pred=Bool): self.reduce(constant(True), True, ? == True, False)
+    def all(self, pred=Bool): self.reduce(constant(True), True, ? == False, True)
     def min(self): self.reduce({| val, last | if val < last then val else last }, self[0])
     def max(self): self.reduce({| val, last | if val > last then val else last }, self[0])
