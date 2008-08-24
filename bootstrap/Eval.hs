@@ -141,27 +141,26 @@ eval env (TypeCheck (tested, typeDecl) body) =
 
 apply :: EveData -> [EveData] -> EveM EveData
 apply (Primitive name fn _) args = fn args
-apply (Function (Args argNames defaults Nothing) body env _) args = case length argNames of
-    numArgs | numArgs == numProvided -> evalWithArgs []
-    numArgs | numArgs > numProvided && defaultsTaken <= length defaults -> 
-            evalWithArgs $ take defaultsTaken defaults
-    _ -> throwError $ TypeError $ "Wrong number of arguments: expected " 
-                            ++ show argNames ++ ", found " ++ show args
+apply (Function argData body env _) args = do
+    boundArgs <- bindArgs argData args
+    eval (boundArgs ++ env) body
   where
-    numProvided = length args
-    defaultsTaken = length argNames - numProvided
-    evalWithArgs extraArgs = eval (extraArgs ++ zip argNames args ++ env) body
-apply (Function (Args argNames defaults (Just varargs)) body env _) args = case length argNames of
-    numArgs | numArgs == numProvided -> eval ((varargs, makeTuple []) : zip argNames args ++ env) body
-    numArgs | numArgs < numProvided -> 
-        evalWithArgs $ (varargs, makeTuple $ drop numArgs args) : (zip argNames $ take numArgs args)
-    numArgs | numArgs < numProvided && defaultsTaken <= length defaults ->
-        evalWithArgs $ (take (numProvided - numArgs) defaults ++ zip argNames args)
-    numArgs -> throwError $ TypeError $ "Wrong number of arguments: expected at least " ++ show numArgs
-  where 
-    numProvided = length args
-    defaultsTaken = numProvided - length argNames
-    evalWithArgs newArgs = eval (newArgs ++ env) body
+    bindArgs (Args argNames defaults varargs) args = case numArgs of
+        numArgs | numArgs == numProvided -> return $ bindVarArgs varargs $ boundArgs
+        numArgs | numArgs < numProvided && hasVarArgs -> return $ bindVarArgs varargs $ boundArgs
+        numArgs | numArgs > numProvided && numArgs - numProvided <= length defaults ->
+            return $ bindVarArgs varargs $ defaultsTaken 
+                ++ zip (filter (flip notElem $ fst $ unzip defaultsTaken) argNames) args
+        numArgs -> throwError $ TypeError $ "Wrong number of arguments: expected " ++ show numArgs
+      where
+        boundArgs = zip argNames args
+        hasVarArgs = maybe False (const True) varargs
+        bindVarArgs Nothing = id
+        bindVarArgs (Just varargs) = ((varargs, makeTuple $ drop numArgs args) :)
+        numArgs = length argNames
+        numProvided = length args
+        numDefaults = numArgs - numProvided
+        defaultsTaken = take numDefaults defaults
 apply val args = throwError $ TypeError $ show val ++ " is not a function"
 
 eveMethodCall :: EveData -> String -> [EveData] -> EveM EveData

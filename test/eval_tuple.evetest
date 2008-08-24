@@ -14,3 +14,7 @@ Eve>>> [1,2,3].iter().next().next().next().has_next()
 False
 Eve>>> [1,2,3].len()
 3
+Eve>>> {| *args | args }(2, 3)
+[2, 3]
+Eve>>> {| *args | args}()
+[]
