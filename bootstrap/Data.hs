@@ -88,7 +88,6 @@ sortRecord = sortBy fieldCompare
 showFields (label, value) = "'" ++ label ++ "': " ++ show value
 showTuple val = "[" ++ join ", " (map show val) ++ "]"
 showRecord fields = "{" ++ join ", " (map showFields $ recordFields fields) ++ "}"
-showAttributes fields = if recordFields fields == [] then "" else " | " ++ showRecord fields
 eqTuple x1 x2 = and $ zipWith (==) x1 x2
 eqRecord x1 x2 = and $ zipWith (==) (sortRecord x1) (sortRecord x2)
 
@@ -106,19 +105,16 @@ instance Eq EveData where
   _ == _ = False
 
 instance Show EveData where
-  show (Int val fields) = show val ++ showAttributes fields
-  show (Bool val fields) = (if val then "True" else "False") ++ showAttributes fields
-  show (String val fields) = "'" ++ val ++ "'" ++ showAttributes fields
-  show (Symbol val fields) = ":" ++ val ++ showAttributes fields
-  show (Tuple val fields) = showTuple val ++ showAttributes fields
+  show (Int val fields) = show val
+  show (Bool val fields) = (if val then "True" else "False")
+  show (String val fields) = "'" ++ val ++ "'"
+  show (Symbol val fields) = ":" ++ val
+  show (Tuple val fields) = showTuple val
   show (SequenceIter val index fields) = "Iterator(" ++ show index ++ ") for " ++ show val 
-        ++ showAttributes fields
   show (Record fields) = showRecord fields
   show (RecordIter val index fields) = "Iterator(" ++ show index ++ ") for " ++ show val 
-        ++ showAttributes fields
-  show (Primitive name _ fields) = name ++ showAttributes fields
-  show (Function argData body _ fields) = 
-        "{| " ++ show argData ++ " | " ++ show body ++ " }" ++ showAttributes fields
+  show (Primitive name _ fields) = name
+  show (Function argData body _ fields) = "{| " ++ show argData ++ " | " ++ show body ++ " }"
 
 -- Modules
 
