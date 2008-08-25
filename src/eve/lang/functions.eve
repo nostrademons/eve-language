@@ -1,0 +1,2 @@
+def id(self): self
+def const(val): {| *args | val }

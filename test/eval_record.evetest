@@ -16,3 +16,13 @@ Eve>>> { foo: 2, attr: {| self, field | self.foo }}.bar
 2
 Eve>>> (1..5).start
 1
+Eve>>> obj = { proto: { x: 2, f: {| *args | args }}}
+{}
+Eve>>> obj.x
+2
+Eve>>> obj.f()
+[{}]
+Eve>>> obj.f(2, 3)
+[{}, 2, 3]
+Eve>>> obj2 = { proto: { f: {| x, y=2 | x - y }, g: {| self, *args | self.f(*args) }}}
+{}
