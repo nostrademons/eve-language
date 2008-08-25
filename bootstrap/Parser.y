@@ -91,7 +91,7 @@ DefDecl     : 'def' VAR '(' VarArgList ')' TypeDecl ':' DefBody
         let (args, defaults, newBody) = parseArgList (fst $4) body in 
             Def $2 (ArgExpr args defaults (snd $4)) docString $6 lines newBody }
 
-ClassDecl   : 'class' VAR SubClassDecl ':' DefBody   { makeClass $2 $3 $5 }
+ClassDecl   : 'class' VAR SubClassDecl ':' DefBody   { Class $2 $3 $5 }
 
 SubClassDecl    : {- Empty -}   { Nothing }
                 | '(' VAR ')'   { Just $2 }

@@ -1,6 +1,6 @@
 module Data(EveToken(..), AlexPosn(..), ArgData(..), ArgExpr(..),
             EveExpr(..), EveReplLine(..), EveFileLine(..), 
-            EveError(..), EveData(..), EveType(..), Env, 
+            EveError(..), EveData(..), EveType(..), TEnv, Env, 
             ModuleDef, getAccessibleBindings, 
             recordFields, sortRecord, prototype, 
             attributes, setAttributes, getAttr, hasAttr, dropAttrs, attrNames,
@@ -188,6 +188,7 @@ data EveFileLine =
   | Binding (Either [String] String) EveExpr
   | TypeDef String EveType
   | Def String ArgExpr String (Maybe EveType) [EveFileLine] EveExpr
+  | Class String (Maybe String) (String, [EveFileLine])
 
 instance Show EveFileLine where
   show (Export bindings) = "export " ++ join ", " bindings ++ "\n"
@@ -200,6 +201,9 @@ instance Show EveFileLine where
     "def " ++ name ++ "(" ++ show argData ++ "): " ++ show body
   show (Def name argData docstring (Just typeExpr) defines body) = 
     "@type(" ++ show typeExpr ++ ")\ndef " ++ name ++ "(" ++ show argData ++ "): " ++ show body
+  show (Class name superclass (docstring, lines)) = 
+    "class " ++ name ++ maybe "" (\className -> "(" ++ className ++ ")") superclass
+            ++ ":\n    " ++ join "\n    " (map show lines)
 
 data EveType =
     TPrim String
@@ -221,6 +225,8 @@ instance Eq EveType where
   TTuple x1 == TTuple x2 = eqTuple x1 x2
   TRecord x1 == TRecord x2 = eqRecord x1 x2
   TFunc args1 ret1 == TFunc args2 ret2 = ret1 == ret2 && eqTuple args1 args2
+
+type TEnv = [(String, EveType)]
 
 data EveExpr =
     Literal EveData

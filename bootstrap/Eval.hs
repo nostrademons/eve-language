@@ -9,7 +9,13 @@ import Lexer
 import Parser
 import Primitives
 
-autoImports = ["eve.data.iterator", "eve.data.range"]
+split :: Char -> String -> [String]
+split delim s
+    | [] <- rest = [token]
+    | otherwise = token : split delim (tail rest)
+  where (token,rest) = span (/=delim) s
+
+autoImports = ["eve.lang.functions", "eve.data.iterator", "eve.data.range"]
 -- autoImports = []
 
 startingEnv = primitiveEnv ++ makePrimitives [
@@ -36,21 +42,23 @@ categorize (NakedExpr _) val = val
 categorize (Import x) (i, b, d, t) = (x : i, b, d, t)
 categorize x@(Binding _ _) (i, b, d, t) = (i, x : b, d, t)
 categorize x@(Def _ _ _ _ _ _) (i, b, d, t) = (i, b, x : d, t)
+categorize x@(Class _ _ _) (i, b, d, t) = (i, b, x : d, t)
 categorize x@(TypeDef _ _) (i, b, d, t) = (i, b, d, x : t)
 
 parseFileLines = foldr categorize ([], [], [], [])
 
+parseDef :: TEnv -> EveFileLine -> (String, EveExpr)
 parseDef typeEnv (Def name argData docstring typeDecl lines body) = (name, convertedBody)
   where
     (_, bindings, defs, _) = parseFileLines lines
-    defBody = Letrec (map (parseDef typeEnv) defs) body
     convertedBody = Lambda argData $ 
         (maybe id (addTypeCheck . convertTypeDefs) typeDecl) $
         foldr convertBinding defBody bindings
-    addTypeCheck typeDecl body = TypeCheck (body, typeDecl) body
+    defBody = Letrec (map (parseDef typeEnv) defs) body
     convertBinding (Binding (Left vars) expr) rest = 
         Funcall (Variable "apply") [Lambda (ArgExpr vars [] Nothing) rest, expr]
     convertBinding (Binding (Right var) expr) rest = Funcall (Lambda (ArgExpr [var] [] Nothing) rest) [expr]
+    addTypeCheck typeDecl body = TypeCheck (body, typeDecl) body
     convertTypeDefs :: EveType -> EveType
     convertTypeDefs (TPrim name) = maybe (TPrim name) id $ lookup name typeEnv
     convertTypeDefs (TLiteral datum) = TLiteral datum
@@ -59,17 +67,43 @@ parseDef typeEnv (Def name argData docstring typeDecl lines body) = (name, conve
       where (keys, values) = unzip types
     convertTypeDefs (TFunc args ret) = TFunc (map convertTypeDefs args) $ convertTypeDefs ret
 
-readModule :: String -> EveM ModuleDef
-readModule fileText = do
+evalDef :: Env -> TEnv -> EveFileLine -> EveM (String, EveData)
+evalDef env tEnv def@(Def _ _ _ _ _ _) = evalPair env $ parseDef tEnv def
+evalDef env tEnv (Class name superDecl (docstring, lines)) = do
+    methods <- mapM (evalPair env) methodExprs
+    constr <- constructor methods
+    return (name, constr)
+  where
+    constructor methods = do
+        oldProto <- getAttr "proto" baseFunc
+        return $ setAttributes baseFunc (("proto", oldProto) : methods)
+      where baseFunc = makeFunction (Args [] [] (Just "args")) classBody (methods ++ env)
+    funcall name args = Funcall (Variable name) args
+    classBody = funcall "extend" [funcall "apply" [Variable "init", Variable "args"], proto]
+    proto = RecordLiteral [("proto", RecordLiteral $ buildProto superDecl)]
+    buildProto (Just superclass) = ("proto", Variable superclass) : methodExprs
+    buildProto Nothing = methodExprs
+    isDef (Def _ _ _ _ _ _) = True
+    isDef _ = False
+    methodExprs = map (parseDef tEnv) $ filter isDef lines
+
+readModule :: String -> String -> EveM ModuleDef
+readModule moduleName fileText = do
     (imports, bindings, defs, typeDefs) <- lexer fileText >>= parseFile 
                  >>= return . parseFileLines
-    importEnv <- mapM loadModule imports >>= return . (startingEnv ++) . concat
+    modules <- getStateField modules 
+    importEnv <- mapM loadModule imports >>= return . ((startingEnv ++ autoImportEnv modules) ++) . concat
     evalEnv <- foldl (>>=) (return importEnv) $ map evalBinding bindings
-    defResults <- mapM (evalPair evalEnv . parseDef (map parseType typeDefs)) defs
+    defResults <- mapM (evalDef evalEnv $ map parseType typeDefs) defs
     defEnv <- return $ closeOverBindings defResults
     return $ take (length bindings) evalEnv ++ defEnv
   where
     parseType (TypeDef name val) = (name, val)
+    autoImportEnv :: [(String, ModuleDef)] -> Env
+    autoImportEnv modules = concatMap (lookupModule modules) autoImports
+    lookupModule :: [(String, ModuleDef)] -> String -> ModuleDef
+    lookupModule moduleDefs name = 
+        maybe (error $ "Module " ++ moduleName ++ " not loaded") id $ lookup name moduleDefs
     -- TODO: sequence-unpacking top-level binding
     evalBinding (Binding (Right var) expr) env = do
       datum <- eval env expr
@@ -79,15 +113,15 @@ loadModule :: [String] -> EveM ModuleDef
 loadModule path = getStateField modules >>= maybeLoad
   where
     moduleName = join "." path
-    addModule moduleDef state = 
-        state { modules = (moduleName, moduleDef) : modules state}
     maybeLoad modules = maybe firstTimeLoad return $ lookup moduleName modules
     firstTimeLoad = do
       filename <- return $ "../src/" ++ join "/" path ++ ".eve"
       fileText <- liftIO $ openFile filename ReadMode >>= hGetContents 
-      moduleDef <- readModule fileText
+      moduleDef <- readModule moduleName fileText
       modify $ addModule moduleDef
       return moduleDef
+    addModule moduleDef state = 
+        state { modules = (moduleName, moduleDef) : modules state}
 
 evalRepl env (Expr expr) = eval env expr
 evalRepl env (ReplImport path) = loadModule path >>= liftM head . mapM addBinding 

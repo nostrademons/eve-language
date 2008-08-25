@@ -1,5 +1,3 @@
-import eve.data.iterator
-
 typedef Range: { 
     start: Int, 
     stop: Int, 
