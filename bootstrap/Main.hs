@@ -10,44 +10,13 @@ import Eval
 import Repl
 import Primitives
 
-doPhases input = do
-     env <- getEnv
-     lexOutput <- lexer input
-     parseOutput <- parseRepl lexOutput
-     evalOutput <- evalRepl env parseOutput
-     return (lexOutput, parseOutput, evalOutput)
+replAction input = do
+    env <- getEnv
+    lexer input >>= parseRepl >>= evalRepl env
 
-replOutput evalOutput = do
-     liftIO . putStr . show $ evalOutput
-
-saveAndPrint files input = do
-     (lexOutput, parseOutput, evalOutput) <- doPhases input
-     mapM_ writeOutput $ zip files
-        [show $ map showTok lexOutput, 
-         show parseOutput, 
-         show evalOutput]
-     replOutput evalOutput 
-  where
-    writeOutput (file, result) = liftIO $
-        hPutStr file ("Eve>>> " ++ input ++ "\n" ++ result) >> hFlush file
-
-printOutput input = do
-    (lexOutput, parseOutput, evalOutput) <- doPhases input
-    replOutput evalOutput 
+printOutput input = replAction input >>= replOutput
 
 handleError action = flip catchError (liftIO . print) . action
 
-main = let 
-    setup = mapM_ (doPhases . ("import " ++)) autoImports
-    repl = runRepl "Eve" 
-    initialState = (startingEnv)
-    makeFile name outType = liftIO $ openFile 
-         ("../test/" ++ outType ++ "_" ++ name ++ ".evetest") AppendMode
-  in do
-    args <- getArgs 
-    if length args == 0 
-      then runEveM (setup >> repl (handleError printOutput)) initialState >> return ()
-      else do 
-        files <- mapM (makeFile (args !! 0)) ["lex", "parse", "eval"]
-        runEveM (repl $ handleError $ saveAndPrint files) initialState
-        mapM_ hClose files
+main = let setup = handleError $ const $ mapM_ (replAction . ("import " ++)) autoImports
+  in runEveM (setup "" >> runRepl "Eve" (handleError printOutput)) (startingEnv) >> return ()

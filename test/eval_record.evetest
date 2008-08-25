@@ -5,7 +5,7 @@ Eve>>> { 'foo': ?, 'bar': 4}(3)
 Eve>>> { foo: 1 } | { bar: 2 }
 {'bar': 2, 'foo': 1}
 Eve>>> 2 | { foo: 'bar' }
-2 | {'foo': 'bar'}
+2
 Eve>>> { foo: 2, bar: 3}.foo
 2
 Eve>>> attr({foo: 2}, 'fo' + 'o')

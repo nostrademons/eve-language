@@ -1,4 +1,4 @@
-module Repl(runRepl) where
+module Repl(runRepl, replOutput) where
 import IO
 import Control.Monad.Trans
 
@@ -14,6 +14,8 @@ until_ pred prompt action = do
   if pred result 
      then return ()
      else action result >> until_ pred prompt action
+
+replOutput output = liftIO . putStr . show $ output
 
 runRepl :: MonadIO m => String -> (String -> m ()) -> m ()
 runRepl prompt action = until_ (== "quit") (readPrompt prompt) action
