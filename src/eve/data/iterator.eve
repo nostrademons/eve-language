@@ -7,6 +7,8 @@ typedef Iterable: {
 class Iterable:
     'Any object that can produce an iterator'
     def iter(self): self
+    # TODO: figure out ways to easily proxy the methods on Iterator down to calls 
+    # on the Iterable, eg. Iterable.reduce = {| self, *args | self.iter().reduce(*args) }
 
 class ProxyIterator(Iterable):
     def init(original): add_superclass(Iterator, { original: original.iter() })
