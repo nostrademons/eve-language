@@ -270,9 +270,9 @@ attrPrimitive [obj, field@(String name _)] = tryRecord `catchError` tryAttr
     wrappedFunction fn env = Function (Args [] [] (Just "args")) 
         (Funcall (Variable "apply") [Literal fn, 
             Funcall (Variable "add") [Literal $ makeTuple [obj], Variable "args"]]) 
-        env [("im_self", obj), ("im_func", fn)]
+        env [("proto", fn), ("im_self", obj), ("im_func", fn)]
     maybeMakeMethod fn@(Primitive _ _ _) = wrappedFunction fn startingEnv
-    maybeMakeMethod fn@(Function (Args [] _ _) _ _ _) = fn
+    maybeMakeMethod fn@(Function (Args [] _ Nothing) _ _ _) = fn
     maybeMakeMethod fn@(Function _ _ env _) = wrappedFunction fn env
     maybeMakeMethod val = val
 attrPrimitive _ = throwError $ TypeError "Field access requires an object and a string"
