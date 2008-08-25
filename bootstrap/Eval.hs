@@ -200,7 +200,9 @@ apply (Function argData body env _) args = do
         numArgs | numArgs > numProvided && numArgs - numProvided <= length defaults ->
             return $ bindVarArgs varargs $ defaultsTaken 
                 ++ zip (filter (flip notElem $ fst $ unzip defaultsTaken) argNames) args
-        numArgs -> throwError $ TypeError $ "Wrong number of arguments: expected " ++ show numArgs
+        numArgs -> throwError $ TypeError $ "Wrong number of arguments: expected at least " 
+                ++ show (numArgs - length defaults) ++ (if hasVarArgs then "" else ", at most " ++ show numArgs)
+                ++ ", found" ++ show args
       where
         boundArgs = zip argNames args
         hasVarArgs = maybe False (const True) varargs
