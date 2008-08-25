@@ -91,17 +91,21 @@ class Iterator(Iterable):
     def slice(self, start, end):
         drop(self, start) -> take(?, end - start)
 
-    def reduce(self, f, accum, breakout=const(False), not_found=False):
-        i = self.iter()
+    def reduce(self, f, accum):
+        if self.has_next()
+            then self.next().reduce(f, f(self.get(), accum))
+            else accum
+
+    def search(self, pred, index=0): 
         cond:
-            breakout(i.get()): accum
-            i.has_next(): i.next().reduce(f(i.get(), accum))
-            True: not_found
+            pred(self.get()): index
+            self.has_next(): self.next().search(pred, index + 1)
+            True: -1
 
     def len(self): self.reduce(? + 1, 0)
-    def find(self, val): self.reduce(? + 1, 0, ? == val, -1)
+    def find(self, val): self.search(? == val)
     def contains(self, val): self.find(val) != -1
-    def any(self, pred=Bool): self.reduce(constant(True), True, ? == True, False)
-    def all(self, pred=Bool): self.reduce(constant(True), True, ? == False, True)
-    def min(self): self.reduce({| val, last | if val < last then val else last }, self[0])
-    def max(self): self.reduce({| val, last | if val > last then val else last }, self[0])
+    def any(self, pred=Bool): self.search({| val | pred(val) == True }) != -1
+    def all(self, pred=Bool): self.search({| val | pred(val) == False }) == -1
+    def min(self): self.reduce({| val, last | if val < last then val else last }, self.get())
+    def max(self): self.reduce({| val, last | if val > last then val else last }, self.get())
