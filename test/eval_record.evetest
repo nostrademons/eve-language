@@ -24,5 +24,5 @@ Eve>>> obj.f()
 [{}]
 Eve>>> obj.f(2, 3)
 [{}, 2, 3]
-Eve>>> obj2 = { proto: { f: {| x, y=2 | x - y }, g: {| self, *args | self.f(*args) }}}
-{}
+Eve>>> obj2 = 5 | { proto: { proto: Int, f: {| x, y=2 | x - y }, g: {| self, *args | self.f(*args) }}}
+5

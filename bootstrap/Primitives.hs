@@ -46,31 +46,35 @@ sequencePrimitives = makePrimitives [
   ("len", len),
   ("get", get)]
 
-typePrimitives = makePrimitives [
-  ("type", typeOf),
-  ("Int", convertToInt),
-  ("Bool", convertToBool),
-  ("Str", convertToString),
-  ("Sym", convertToSymbol),
-  ("Tuple", convertToTuple),
-  ("Record", typeObject),
-  ("Function", typeObject)]
+-- Type objects, serving as constructor functions, type flags, and prototypes
+baseProto = Record $ ("proto", (Bool False [])) : eqPrimitives
+makeTypeObj name constr methods = Primitive name constr $ ("proto", baseProto) : concat methods
+intProto = makeTypeObj "Int" convertToInt [numberPrimitives, eqPrimitives, orderedPrimitives]
+boolProto = makeTypeObj "Bool" convertToBool [eqPrimitives]
+strProto = makeTypeObj "Str" convertToString [eqPrimitives, orderedPrimitives, sequencePrimitives]
+symProto = makeTypeObj "Sym" convertToSymbol [eqPrimitives]
+tupleProto = makeTypeObj "Tuple" convertToTuple [eqPrimitives, sequencePrimitives]
+recordProto = makeTypeObj "Record" typeObject [eqPrimitives]
+primitiveProto = makeTypeObj "Primitive" typeObject [eqPrimitives]
+functionProto = makeTypeObj "Function" typeObject [eqPrimitives]
 
 -- Global primitives.  Augmented in Eval by the primitives that need access to apply
-primitiveEnv = typePrimitives ++ boolPrimitives
+primitiveEnv = boolPrimitives ++ map bindPrimitive 
+    [intProto, boolProto, strProto, symProto, tupleProto, recordProto, primitiveProto, functionProto]
+  where
+    bindPrimitive val@(Primitive name _ _) = (name, val)
 
 -- Factories that bundle a basic data type up with the primitives associated
 -- with it
 
-makePrototype primitives = [("proto", Record $ ("proto", (Bool False [])) : (concat primitives))]
-makeInt val = Int val $ makePrototype [numberPrimitives, eqPrimitives, orderedPrimitives]
-makeBool val = Bool val $ makePrototype [eqPrimitives]
-makeString val = String val $ makePrototype [eqPrimitives, orderedPrimitives, sequencePrimitives]
-makeSymbol val = Symbol val $ makePrototype [eqPrimitives]
-makeTuple val = Tuple val $ makePrototype [eqPrimitives, sequencePrimitives]
-makeRecord val = Record (makePrototype [eqPrimitives, sequencePrimitives] ++ val)
-makePrimitive (name, fn) = Primitive name fn $ makePrototype [eqPrimitives]
-makeFunction argData body env = Function argData body env $ makePrototype [eqPrimitives]
+makeInt val = Int val [("proto", intProto)]
+makeBool val = Bool val [("proto", boolProto)]
+makeString val = String val [("proto", strProto)]
+makeSymbol val = Symbol val [("proto", symProto)]
+makeTuple val = Tuple val [("proto", tupleProto)]
+makeRecord val = Record $ ("proto", recordProto) : val
+makePrimitive (name, fn) = Primitive name fn [("proto", primitiveProto)]
+makeFunction argData body env = Function argData body env [("proto", functionProto)]
 
 typeError = throwError . TypeError
 
@@ -128,7 +132,7 @@ get [RecordIter (Record xs) index _] = return $ makeTuple [makeString $ fst pair
 get (val:_) = typeError (show val ++ " is not indexable")
 get _ = typeError "get requires at least one argument"
 
-allIterPrimitives = concat [eqPrimitives, iterPrimitives, typePrimitives]
+allIterPrimitives = concat [eqPrimitives, iterPrimitives]
 makeIter constr val = do
     env <- getEnv
     return $ constr val 0 $ ("proto", findIterator env) : allIterPrimitives
