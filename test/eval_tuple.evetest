@@ -18,3 +18,5 @@ Eve>>> {| *args | args }(2, 3)
 [2, 3]
 Eve>>> {| *args | args}()
 []
+Eve>>> [1, { foo: 2}, 2][1].foo
+2

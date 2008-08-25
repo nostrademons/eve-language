@@ -168,8 +168,6 @@ Expr : Operand             { $1 }
      | Expr '&' Expr    { binop "restrict" $1 $3 }
      | Expr '~' Expr    { binop "exclude" $1 $3 }
      | Expr '->' Expr   { Funcall $3 [$1] }
-     | Expr '[' ']'     { methodcall "get" $1 [] }
-     | Expr '[' Expr ']' { methodcall "get" $1 [$3] }
      | 'if' Expr 'then' Expr 'else' Expr
        { Cond [($2, $4), (Literal (makeBool True), $6)] }
 
@@ -178,6 +176,8 @@ Operand     : Literal                      { Literal $1 }
             | '[' ExprList ']'             { TupleLiteral (reverse $2) }
             | '{' LabeledList '}'          { RecordLiteral (reverse $2) }
             | '(' Expr ')'                 { $2 }
+            | Operand '[' ']'              { methodcall "get" $1 [] }
+            | Operand '[' Expr ']'         { methodcall "get" $1 [$3] }
             | Operand '(' ExprList ')'        { Funcall $1 (reverse $3) }
             | Operand '(' ')'                 { Funcall $1 [] }
             | Operand '(' '*' Operand ')'     { funcall "apply" [$1, $4] }
