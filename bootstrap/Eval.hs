@@ -77,7 +77,7 @@ evalDef env tEnv (Class name superDecl pos (docstring, lines)) = do
     constructor methods = do
         oldProto <- getAttr "proto" baseFunc
         return $ setAttributes baseFunc (("proto", oldProto) : methods)
-      where baseFunc = makeFunction (Args [] [] (Just "args")) classBody (methods ++ env)
+      where baseFunc = makeFunction (Args [] [] (Just "args")) pos classBody (methods ++ env)
     funcall name args = Funcall (Variable name) args
     classBody = funcall "extend" [funcall "apply" [Variable "init", Variable "args"], proto]
     proto = RecordLiteral [("proto", RecordLiteral $ buildProto superDecl)]
@@ -136,8 +136,8 @@ evalRepl env (Assignment var expr) = do
 closeOverBindings bindings = result
   where
     result = map editFunctionEnv bindings
-    editFunctionEnv (name, (Function argData body env fields)) = 
-        (name, Function argData body (result ++ env) fields)
+    editFunctionEnv (name, (Function argData pos body env fields)) = 
+        (name, Function argData pos body (result ++ env) fields)
 
 evalDefaults env (ArgExpr args defaults varargs) = do
     values <- mapM (eval env) defaultExprs
@@ -168,7 +168,7 @@ eval env (Cond ((pred, action):rest)) = do
     otherwise -> eval env (Cond rest)
 eval env (Lambda argExpr pos body) = do
     argData <- evalDefaults env argExpr
-    return $ makeFunction argData body env
+    return $ makeFunction argData pos body env
 eval env (Letrec bindings body) = do
     fns <- mapM (evalPair env) bindings
     eval (closeOverBindings fns ++ env) body
@@ -190,7 +190,7 @@ eval env (TypeCheck (tested, typeDecl) body) =
 
 apply :: EveData -> [EveData] -> EveM EveData
 apply (Primitive name fn _) args = fn args
-apply (Function argData body env _) args = do
+apply (Function argData pos body env _) args = do
     boundArgs <- bindArgs argData args
     eval (boundArgs ++ env) body
   where
@@ -269,13 +269,13 @@ attrPrimitive [obj, field@(String name _)] = tryRecord `catchError` tryAttr
     tryRecord = getAttr name obj >>= return . maybeMakeMethod
     tryAttr e | hasAttr "attr" obj = getAttr "attr" obj >>= flip apply [obj, field]
     tryAttr e = throwError e
-    wrappedFunction fn env = Function (Args [] [] (Just "args")) 
+    wrappedFunction fn pos env = Function (Args [] [] (Just "args")) pos
         (Funcall (Variable "apply") [Literal fn, 
             Funcall (Variable "add") [Literal $ makeTuple [obj], Variable "args"]]) 
         env [("proto", fn), ("im_self", obj), ("im_func", fn)]
-    maybeMakeMethod fn@(Primitive _ _ _) = wrappedFunction fn startingEnv
-    maybeMakeMethod fn@(Function (Args [] _ Nothing) _ _ _) = fn
-    maybeMakeMethod fn@(Function _ _ env _) = wrappedFunction fn env
+    maybeMakeMethod fn@(Primitive _ _ _) = wrappedFunction fn (Pos "<primitive>" 0 0 0) startingEnv
+    maybeMakeMethod fn@(Function (Args [] _ Nothing) _ _ _ _) = fn
+    maybeMakeMethod fn@(Function _ pos _ env _) = wrappedFunction fn pos env
     maybeMakeMethod val = val
 attrPrimitive _ = throwError $ TypeError "Field access requires an object and a string"
 

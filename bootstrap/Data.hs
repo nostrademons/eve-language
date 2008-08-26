@@ -40,7 +40,7 @@ data EveData =
   | Record Env
   | RecordIter EveData Int Env
   | Primitive String ([EveData] -> EveM EveData) Env
-  | Function ArgData EveExpr Env Env
+  | Function ArgData SourcePos EveExpr Env Env
 
 findPrototype :: Env -> EveData
 findPrototype fields = maybe (Bool False []) id $ lookup "proto" fields
@@ -54,7 +54,7 @@ attributes (SequenceIter _ _ fields) = fields
 attributes (Record fields) = fields
 attributes (RecordIter _ _ fields) = fields
 attributes (Primitive _ _ fields) = fields
-attributes (Function _ _ _ fields) = fields
+attributes (Function _ _ _ _ fields) = fields
 
 setAttributes (Int val fields) newFields = Int val newFields
 setAttributes (Bool val fields) newFields = Bool val newFields
@@ -64,8 +64,8 @@ setAttributes (Tuple val fields) newFields = Tuple val newFields
 setAttributes (SequenceIter val index fields) newFields = SequenceIter val index newFields
 setAttributes (Record fields) newFields = Record newFields
 setAttributes (Primitive name fn fields) newFields = Primitive name fn newFields
-setAttributes (Function argData body env fields) newFields = 
-    Function argData body env newFields
+setAttributes (Function argData pos body env fields) newFields = 
+    Function argData pos body env newFields
 
 prototype = findPrototype . attributes
 
@@ -101,7 +101,7 @@ instance Eq EveData where
   Record x1 == Record x2 = eqRecord x1 x2
   RecordIter x1 i1 _ == RecordIter x2 i2 _ = i1 == i2 && x1 == x2
   Primitive name1 _ _ == Primitive name2 _ _ = name1 == name2
-  Function argData1 body1 _ _ == Function argData2 body2 _ _ = argData1 == argData2 && body1 == body2
+  Function argData1 _ body1 _ _ == Function argData2 _ body2 _ _ = argData1 == argData2 && body1 == body2
   _ == _ = False
 
 instance Show EveData where
@@ -114,7 +114,7 @@ instance Show EveData where
   show (Record fields) = showRecord fields
   show (RecordIter val index fields) = "Iterator(" ++ show index ++ ") for " ++ show val 
   show (Primitive name _ fields) = name
-  show (Function argData body _ fields) = "{| " ++ show argData ++ " | " ++ show body ++ " }"
+  show (Function argData pos body _ fields) = "{| " ++ show argData ++ " | " ++ show body ++ " }"
 
 -- Modules
 

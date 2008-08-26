@@ -74,7 +74,7 @@ makeSymbol val = Symbol val [("proto", symProto)]
 makeTuple val = Tuple val [("proto", tupleProto)]
 makeRecord val = Record $ ("proto", recordProto) : val
 makePrimitive (name, fn) = Primitive name fn [("proto", primitiveProto)]
-makeFunction argData body env = Function argData body env [("proto", functionProto)]
+makeFunction argData pos body env = Function argData pos body env [("proto", functionProto)]
 
 typeError = throwError . TypeError
 
@@ -97,7 +97,7 @@ typeOf [String _ _] = return $ makePrimitive ("Str", convertToString)
 typeOf [Symbol _ _] = return $ makePrimitive ("Sym", convertToSymbol)
 typeOf [Tuple _ _] = return $ makePrimitive ("Tuple", convertToTuple)
 typeOf [Record _] = return $ makePrimitive ("Record", typeObject)
-typeOf [Function _ _ _ _] = return $ makePrimitive ("Function", typeObject)
+typeOf [Function _ _ _ _ _] = return $ makePrimitive ("Function", typeObject)
 typeOf [Primitive _ _ _] = return $ makePrimitive ("Function", typeObject)
 
 lenHelper xs = return . makeInt $ length xs
