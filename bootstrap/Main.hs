@@ -12,7 +12,7 @@ import Primitives
 
 replAction input = do
     env <- getEnv
-    lexer input >>= parseRepl >>= evalRepl env
+    lexer "top-level" input >>= parseRepl >>= evalRepl env
 
 printOutput input = replAction input >>= replOutput
 

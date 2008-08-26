@@ -89,7 +89,7 @@ evalDef env tEnv (Class name superDecl (docstring, lines)) = do
 
 readModule :: String -> String -> EveM ModuleDef
 readModule moduleName fileText = do
-    (imports, bindings, defs, typeDefs) <- lexer fileText >>= parseFile 
+    (imports, bindings, defs, typeDefs) <- lexer moduleName fileText >>= parseFile 
                  >>= return . parseFileLines
     modules <- getStateField modules 
     importEnv <- mapM loadModule imports >>= return . ((startingEnv ++ autoImportEnv modules) ++) . concat

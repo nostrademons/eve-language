@@ -60,26 +60,27 @@ testLines filename fn (rawInput:output:rest) =
                 ": \nExpected: " ++ output ++ "\nFound:    " ++ result
 testLines filename fn _ = liftIO $ putStrLn ("Error in input format for file " ++ filename)
 
-evalLine line = do
+evalLine filename line = do
     env <- getEnv
-    lexer line >>= parseRepl >>= evalRepl env
+    lexer filename line >>= parseRepl >>= evalRepl env
 
-evalInitial = mapM_ (evalLine . ("import " ++)) autoImports
+evalInitial = mapM_ evalImport autoImports
+  where evalImport moduleName = evalLine moduleName $ "import " ++ moduleName
 
 runTest filename = openTestFile filename 
                    >>= flip runEveM (startingEnv) 
                      . testLines filename f
   where 
-    runLex prompt input = lexer input >>= return . show . map showTok
+    runLex prompt input = lexer filename input >>= return . show . map showTok
     runParse :: String -> String -> EveM String
     runParse prompt input = 
-      lexer input 
+      lexer filename input 
         >>= (if prompt == "Eve" then showAction parseRepl else showAction parseFile) 
         >>= return
     runEval prompt input = do
       env <- getEnv 
       evalInitial
-      lexer input >>= parseRepl >>= showAction (evalRepl env)
+      lexer filename input >>= parseRepl >>= showAction (evalRepl env)
     showAction action arg = action arg >>= return . show
     f :: String -> String -> EveM String
     f = case () of 
@@ -92,7 +93,7 @@ getLibFiles = dirWalk "../src" >>= return . filterExtensions "eve"
 
 readDocStrings filename = do
     text <- openFile filename ReadMode >>= hGetContents
-    Right (parseTree, _) <- runEveM ((lexer text >>= parseFile) `catchError` (return . const [])) []
+    Right (parseTree, _) <- runEveM ((lexer filename text >>= parseFile) `catchError` (return . const [])) []
     return $ extractDocstrings parseTree
 
 extractDocstrings :: [EveFileLine] -> [(String, String)]
@@ -115,7 +116,7 @@ printResults filename (testName, docstring) = do
     moduleName = join "." $ drop 2 $ splitDirectories $ dropExtension $ filename 
     runTests lines = runEveM (evalInitial >> mapM runTest lines) startingEnv
     runTest (test, expected) = do
-        result <- (evalLine test >>= return . show) `catchError` (return . show)
+        result <- (evalLine filename test >>= return . show) `catchError` (return . show)
         return $ if result == expected then Nothing else Just (test, expected, result)
     showFailure (Just (test, expected, found)) = "In " ++ moduleName ++ "." ++ testName ++ 
         ",\n  Testing: " ++ test ++ "\n  Expected: " ++ expected ++ "\n  Found: " ++ found

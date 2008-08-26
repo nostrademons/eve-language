@@ -1,4 +1,4 @@
-module Data(EveToken(..), AlexPosn(..), ArgData(..), ArgExpr(..),
+module Data(EveToken(..), SourcePos(..), ArgData(..), ArgExpr(..),
             EveExpr(..), EveReplLine(..), EveFileLine(..), 
             EveError(..), EveData(..), EveType(..), TEnv, Env, 
             ModuleDef, getAccessibleBindings, 
@@ -132,11 +132,11 @@ type ModuleEnv = [(String, ModuleDef)]
 
 -- Tokens
 
-data AlexPosn = AlexPn !Int !Int !Int
+data SourcePos = Pos String  !Int !Int !Int
 	deriving (Eq)
 
-instance Show AlexPosn where
-  show (AlexPn offset line col) = "line " ++ show line ++ ", col " ++ show col
+instance Show SourcePos where
+  show (Pos file offset line col) = file ++ ":" ++ show line ++ ":" ++ show col
 
 data EveToken =
     TokInt Int
@@ -257,8 +257,8 @@ instance Show EveExpr where
 -- Errors
 
 data EveError =
-    LexError Char AlexPosn
-  | ParseError EveToken AlexPosn
+    LexError Char SourcePos
+  | ParseError EveToken SourcePos
   | UnboundVar String
   | MissingField EveData String
   | TypeError String

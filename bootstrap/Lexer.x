@@ -1,10 +1,10 @@
 {
-module Lexer (lexer, AlexPosn, showTok) where
+module Lexer (lexer, SourcePos, showTok) where
 import Control.Monad.Error
 import Data     
 import Utils
 
--- Actions should have type AlexPosn -> String -> ActionResult
+-- Actions should have type SourcePos -> String -> ActionResult
 
 }
 
@@ -50,13 +50,13 @@ tokens :-
 
 data ActionResult = 
     StartState Int
-  | EndState (AlexPosn, EveToken)
-  | Token (AlexPosn, EveToken)
+  | EndState (SourcePos, EveToken)
+  | Token (SourcePos, EveToken)
 
 -- The input type
 
 
-type AlexInput = (AlexPosn, 	-- current position,
+type AlexInput = (SourcePos, 	-- current position,
 		  Char,		-- previous char
 		  String)	-- current input string
 
@@ -79,16 +79,16 @@ alexGetChar (p,_,(c:s))  = let p' = alexMove p c in p' `seq`
 -- `move_pos' calculates the new position after traversing a given character,
 -- assuming the usual eight character tab stops.
 
-alexStartPos :: AlexPosn
-alexStartPos = AlexPn 0 1 1
+alexStartPos :: String -> SourcePos
+alexStartPos filename = Pos filename 0 1 1
 
-alexMove :: AlexPosn -> Char -> AlexPosn
-alexMove (AlexPn a l c) '\t' = AlexPn (a+1)  l     (((c+7) `div` 8)*8+1)
-alexMove (AlexPn a l c) '\n' = AlexPn (a+1) (l+1)   1
-alexMove (AlexPn a l c) _    = AlexPn (a+1)  l     (c+1)
+alexMove :: SourcePos -> Char -> SourcePos
+alexMove (Pos f a l c) '\t' = Pos f (a+1)  l     (((c+7) `div` 8)*8+1)
+alexMove (Pos f a l c) '\n' = Pos f (a+1) (l+1)   1
+alexMove (Pos f a l c) _    = Pos f (a+1)  l     (c+1)
 
-alexScanTokens :: (MonadError EveError m) => String -> [m (AlexPosn, EveToken)]
-alexScanTokens str = go (alexStartPos,'\n',str) 0
+alexScanTokens :: (MonadError EveError m) => String -> String -> [m (SourcePos, EveToken)]
+alexScanTokens filename str = go (alexStartPos filename,'\n',str) 0
   where 
     go inp@(pos,_,str) startCode = case alexScan inp startCode of
         AlexEOF -> []
@@ -102,8 +102,8 @@ alexScanTokens str = go (alexStartPos,'\n',str) 0
 
 -- Helper functions to return token actions
 begin startCode posn str = StartState startCode
-end posminus action posn@(AlexPn a l c) str = 
-            EndState $ (AlexPn (a - posminus) l (c - posminus), token)
+end posminus action posn@(Pos f a l c) str = 
+            EndState $ (Pos f (a - posminus) l (c - posminus), token)
   where Token (_, token) = action posn str
 tokenStr constr posn str = Token (posn, constr str)
 tokenChar constr posn str = Token (posn, constr (str !! 0))
@@ -116,7 +116,7 @@ extractNum [(num, _)] = num
 operators = ["and", "or", "not", "then", "else", "as"]
 keywords = ["if", "import", "export", "def", "class", "cond", "typedef"]
 
-replaceKeywords :: [(AlexPosn, EveToken)] -> [(AlexPosn, EveToken)]
+replaceKeywords :: [(SourcePos, EveToken)] -> [(SourcePos, EveToken)]
 replaceKeywords = map changeKeyword 
   where
     changeKeyword (pos, TokVar text)
@@ -137,13 +137,13 @@ type DelimState = (Int, Int, Int)
 noDelims :: DelimState -> Bool
 noDelims (parens, braces, brackets) = parens == 0 && braces == 0 && brackets == 0
 
-hasLineBreak :: (AlexPosn, EveToken) -> [(AlexPosn, EveToken)] -> Bool
+hasLineBreak :: (SourcePos, EveToken) -> [(SourcePos, EveToken)] -> Bool
 hasLineBreak (_, TokOp _) _ = False
 hasLineBreak _ ((_, TokOp _):_) = False
-hasLineBreak (AlexPn _ line _, _) ((AlexPn _ nextLine _, _):rest) = line < nextLine
+hasLineBreak (Pos _ _ line _, _) ((Pos _ _ nextLine _, _):rest) = line < nextLine
 hasLineBreak _ [] = False
 
-addNewlines :: DelimState -> [(AlexPosn, EveToken)] -> [(AlexPosn, EveToken)]
+addNewlines :: DelimState -> [(SourcePos, EveToken)] -> [(SourcePos, EveToken)]
 addNewlines delims@(parens, braces, brackets) (tok@(pos, TokDelim c) : rest)
   | c == '(' || c == '{' || c == '[' = startDelim $ addDelim delims
   | noDelims subDelim && hasLineBreak tok rest = 
@@ -164,8 +164,8 @@ addNewlines delims (tok@(pos, _) : rest) = if noDelims delims && hasLineBreak to
   else tok : addNewlines delims rest
 addNewlines delims [] = []
 
-addIndents :: [Int] -> [(AlexPosn, EveToken)] -> [(AlexPosn, EveToken)]
-addIndents indentStack [] = replicate (length indentStack) (AlexPn 0 0 0, TokDedent)
+addIndents :: [Int] -> [(SourcePos, EveToken)] -> [(SourcePos, EveToken)]
+addIndents indentStack [] = replicate (length indentStack) (Pos "endfile" 0 0 0, TokDedent)
 addIndents indentStack (tok@(pos, TokNewline) : []) = [tok]
 addIndents indentStack (tok@(pos, TokNewline) : next : rest)
   | indent > lastIndent = tok : (pos, TokIndent) : next : addIndents (indent : indentStack) rest
@@ -174,14 +174,14 @@ addIndents indentStack (tok@(pos, TokNewline) : next : rest)
   where 
     lastIndent = if null indentStack then 1 else head indentStack
     (nextPos, _) = next
-    AlexPn _ _ indent = nextPos
+    Pos _ _ _ indent = nextPos
     dedents = zip (repeat pos) (replicate numDedents TokDedent)
     numDedents = length $ takeWhile (> indent) indentStack
     newStack = drop numDedents indentStack
 addIndents indentStack (nonNewline : rest) = nonNewline : addIndents indentStack rest
 
-lexer :: (MonadError EveError m) => String -> m [(AlexPosn, EveToken)]
-lexer input = sequence (alexScanTokens input) 
+lexer :: (MonadError EveError m) => String -> String -> m [(SourcePos, EveToken)]
+lexer filename input = sequence (alexScanTokens filename input) 
           >>= return . addIndents [] . addNewlines (0, 0, 0) . replaceKeywords
 
 showTok (_, tok) = show tok

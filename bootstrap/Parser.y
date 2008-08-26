@@ -9,7 +9,7 @@ import Primitives
 %name file File
 %name replLine ReplLine
 %monad { EveM } 
-%tokentype { (AlexPosn, EveToken) }
+%tokentype { (SourcePos, EveToken) }
 
 %token
 INT   { (_, TokInt $$) }
