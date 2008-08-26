@@ -281,5 +281,5 @@ funcall name args = Funcall (Variable name) args
 methodcall name obj args = Funcall (funcall "attr" [obj, Literal $ makeString name]) args
 binop name left right = funcall name [left, right]
 
-happyError ((posn, token):whatever) = throwError $ ParseError token posn
+happyError ((posn, token):whatever) = throwEveError $ ParseError token posn
 }

@@ -1,10 +1,10 @@
 module Data(EveToken(..), SourcePos(..), ArgData(..), ArgExpr(..),
             EveExpr(..), EveReplLine(..), EveFileLine(..), 
-            EveError(..), EveData(..), EveType(..), TEnv, Env, 
+            EveError(..), EveStackTrace, EveData(..), EveType(..), TEnv, Env, 
             ModuleDef, getAccessibleBindings, 
             recordFields, sortRecord, prototype, 
             attributes, setAttributes, getAttr, hasAttr, dropAttrs, attrNames,
-            EveM, runEveM, getEnv, addTopLevelBinding, 
+            EveM, runEveM, getEnv, addTopLevelBinding, pushCall, popCall, throwEveError,
             modules, getStateField, join) where
 import Data.List
 import Control.Monad.State hiding (join)
@@ -76,7 +76,7 @@ lookupAttr missing found name val = maybe (followPrototype $ prototype val) foun
     followPrototype proto = lookupAttr missing found name $ Record $ attributes proto
 
 hasAttr = lookupAttr False $ const True
-getAttr name val = lookupAttr (throwError $ MissingField val name) return name val
+getAttr name val = lookupAttr (throwEveError $ MissingField val name) return name val
 dropAttrFields names = filter (\(key, val) -> key `notElem` names)
 dropAttrs names val = dropAttrFields names $ attributes val
 attrNames = fst . unzip . attributes
@@ -254,6 +254,15 @@ instance Show EveExpr where
   show (TypeCheck (tested, typeDecl) body) = show tested ++ " as " ++ show typeDecl ++
         (if tested == body then "" else " => " ++ show body)
 
+-- Stack frames
+
+data StackFrame = Frame EveData [EveData]
+
+instance Show StackFrame where
+  show (Frame (Primitive name _ _) args) = name ++ "(" ++ join ", " (map show args) ++ ")"
+  show (Frame (Function _ pos _ _ fields) args) = fName ++ "(" ++ join ", " (map show args) ++ ") at " ++ show pos
+    where fName = maybe "<lambda>" show $ lookup "name" fields
+
 -- Errors
 
 data EveError =
@@ -275,21 +284,37 @@ instance Show EveError where
   show (MissingField record field) = "Missing field: " ++ show record ++ " has no " ++ field
   show (Default str) = "An error occurred: " ++ str
 
-instance Error EveError where
-  noMsg = Default "unknown"
-  strMsg = Default
+data EveStackTrace = StackTrace [StackFrame] EveError
+
+instance Show EveStackTrace where
+  show (StackTrace frames error) = show error ++ ".  Traceback:\n" ++ join "\n" (map (("  " ++) . show) frames)
+
+instance Error EveStackTrace where
+  noMsg = StackTrace [] $ Default "unknown"
+  strMsg = StackTrace [] . Default
 
 -- Interpreter monad
 data InterpreterState = Interpreter { 
     env :: Env, 
+    stack :: [StackFrame],
     modules :: ModuleEnv 
 }
-type EveM = StateT InterpreterState (ErrorT EveError IO)
+type EveM = StateT InterpreterState (ErrorT EveStackTrace IO)
 
 getStateField selector = get >>= return . selector
 
 getEnv :: (MonadState InterpreterState m) => m Env
 getEnv = getStateField env
+
+pushCall :: EveData -> [EveData] -> EveM ()
+pushCall fn args = modify $ \s -> s { stack = Frame fn args : stack s }
+
+popCall :: EveM ()
+popCall = modify $ \s -> s { stack = tail $ stack s }
+
+throwEveError error = do
+    frames <- getStateField stack
+    throwError $ StackTrace frames error
 
 addTopLevelBinding :: (MonadState InterpreterState m) => 
                       String -> EveData -> m ()
@@ -297,5 +322,5 @@ addTopLevelBinding var value = modify addBinding
   where
     addBinding state = state { env = (var, value) : env state }
 
-runEveM :: EveM a -> Env -> IO (Either EveError (a, InterpreterState))
-runEveM monad env = runErrorT $ runStateT monad $ Interpreter env []
+runEveM :: EveM a -> Env -> IO (Either EveStackTrace (a, InterpreterState))
+runEveM monad env = runErrorT $ runStateT monad $ Interpreter env [] []

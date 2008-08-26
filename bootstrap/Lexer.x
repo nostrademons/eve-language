@@ -87,13 +87,13 @@ alexMove (Pos f a l c) '\t' = Pos f (a+1)  l     (((c+7) `div` 8)*8+1)
 alexMove (Pos f a l c) '\n' = Pos f (a+1) (l+1)   1
 alexMove (Pos f a l c) _    = Pos f (a+1)  l     (c+1)
 
-alexScanTokens :: (MonadError EveError m) => String -> String -> [m (SourcePos, EveToken)]
+alexScanTokens :: String -> String -> [EveM (SourcePos, EveToken)]
 alexScanTokens filename str = go (alexStartPos filename,'\n',str) 0
   where 
     go inp@(pos,_,str) startCode = case alexScan inp startCode of
         AlexEOF -> []
-        AlexError (posn, _, (c:_)) -> [throwError $ LexError c posn]
-        AlexError (posn, _, []) -> [throwError $ LexError '\n' posn]
+        AlexError (posn, _, (c:_)) -> [throwEveError $ LexError c posn]
+        AlexError (posn, _, []) -> [throwEveError $ LexError '\n' posn]
         AlexSkip  inp' len     -> go inp' startCode
         AlexToken inp' len act -> case act pos (take len str) of
             StartState newStartCode -> go inp' newStartCode
@@ -180,7 +180,7 @@ addIndents indentStack (tok@(pos, TokNewline) : next : rest)
     newStack = drop numDedents indentStack
 addIndents indentStack (nonNewline : rest) = nonNewline : addIndents indentStack rest
 
-lexer :: (MonadError EveError m) => String -> String -> m [(SourcePos, EveToken)]
+lexer :: String -> String -> EveM [(SourcePos, EveToken)]
 lexer filename input = sequence (alexScanTokens filename input) 
           >>= return . addIndents [] . addNewlines (0, 0, 0) . replaceKeywords
 

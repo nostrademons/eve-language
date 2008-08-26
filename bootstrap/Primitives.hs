@@ -76,7 +76,7 @@ makeRecord val = Record $ ("proto", recordProto) : val
 makePrimitive (name, fn) = Primitive name fn [("proto", primitiveProto)]
 makeFunction argData pos body env = Function argData pos body env [("proto", functionProto)]
 
-typeError = throwError . TypeError
+typeError = throwEveError . TypeError
 
 numericBinop :: (Int -> Int -> Int) -> [EveData] -> EveM EveData
 numericBinop f [Int arg1 _, Int arg2 _] = return $ makeInt $ f arg1 arg2

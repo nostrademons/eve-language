@@ -156,7 +156,7 @@ eval env (RecordLiteral args) = mapM evalRecord args >>= return . Record
   where evalRecord (label, expr) = 
             do value <- eval env expr
                return (label, value)
-eval env (Variable var) = maybe (throwError $ UnboundVar var) return $ lookup var env
+eval env (Variable var) = maybe (throwEveError $ UnboundVar var) return $ lookup var env
 eval env (Funcall fnExpr argExpr) = do
   fn <- eval env fnExpr
   args <- mapM (eval env) argExpr
@@ -184,15 +184,23 @@ eval env (TypeCheck (tested, typeDecl) body) =
     throwIfInvalid (TTuple types) val@(Tuple fields _) = checkAll types fields val
     throwIfInvalid (TRecord types) val@(Record fields) = 
         checkAll (extractVals types) (extractVals $ recordFields fields) val
-    throwIfInvalid typeDecl val = throwError $ TypeError (show val ++ " is not a " ++ show typeDecl)
+    throwIfInvalid typeDecl val = throwEveError $ TypeError (show val ++ " is not a " ++ show typeDecl)
     checkAll types fields val = sequence_ (zipWith throwIfInvalid types fields) >> return val
     extractVals = snd . unzip . sortRecord
 
 apply :: EveData -> [EveData] -> EveM EveData
-apply (Primitive name fn _) args = fn args
-apply (Function argData pos body env _) args = do
+apply call@(Primitive name fn _) args = do
+    pushCall call args
+    result <- fn args
+    popCall
+    return result
+
+apply call@(Function argData pos body env _) args = do
+    pushCall call args
     boundArgs <- bindArgs argData args
-    eval (boundArgs ++ env) body
+    result <- eval (boundArgs ++ env) body
+    popCall
+    return result
   where
     bindArgs (Args argNames defaults varargs) args = case numArgs of
         numArgs | numArgs == numProvided -> return $ bindVarArgs varargs $ boundArgs
@@ -200,7 +208,7 @@ apply (Function argData pos body env _) args = do
         numArgs | numArgs > numProvided && numArgs - numProvided <= length defaults ->
             return $ bindVarArgs varargs $ defaultsTaken 
                 ++ zip (filter (flip notElem $ fst $ unzip defaultsTaken) argNames) args
-        numArgs -> throwError $ TypeError $ "Wrong number of arguments: expected at least " 
+        numArgs -> throwEveError $ TypeError $ "Wrong number of arguments: expected at least " 
                 ++ show (numArgs - length defaults) ++ (if hasVarArgs then "" else ", at most " ++ show numArgs)
                 ++ ", found" ++ show args
       where
@@ -212,7 +220,7 @@ apply (Function argData pos body env _) args = do
         numProvided = length args
         numDefaults = numArgs - numProvided
         defaultsTaken = take numDefaults defaults
-apply val args = throwError $ TypeError $ show val ++ " is not a function"
+apply val args = throwEveError $ TypeError $ show val ++ " is not a function"
 
 eveMethodCall :: EveData -> String -> [EveData] -> EveM EveData
 eveMethodCall obj name args = getAttr name obj >>= flip apply (obj : args)
@@ -237,7 +245,7 @@ sequenceValues sequence = do
 
 applyPrimitive :: [EveData] -> EveM EveData
 applyPrimitive [fn, sequence] = sequenceValues sequence >>= apply fn
-applyPrimitive _ = throwError $ TypeError $ "Apply takes a function and a sequence"
+applyPrimitive _ = throwEveError $ TypeError $ "Apply takes a function and a sequence"
 
 binopPrimitive name [left, right] = tryLeftAttr `catchError` const tryRightAttr 
   where
@@ -257,7 +265,7 @@ cmpPrimitive name [left, right] = tryMethod
     tryReflection = getAttr ref right >>= flip apply [right, left]
     tryCmp = getAttr "cmp" left >>= flip apply [left, right] >>= cmpResult
     cmpResult (Int num _) = return $ if cmpPred num then makeBool True else makeBool False
-    cmpResult _ = throwError $ TypeError "cmp should return an int"
+    cmpResult _ = throwEveError $ TypeError "cmp should return an int"
 
 extendPrimitive [dest, source] = return . setAttributes dest $ 
         (attributes source ++ dropAttrs (attrNames source) dest)
@@ -277,17 +285,17 @@ attrPrimitive [obj, field@(String name _)] = tryRecord `catchError` tryAttr
     maybeMakeMethod fn@(Function (Args [] _ Nothing) _ _ _ _) = fn
     maybeMakeMethod fn@(Function _ pos _ env _) = wrappedFunction fn pos env
     maybeMakeMethod val = val
-attrPrimitive _ = throwError $ TypeError "Field access requires an object and a string"
+attrPrimitive _ = throwEveError $ TypeError "Field access requires an object and a string"
 
 attrRawPrimitive [obj, String field _] = getAttr field obj
-attrRawPrimitive _ = throwError $ TypeError "Field access requires an object and a string"
+attrRawPrimitive _ = throwEveError $ TypeError "Field access requires an object and a string"
 
 filterRecord fn [dest, fields] = trySequence `catchError` const tryFields
   where
     trySequence = sequenceValues fields >>= mapM extractString >>= modifyFields
     tryFields = modifyFields . attrNames $ fields
     extractString (String val _) = return val
-    extractString _ = throwError $ TypeError "Second element of restrict must be sequence of strings"
+    extractString _ = throwEveError $ TypeError "Second element of restrict must be sequence of strings"
     modifyFields :: [String] -> EveM EveData
     modifyFields source = return . setAttributes dest . 
                     filter (\(key, val) -> fn key source) $ attributes dest
