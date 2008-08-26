@@ -68,7 +68,9 @@ parseDef typeEnv (Def name argData docstring typeDecl lines pos body) = (name, c
     convertTypeDefs (TFunc args ret) = TFunc (map convertTypeDefs args) $ convertTypeDefs ret
 
 evalDef :: Env -> TEnv -> EveFileLine -> EveM (String, EveData)
-evalDef env tEnv def@(Def _ _ _ _ _ _ _) = evalPair env $ parseDef tEnv def
+evalDef env tEnv def@(Def name _ doc _ _ _ _) = do
+    (name, fn@(Function _ _ _ _ fields)) <- evalPair env $ parseDef tEnv def
+    return (name, setAttributes fn ([("name", makeString name), ("doc", makeString doc)] ++ fields))
 evalDef env tEnv (Class name superDecl pos (docstring, lines)) = do
     methods <- mapM (evalPair env) methodExprs
     constr <- constructor methods
