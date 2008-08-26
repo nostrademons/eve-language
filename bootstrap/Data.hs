@@ -181,23 +181,23 @@ data EveFileLine =
     Export [String]
   | Import [String]
   | NakedExpr EveExpr
-  | Binding (Either [String] String) EveExpr
+  | Binding (Either [String] String) SourcePos EveExpr
   | TypeDef String EveType
-  | Def String ArgExpr String (Maybe EveType) [EveFileLine] EveExpr
-  | Class String (Maybe String) (String, [EveFileLine])
+  | Def String ArgExpr String (Maybe EveType) [EveFileLine] SourcePos EveExpr
+  | Class String (Maybe String) SourcePos (String, [EveFileLine])
 
 instance Show EveFileLine where
   show (Export bindings) = "export " ++ join ", " bindings ++ "\n"
   show (Import path) = "import " ++ join "." path ++ "\n"
   show (NakedExpr expr) = show expr
-  show (Binding (Left vars) expr) = join ", " vars ++ "=" ++ show expr
-  show (Binding (Right var) expr) = var ++ "=" ++ show expr
+  show (Binding (Left vars) pos expr) = join ", " vars ++ "=" ++ show expr
+  show (Binding (Right var) pos expr) = var ++ "=" ++ show expr
   show (TypeDef name value) = "typedef " ++ name ++ ": " ++ show value
-  show (Def name argData docstring Nothing defines body) = 
+  show (Def name argData docstring Nothing defines pos body) = 
     "def " ++ name ++ "(" ++ show argData ++ "): " ++ show body
-  show (Def name argData docstring (Just typeExpr) defines body) = 
+  show (Def name argData docstring (Just typeExpr) defines pos body) = 
     "@type(" ++ show typeExpr ++ ")\ndef " ++ name ++ "(" ++ show argData ++ "): " ++ show body
-  show (Class name superclass (docstring, lines)) = 
+  show (Class name superclass pos (docstring, lines)) = 
     "class " ++ name ++ maybe "" (\className -> "(" ++ className ++ ")") superclass
             ++ ":\n    " ++ join "\n    " (map show lines)
 
@@ -231,7 +231,7 @@ data EveExpr =
   | Variable String
   | Cond [(EveExpr, EveExpr)]
   | Funcall EveExpr [EveExpr]
-  | Lambda ArgExpr EveExpr
+  | Lambda ArgExpr SourcePos EveExpr
   | Letrec [(String, EveExpr)] EveExpr
   | TypeCheck (EveExpr, EveType) EveExpr
   deriving (Eq)
@@ -247,7 +247,7 @@ instance Show EveExpr where
   show (Funcall name args) = show name ++ "(" ++ join ", " (map show args) ++ ")"
   show (Cond args) = "Cond: " ++ join ", " (map showClause args)
     where showClause (pred, expr) = show pred ++ "->" ++ show expr
-  show (Lambda argData body) = "{|" ++ show argData ++ "| " ++ show body ++ "}"
+  show (Lambda argData pos body) = "{|" ++ show argData ++ "| " ++ show body ++ "}"
   show (Letrec clauses body) = "Letrec in " ++ show body ++ ":" 
                                 ++ join ", " (map showClause clauses)
     where showClause (name, expr) = name ++ " = " ++ show expr

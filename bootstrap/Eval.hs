@@ -40,24 +40,24 @@ startingEnv = primitiveEnv ++ makePrimitives [
 
 categorize (NakedExpr _) val = val
 categorize (Import x) (i, b, d, t) = (x : i, b, d, t)
-categorize x@(Binding _ _) (i, b, d, t) = (i, x : b, d, t)
-categorize x@(Def _ _ _ _ _ _) (i, b, d, t) = (i, b, x : d, t)
-categorize x@(Class _ _ _) (i, b, d, t) = (i, b, x : d, t)
+categorize x@(Binding _ _ _) (i, b, d, t) = (i, x : b, d, t)
+categorize x@(Def _ _ _ _ _ _ _) (i, b, d, t) = (i, b, x : d, t)
+categorize x@(Class _ _ _ _) (i, b, d, t) = (i, b, x : d, t)
 categorize x@(TypeDef _ _) (i, b, d, t) = (i, b, d, x : t)
 
 parseFileLines = foldr categorize ([], [], [], [])
 
 parseDef :: TEnv -> EveFileLine -> (String, EveExpr)
-parseDef typeEnv (Def name argData docstring typeDecl lines body) = (name, convertedBody)
+parseDef typeEnv (Def name argData docstring typeDecl lines pos body) = (name, convertedBody)
   where
     (_, bindings, defs, _) = parseFileLines lines
-    convertedBody = Lambda argData $ 
+    convertedBody = Lambda argData pos $ 
         (maybe id (addTypeCheck . convertTypeDefs) typeDecl) $
         foldr convertBinding defBody bindings
     defBody = Letrec (map (parseDef typeEnv) defs) body
-    convertBinding (Binding (Left vars) expr) rest = 
-        Funcall (Variable "apply") [Lambda (ArgExpr vars [] Nothing) rest, expr]
-    convertBinding (Binding (Right var) expr) rest = Funcall (Lambda (ArgExpr [var] [] Nothing) rest) [expr]
+    convertBinding (Binding (Left vars) pos expr) rest = 
+        Funcall (Variable "apply") [Lambda (ArgExpr vars [] Nothing) pos rest, expr]
+    convertBinding (Binding (Right var) pos expr) rest = Funcall (Lambda (ArgExpr [var] [] Nothing) pos rest) [expr]
     addTypeCheck typeDecl body = TypeCheck (body, typeDecl) body
     convertTypeDefs :: EveType -> EveType
     convertTypeDefs (TPrim name) = maybe (TPrim name) id $ lookup name typeEnv
@@ -68,8 +68,8 @@ parseDef typeEnv (Def name argData docstring typeDecl lines body) = (name, conve
     convertTypeDefs (TFunc args ret) = TFunc (map convertTypeDefs args) $ convertTypeDefs ret
 
 evalDef :: Env -> TEnv -> EveFileLine -> EveM (String, EveData)
-evalDef env tEnv def@(Def _ _ _ _ _ _) = evalPair env $ parseDef tEnv def
-evalDef env tEnv (Class name superDecl (docstring, lines)) = do
+evalDef env tEnv def@(Def _ _ _ _ _ _ _) = evalPair env $ parseDef tEnv def
+evalDef env tEnv (Class name superDecl pos (docstring, lines)) = do
     methods <- mapM (evalPair env) methodExprs
     constr <- constructor methods
     return (name, constr)
@@ -83,7 +83,7 @@ evalDef env tEnv (Class name superDecl (docstring, lines)) = do
     proto = RecordLiteral [("proto", RecordLiteral $ buildProto superDecl)]
     buildProto (Just superclass) = ("proto", Variable superclass) : methodExprs
     buildProto Nothing = methodExprs
-    isDef (Def _ _ _ _ _ _) = True
+    isDef (Def _ _ _ _ _ _ _) = True
     isDef _ = False
     methodExprs = map (parseDef tEnv) $ filter isDef lines
 
@@ -105,7 +105,7 @@ readModule moduleName fileText = do
     lookupModule moduleDefs name = 
         maybe (error $ "Module " ++ moduleName ++ " not loaded") id $ lookup name moduleDefs
     -- TODO: sequence-unpacking top-level binding
-    evalBinding (Binding (Right var) expr) env = do
+    evalBinding (Binding (Right var) pos expr) env = do
       datum <- eval env expr
       return $ (var, datum) : env 
 
@@ -166,7 +166,7 @@ eval env (Cond ((pred, action):rest)) = do
   case predResult of
     Bool True _ -> eval env action 
     otherwise -> eval env (Cond rest)
-eval env (Lambda argExpr body) = do
+eval env (Lambda argExpr pos body) = do
     argData <- evalDefaults env argExpr
     return $ makeFunction argData body env
 eval env (Letrec bindings body) = do

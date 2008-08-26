@@ -89,9 +89,9 @@ FileLine : SequenceUnpack               { $1 }
 DefDecl     : 'def' VAR '(' VarArgList ')' TypeDecl ':' DefBody
     { let (lines, docString, body) = findLastExpr $8 in 
         let (args, defaults, newBody) = parseArgList (fst $4) body in 
-            Def $2 (ArgExpr args defaults (snd $4)) docString $6 lines newBody }
+            Def $2 (ArgExpr args defaults (snd $4)) docString $6 lines (fst $1) newBody }
 
-ClassDecl   : 'class' VAR SubClassDecl ':' DefBody   { Class $2 $3 $5 }
+ClassDecl   : 'class' VAR SubClassDecl ':' DefBody   { Class $2 $3 (fst $1) $5 }
 
 SubClassDecl    : {- Empty -}   { Nothing }
                 | '(' VAR ')'   { Just $2 }
@@ -137,8 +137,8 @@ ReplLine : Expr                 { Expr $1 }
 
 MultiLineExpr   : 'cond' ':' EOL INDENT CondClauseList DEDENT   { Cond (reverse $5) }
 
-SequenceUnpack : VAR '=' Expr          { Binding (Right $1) $3 }
-               | VarList '=' Expr      { Binding (Left $1) $3 }
+SequenceUnpack : VAR '=' Expr          { Binding (Right $1) (fst $2) $3 }
+               | VarList '=' Expr      { Binding (Left $1) (fst $2) $3 }
 
 CondClause : Expr ':' Expr      { ($1, $3) }
 
@@ -185,7 +185,7 @@ Operand     : Literal                      { Literal $1 }
                 { funcall "apply" [$1, funcall "add" [TupleLiteral (reverse $3), $6]] }
             | Operand '.' VAR                 { funcall "attr" [$1, Literal (makeString $3)] }
             | '{' '|' VarArgList '|' Expr '}' { let (args, defaults, newBody) = parseArgList (fst $3) $5 in
-                                                Lambda (ArgExpr args defaults (snd $3)) newBody }
+                                                Lambda (ArgExpr args defaults (snd $3)) (fst $1) newBody }
             | Operand 'as' TypeExpr        { TypeCheck ($1, $3) $1 }
 
 Literal     : INT                          { makeInt $1 }
@@ -220,7 +220,7 @@ parseFile input = file input >>= return . reverse . map replaceFilePartials
 parseRepl input = replLine input >>= return . replaceReplPartials
 
 replaceFilePartials :: EveFileLine -> EveFileLine
-replaceFilePartials (Binding var expr) = Binding var $ replacePartials expr
+replaceFilePartials (Binding var pos expr) = Binding var pos $ replacePartials expr
 replaceFilePartials line = line
 
 replaceReplPartials :: EveReplLine -> EveReplLine
@@ -239,14 +239,15 @@ replacePartials (RecordLiteral pairs) = maybeLambda reconstruct $ snd $ unzip pa
 replacePartials (Variable var) = Variable var
 replacePartials (Cond condList) = Cond $ map handleClause condList
   where handleClause (pred, action) = (replacePartials pred, replacePartials action)
-replacePartials (Lambda argData body) = Lambda argData $ replacePartials body
+replacePartials (Lambda argData pos body) = Lambda argData pos $ replacePartials body
 replacePartials (Funcall expr args) = maybeLambda (Funcall (replacePartials expr)) args
 replacePartials (TypeCheck (tested, typeDecl) expr) = 
     TypeCheck (replacePartials tested, typeDecl) $ replacePartials expr
 
 maybeLambda exprConstr args =
   if numParams > 0
-    then Lambda (ArgExpr lambdaList [] Nothing) . exprConstr $ substParams lambdaList args
+    then Lambda (ArgExpr lambdaList [] Nothing) (Pos "<partial app>" 0 0 0) 
+            . exprConstr $ substParams lambdaList args
     else exprConstr (map replacePartials args)
   where
     numParams = length . filter (== Variable "?") $ args
@@ -275,24 +276,6 @@ findLastExpr (docString, defLines) = (lines, docString, last)
 
 -- This is so not the final behavior: it creates a def (the constructor) which invokes the
 -- init method, then updates the prototype of the resulting datum with the other methods.
-
--- TODO: apparently, we need to assign the methods to the object we create as well.  This
--- is tricky, since we're trying to avoid calling eval at module-read time, yet there's no
--- place to hang the fields elsewhere.  Maybe we should just bite the bullet and have the
--- module reading functions run in the EveM monad, letting us eval things in the environment
--- of the imports
-makeClass name superDecl (docString, lines) =
-    Def name (ArgExpr [] [] (Just "args")) docString Nothing lines classBody
-  where
-    classBody = funcall "extend" [funcall "apply" [Variable "init", Variable "args"], proto]
-    proto = RecordLiteral [("proto", RecordLiteral $ buildProto superDecl)]
-    buildProto (Just superclass) = ("proto", Variable superclass) : methods
-    buildProto Nothing = methods
-    methods = foldr addMethod [] lines
-    addMethod (NakedExpr _) rest = rest
-    addMethod (Binding (Left _) _) rest = rest
-    addMethod (Binding (Right name) _) rest = (name, Variable name) : rest
-    addMethod (Def name _ _ _ _ _) rest = (name, Variable name) : rest
 
 funcall name args = Funcall (Variable name) args
 methodcall name obj args = Funcall (funcall "attr" [obj, Literal $ makeString name]) args
