@@ -26,3 +26,5 @@ Eve>>> obj.f(2, 3)
 [{}, 2, 3]
 Eve>>> obj2 = 5 | { proto: { proto: Int, f: {| x, y=2 | x - y }, g: {| self, *args | self.f(*args) }}}
 5
+Eve>>> Record([["foo", 2], ["bar", { field1: 3 }]])
+{'foo': 2, 'bar': {'field1': 3}}

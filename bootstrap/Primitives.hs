@@ -60,7 +60,9 @@ functionProto = makeTypeObj "Function" typeObject [eqPrimitives]
 
 -- Global primitives.  Augmented in Eval by the primitives that need access to apply
 primitiveEnv = boolPrimitives ++ map bindPrimitive 
-    [intProto, boolProto, strProto, symProto, tupleProto, recordProto, primitiveProto, functionProto]
+    -- "Record" is added by the evaluator and relies on the fact that primitives with
+    -- equal names are equal
+    [intProto, boolProto, strProto, symProto, tupleProto, primitiveProto, functionProto]
   where
     bindPrimitive val@(Primitive name _ _) = (name, val)
 
