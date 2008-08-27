@@ -93,8 +93,8 @@ readModule :: String -> String -> EveM ModuleDef
 readModule moduleName fileText = do
     (imports, bindings, defs, typeDefs) <- lexer moduleName fileText >>= parseFile 
                  >>= return . parseFileLines
-    modules <- getStateField modules 
-    importEnv <- mapM loadModule imports >>= return . ((startingEnv ++ autoImportEnv modules) ++) . concat
+    moduleDefs <- getStateField modules 
+    importEnv <- mapM loadModule imports >>= return . ((startingEnv ++ autoImportEnv moduleDefs) ++) . concat
     evalEnv <- foldl (>>=) (return importEnv) $ map evalBinding bindings
     defResults <- mapM (evalDef evalEnv $ map parseType typeDefs) defs
     defEnv <- return $ closeOverBindings defResults
@@ -102,7 +102,7 @@ readModule moduleName fileText = do
   where
     parseType (TypeDef name val) = (name, val)
     autoImportEnv :: [(String, ModuleDef)] -> Env
-    autoImportEnv modules = concatMap (lookupModule modules) autoImports
+    autoImportEnv moduleDefs = concatMap (lookupModule moduleDefs) autoImports
     lookupModule :: [(String, ModuleDef)] -> String -> ModuleDef
     lookupModule moduleDefs name = 
         maybe (error $ "Module " ++ moduleName ++ " not loaded") id $ lookup name moduleDefs
