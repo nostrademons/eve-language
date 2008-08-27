@@ -1,2 +1,4 @@
 Eve>>> apply(add, [2, 3])
 5
+Eve>>> apply(? + 1, [3])
+4

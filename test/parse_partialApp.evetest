@@ -6,3 +6,5 @@ Eve>>> f=2*?
 f={|__a| mul(2, __a)}
 Eve>>> f(3)
 f(3)
+Eve>>> self.search(? == val)
+attr(self, 'search')({|__a| eq(__a, val)})

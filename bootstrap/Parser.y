@@ -221,6 +221,10 @@ parseRepl input = replLine input >>= return . replaceReplPartials
 
 replaceFilePartials :: EveFileLine -> EveFileLine
 replaceFilePartials (Binding var pos expr) = Binding var pos $ replacePartials expr
+replaceFilePartials (Def name argData docstring typeDecl defines pos body) =
+    Def name argData docstring typeDecl (map replaceFilePartials defines) pos (replacePartials body)
+replaceFilePartials (Class name superclass pos (docstring, lines)) =
+    Class name superclass pos (docstring, map replaceFilePartials lines)
 replaceFilePartials line = line
 
 replaceReplPartials :: EveReplLine -> EveReplLine
@@ -244,11 +248,11 @@ replacePartials (Funcall expr args) = maybeLambda (Funcall (replacePartials expr
 replacePartials (TypeCheck (tested, typeDecl) expr) = 
     TypeCheck (replacePartials tested, typeDecl) $ replacePartials expr
 
-maybeLambda exprConstr args =
+maybeLambda body args =
   if numParams > 0
     then Lambda (ArgExpr lambdaList [] Nothing) (Pos "<partial app>" 0 0 0) 
-            . exprConstr $ substParams lambdaList args
-    else exprConstr (map replacePartials args)
+            . body $ substParams lambdaList args
+    else body (map replacePartials args)
   where
     numParams = length . filter (== Variable "?") $ args
     lambdaList = map (("__" ++) . (: [])) $ take numParams ['a'..]
