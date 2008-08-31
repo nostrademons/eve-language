@@ -1,14 +1,16 @@
-import eve.lang.class
-import eve.data.sequence
-
-@namespace
-def List():
-    def init(seq=[]):
+class List(Iterator):
+    def init(*seq):
         iter = seq.iter()
-        if iter.has_next() then [iter.get(), List(iter.next())] else []
-    def get(self): self[0]
-    def next(self): self[1]
+        if iter.has_next() 
+            then addListMethods([iter.get(), List(iter.next())])
+            else addListMethods([])
+    def head(self): self[0]
+    def tail(self): self[1]
+    def get(self): self.head()
+    def next(self): self.tail()
     def has_next(self): self.next() != []
-    def empty(self): []
-    def add(self, val): [val, self]
-    make_class(Sequence, locals())
+    def empty(self): tuple2List([])
+    def prepend(self, val): [val, self]
+
+addListMethods = add_superclass(List, ?)
+
