@@ -2,7 +2,7 @@ module Data(EveToken(..), SourcePos(..), ArgData(..), ArgExpr(..),
             EveExpr(..), EveReplLine(..), EveFileLine(..), 
             EveError(..), EveStackTrace, EveData(..), EveType(..), TEnv, Env, 
             ModuleDef, getAccessibleBindings, 
-            recordFields, sortRecord, prototype, 
+            recordFields, sortRecord, showFields, prototype, 
             attributes, setAttributes, getAttr, hasAttr, dropAttrs, attrNames,
             EveM, runEveM, getEnv, addTopLevelBinding, pushCall, popCall, throwEveError,
             modules, getStateField, join) where

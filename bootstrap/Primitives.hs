@@ -2,7 +2,7 @@ module Primitives(makeInt, makeBool, makeString, makeSymbol,
     makeTuple, makeRecord, makePrimitive, makeFunction, makePrimitives, primitiveEnv) where
 import Data
 import Utils
-import Control.Monad.Error
+import Control.Monad.Error hiding (join)
 
 makePrimitives primitives = zip names $ map makePrimitive (zip names values)
   where 
@@ -59,7 +59,7 @@ primitiveProto = makeTypeObj "Primitive" typeObject [eqPrimitives]
 functionProto = makeTypeObj "Function" typeObject [eqPrimitives]
 
 -- Global primitives.  Augmented in Eval by the primitives that need access to apply
-primitiveEnv = boolPrimitives ++ map bindPrimitive 
+primitiveEnv = [("dump", makePrimitive ("dump", dump))] ++ boolPrimitives ++ map bindPrimitive 
     -- "Record" is added by the evaluator and relies on the fact that primitives with
     -- equal names are equal
     [intProto, boolProto, strProto, symProto, tupleProto, primitiveProto, functionProto]
@@ -189,3 +189,9 @@ convertToSymbol _ = typeError "Sym expects a string"
 convertToTuple [Tuple xs _] = return $ makeTuple xs
 convertToTuple [x] = return $ makeTuple [x]
 convertToTuple xs = return $ makeTuple xs
+
+dump [val] = return $ makeString (show val ++ "\n" ++ showProtoChain val)
+  where 
+    showProtoChain (Bool False []) = ""
+    showProtoChain obj = join "\n" (map showFields $ attributes obj) 
+                                ++ "\n\n" ++ showProtoChain (prototype obj)
