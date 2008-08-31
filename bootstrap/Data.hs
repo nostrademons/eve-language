@@ -114,7 +114,11 @@ instance Show EveData where
   show (Record fields) = showRecord fields
   show (RecordIter val index fields) = "Iterator(" ++ show index ++ ") for " ++ show val 
   show (Primitive name _ fields) = name
-  show (Function argData pos body _ fields) = "{| " ++ show argData ++ " | " ++ show body ++ " }"
+  show fn@(Function argData pos body _ fields) = maybe (showFunc fn) showMethod $ lookup "im_func" fields
+    where 
+      showFunc (Function argData _ body _ _) = "{| " ++ show argData ++ " | " ++ abbrev (show body) ++ " }"
+      showMethod method = "bound method: " ++ showFunc method
+      abbrev text = if length text > 40 then take 37 text ++ "..." else text 
 
 -- Modules
 
@@ -248,8 +252,7 @@ instance Show EveExpr where
   show (Cond args) = "Cond: " ++ join ", " (map showClause args)
     where showClause (pred, expr) = show pred ++ "->" ++ show expr
   show (Lambda argData pos body) = "{|" ++ show argData ++ "| " ++ show body ++ "}"
-  show (Letrec clauses body) = "Letrec in " ++ show body ++ ":" 
-                                ++ join ", " (map showClause clauses)
+  show (Letrec clauses body) = show body ++ " with " ++ join ", " (map showClause clauses)
     where showClause (name, expr) = name ++ " = " ++ show expr
   show (TypeCheck (tested, typeDecl) body) = show tested ++ " as " ++ show typeDecl ++
         (if tested == body then "" else " => " ++ show body)

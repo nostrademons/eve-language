@@ -1,4 +1,4 @@
 Eve>>> import test.test_types
-{| x | Letrec in x as Int => mul(x, factorial(sub(x, 1))): as Int }
+{| x | x as Int => mul(x, factorial(sub(x, 1... }
 Eve>>> factorial(0)
 1
