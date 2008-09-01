@@ -22,13 +22,6 @@ instance Show ArgData where
         varArgList = map displayArg args ++ maybe [] (\argName -> ["*" ++ argName]) varargs 
         displayArg arg = maybe arg (\val -> arg ++ "=" ++ show val) $ lookup arg defaults
 
-data ArgExpr = ArgExpr [String] [(String, EveExpr)] (Maybe String) deriving (Eq)
-
-instance Show ArgExpr where
-    show (ArgExpr args defaults varargs) = join ", " varArgList
-      where
-        varArgList = map displayArg args ++ maybe [] (\argName -> ["*" ++ argName]) varargs 
-        displayArg arg = maybe arg (\val -> arg ++ "=" ++ show val) $ lookup arg defaults
 
 data EveData = 
     Int Int Env
@@ -170,6 +163,14 @@ instance Show EveToken where
   show TokDedent = "DEDENT"
 
 -- Program fragments
+
+data ArgExpr = ArgExpr [String] [(String, EveExpr)] (Maybe String) deriving (Eq)
+
+instance Show ArgExpr where
+    show (ArgExpr args defaults varargs) = join ", " varArgList
+      where
+        varArgList = map displayArg args ++ maybe [] (\argName -> ["*" ++ argName]) varargs 
+        displayArg arg = maybe arg (\val -> arg ++ "=" ++ show val) $ lookup arg defaults
 
 data EveReplLine = 
     Expr EveExpr
