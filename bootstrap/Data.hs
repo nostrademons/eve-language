@@ -259,11 +259,11 @@ instance Show EveExpr where
 
 -- Stack frames
 
-data StackFrame = Frame EveData [EveData]
+data StackFrame = Frame EveData [String] [EveData]
 
 instance Show StackFrame where
-  show (Frame (Primitive name _ _) args) = name ++ "(" ++ join ", " (map show args) ++ ")"
-  show (Frame (Function _ pos _ _ fields) args) = fName ++ "(" ++ join ", " (map show args) ++ ") at " ++ show pos
+  show (Frame (Primitive name _ _) vars args) = name ++ "(" ++ join ", " (map show args) ++ ")"
+  show (Frame (Function _ pos _ _ fields) vars args) = fName ++ "(" ++ join ", " (map show args) ++ ") at " ++ show pos
     where fName = maybe "<lambda>" show $ lookup "name" fields
 
 -- Errors
@@ -310,7 +310,7 @@ getEnv :: (MonadState InterpreterState m) => m Env
 getEnv = getStateField env
 
 pushCall :: EveData -> [EveData] -> EveM ()
-pushCall fn args = modify $ \s -> s { stack = Frame fn args : stack s }
+pushCall fn args = modify $ \s -> s { stack = Frame fn [] args : stack s }
 
 popCall :: EveM ()
 popCall = modify $ \s -> s { stack = tail $ stack s }
