@@ -4,7 +4,7 @@ module Data(EveToken(..), SourcePos(..), ArgData(..), ArgExpr(..), args2Vars,
             ModuleDef, getAccessibleBindings, 
             recordFields, sortRecord, showFields, prototype, 
             attributes, setAttributes, getAttr, hasAttr, dropAttrs, attrNames,
-            EveM, runEveM, getEnv, addTopLevelBinding, pushCall, popCall, throwEveError,
+            EveM, runEveM, getEnv, setEnv, addTopLevelBinding, pushCall, popCall, frameVars, throwEveError,
             modules, getStateField, join) where
 import Data.List
 import Control.Monad.State hiding (join)
@@ -312,11 +312,23 @@ getStateField selector = get >>= return . selector
 getEnv :: (MonadState InterpreterState m) => m Env
 getEnv = getStateField env
 
+setEnv :: Env -> EveM ()
+setEnv env = modify $ \s -> s { env = env }
+
 pushCall :: EveData -> [EveData] -> EveM ()
 pushCall fn args = modify $ \s -> s { stack = Frame fn args : stack s }
 
 popCall :: EveM ()
 popCall = modify $ \s -> s { stack = tail $ stack s }
+
+frameVars :: EveM [String]
+frameVars = getStateField stack >>= return . unpackVars
+  where
+    unpackVars (Frame (Function _ (Just vars) _ _ _ _) _ : _) = vars
+    -- Needed because locals() introduces its own stack frame
+    unpackVars (Frame (Primitive _ _ _) _ : rest) = unpackVars rest
+    unpackVars (Frame _ _ : _) = []
+    unpackVars [] = []
 
 throwEveError error = do
     frames <- getStateField stack

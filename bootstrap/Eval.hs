@@ -208,6 +208,7 @@ apply call@(Function argData vars pos body env _) args = maybe doApply (const do
   where
     doApply = do
         boundArgs <- bindArgs argData args
+        setEnv (boundArgs ++ env)
         eval (boundArgs ++ env) body
     doWithStackFrame = do
         pushCall call args

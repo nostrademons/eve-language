@@ -1,0 +1,5 @@
+def test_locals(k, v, *args): locals()
+
+def test_multiline_locals(x, y):
+    z = x + y
+    locals()

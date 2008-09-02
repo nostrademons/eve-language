@@ -59,10 +59,12 @@ primitiveProto = makeTypeObj "Primitive" typeObject [eqPrimitives]
 functionProto = makeTypeObj "Function" typeObject [eqPrimitives]
 
 -- Global primitives.  Augmented in Eval by the primitives that need access to apply
-primitiveEnv = [("dump", makePrimitive ("dump", dump))] ++ boolPrimitives ++ map bindPrimitive 
-    -- "Record" is added by the evaluator and relies on the fact that primitives with
-    -- equal names are equal
-    [intProto, boolProto, strProto, symProto, tupleProto, primitiveProto, functionProto]
+primitiveEnv = makePrimitives [
+    ("dump", dump),
+    ("locals", locals)] ++ boolPrimitives ++ map bindPrimitive 
+        -- "Record" is added by the evaluator and relies on the fact that primitives with
+        -- equal names are equal
+        [intProto, boolProto, strProto, symProto, tupleProto, primitiveProto, functionProto]
   where
     bindPrimitive val@(Primitive name _ _) = (name, val)
 
@@ -195,3 +197,11 @@ dump [val] = return $ makeString (show val ++ "\n" ++ showProtoChain val)
     showProtoChain (Bool False []) = ""
     showProtoChain obj = join "\n" (map showFields $ attributes obj) 
                                 ++ "\n\n" ++ showProtoChain (prototype obj)
+
+locals [] = do
+    vars <- frameVars
+    env <- getEnv
+    return $ makeRecord $ foldr (maybe id (:) . lookupPair env) [] vars
+  where
+    lookupPair [] key = Nothing
+    lookupPair ((k, v) : pairs) key = if k == key then Just (k, v) else lookupPair pairs key

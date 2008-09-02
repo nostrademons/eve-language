@@ -1,0 +1,10 @@
+Eve>>> test_locals(2, 3)
+{'args': [], 'k': 2, 'v': 3}
+Eve>>> test_locals(1, 2, 3, 4, 5)
+{'args': [3, 4, 5], 'k': 1, 'v': 2}
+Eve>>> test_locals('foo', 'bar').k
+'foo'
+Eve>>> {| x, y | locals() }(0, 5).x
+0
+Eve>>> test_multiline_locals(2, 3)
+{'x': 2, 'y': 3, 'z': 5}
