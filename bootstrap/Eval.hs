@@ -52,13 +52,19 @@ parseDef :: TEnv -> EveFileLine -> (String, EveExpr)
 parseDef typeEnv (Def name argData docstring typeDecl lines pos body) = (name, convertedBody)
   where
     (_, bindings, defs, _) = parseFileLines lines
-    convertedBody = Lambda argData pos $ 
+    convertedBody = Lambda argData vars pos $ 
         (maybe id (addTypeCheck . convertTypeDefs) typeDecl) $
         foldr convertBinding defBody bindings
     defBody = Letrec (map (parseDef typeEnv) defs) body
+    vars = (Just $ args2Vars argData ++ concatMap varNames bindings ++ concatMap varNames defs)
+    varNames (Binding (Left vars) _ _) = vars
+    varNames (Binding (Right var) _ _) = [var]
+    varNames (Def fnName _ _ _ _ _ _) = [fnName]
+    varNames (Class className _ _ _) = [className]
     convertBinding (Binding (Left vars) pos expr) rest = 
-        Funcall (Variable "apply") [Lambda (ArgExpr vars [] Nothing) pos rest, expr]
-    convertBinding (Binding (Right var) pos expr) rest = Funcall (Lambda (ArgExpr [var] [] Nothing) pos rest) [expr]
+        Funcall (Variable "apply") [Lambda (ArgExpr vars [] Nothing) Nothing pos rest, expr]
+    convertBinding (Binding (Right var) pos expr) rest = 
+        Funcall (Lambda (ArgExpr [var] [] Nothing) Nothing pos rest) [expr]
     addTypeCheck typeDecl body = TypeCheck (body, typeDecl) body
     convertTypeDefs :: EveType -> EveType
     convertTypeDefs (TPrim name) = maybe (TPrim name) id $ lookup name typeEnv
@@ -70,7 +76,7 @@ parseDef typeEnv (Def name argData docstring typeDecl lines pos body) = (name, c
 
 evalDef :: Env -> TEnv -> EveFileLine -> EveM (String, EveData)
 evalDef env tEnv def@(Def name _ doc _ _ _ _) = do
-    (name, fn@(Function _ _ _ _ fields)) <- evalPair env $ parseDef tEnv def
+    (name, fn@(Function _ _ _ _ _ fields)) <- evalPair env $ parseDef tEnv def
     return (name, setAttributes fn ([("name", makeString name), ("doc", makeString doc)] ++ fields))
 evalDef env tEnv (Class name superDecl pos (docstring, lines)) = do
     methods <- mapM (evalPair env) methodExprs
@@ -80,7 +86,7 @@ evalDef env tEnv (Class name superDecl pos (docstring, lines)) = do
     constructor methods = do
         oldProto <- getAttr "proto" baseFunc
         return $ setAttributes baseFunc (("proto", oldProto) : methods)
-      where baseFunc = makeFunction (Args [] [] (Just "args")) pos classBody (methods ++ env)
+      where baseFunc = makeFunction (Args [] [] (Just "args")) Nothing pos classBody (methods ++ env)
     funcall name args = Funcall (Variable name) args
     classBody = funcall "extend" [funcall "apply" [Variable "init", Variable "args"], proto]
     proto = RecordLiteral [("proto", RecordLiteral $ buildProto superDecl)]
@@ -139,8 +145,8 @@ evalRepl env (Assignment var expr) = do
 closeOverBindings bindings = result
   where
     result = map editFunctionEnv bindings
-    editFunctionEnv (name, (Function argData pos body env fields)) = 
-        (name, Function argData pos body (result ++ env) fields)
+    editFunctionEnv (name, (Function argData vars pos body env fields)) = 
+        (name, Function argData vars pos body (result ++ env) fields)
 
 evalDefaults env (ArgExpr args defaults varargs) = do
     values <- mapM (eval env) defaultExprs
@@ -169,9 +175,9 @@ eval env (Cond ((pred, action):rest)) = do
   case predResult of
     Bool True _ -> eval env action 
     otherwise -> eval env (Cond rest)
-eval env (Lambda argExpr pos body) = do
+eval env (Lambda argExpr vars pos body) = do
     argData <- evalDefaults env argExpr
-    return $ makeFunction argData pos body env
+    return $ makeFunction argData vars pos body env
 eval env (Letrec bindings body) = do
     fns <- mapM (evalPair env) bindings
     eval (closeOverBindings fns ++ env) body
@@ -198,13 +204,16 @@ apply call@(Primitive name fn _) args = do
     popCall
     return result
 
-apply call@(Function argData pos body env _) args = do
-    pushCall call args
-    boundArgs <- bindArgs argData args
-    result <- eval (boundArgs ++ env) body
-    popCall
-    return result
+apply call@(Function argData vars pos body env _) args = maybe doApply (const doWithStackFrame) vars
   where
+    doApply = do
+        boundArgs <- bindArgs argData args
+        eval (boundArgs ++ env) body
+    doWithStackFrame = do
+        pushCall call args
+        result <- doApply
+        popCall
+        return result
     bindArgs (Args argNames defaults varargs) args = case numArgs of
         numArgs | numArgs == numProvided -> return $ bindVarArgs varargs $ boundArgs
         numArgs | numArgs < numProvided && hasVarArgs -> return $ bindVarArgs varargs $ boundArgs
@@ -280,13 +289,13 @@ attrPrimitive [obj, field@(String name _)] = tryRecord `catchError` tryAttr
     tryRecord = getAttr name obj >>= return . maybeMakeMethod
     tryAttr e | hasAttr "attr" obj = getAttr "attr" obj >>= flip apply [obj, field]
     tryAttr e = throwError e
-    wrappedFunction fn pos env = Function (Args [] [] (Just "args")) pos
+    wrappedFunction fn pos env = Function (Args [] [] (Just "args")) Nothing pos
         (Funcall (Variable "apply") [Literal fn, 
             Funcall (Variable "add") [Literal $ makeTuple [obj], Variable "args"]]) 
         env [("proto", fn), ("im_self", obj), ("im_func", fn)]
     maybeMakeMethod fn@(Primitive _ _ _) = wrappedFunction fn (Pos "<primitive>" 0 0 0) startingEnv
-    maybeMakeMethod fn@(Function (Args [] _ Nothing) _ _ _ _) = fn
-    maybeMakeMethod fn@(Function _ pos _ env _) = wrappedFunction fn pos env
+    maybeMakeMethod fn@(Function (Args [] _ Nothing) _ _ _ _ _) = fn
+    maybeMakeMethod fn@(Function _ _ pos _ env _) = wrappedFunction fn pos env
     maybeMakeMethod val = val
 attrPrimitive _ = throwEveError $ TypeError "Field access requires an object and a string"
 

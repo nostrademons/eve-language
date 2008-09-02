@@ -184,8 +184,7 @@ Operand     : Literal                      { Literal $1 }
             | Operand '(' ExprList ',' '*' Operand ')' 
                 { funcall "apply" [$1, funcall "add" [TupleLiteral (reverse $3), $6]] }
             | Operand '.' VAR                 { funcall "attr" [$1, Literal (makeString $3)] }
-            | '{' '|' VarArgList '|' Expr '}' { let (args, defaults, newBody) = parseArgList (fst $3) $5 in
-                                                Lambda (ArgExpr args defaults (snd $3)) (fst $1) newBody }
+            | '{' '|' VarArgList '|' Expr '}' { makeLambda (fst $1) $3 $5 }
             | Operand 'as' TypeExpr        { TypeCheck ($1, $3) $1 }
 
 Literal     : INT                          { makeInt $1 }
@@ -243,14 +242,14 @@ replacePartials (RecordLiteral pairs) = maybeLambda reconstruct $ snd $ unzip pa
 replacePartials (Variable var) = Variable var
 replacePartials (Cond condList) = Cond $ map handleClause condList
   where handleClause (pred, action) = (replacePartials pred, replacePartials action)
-replacePartials (Lambda argData pos body) = Lambda argData pos $ replacePartials body
+replacePartials (Lambda argData vars pos body) = Lambda argData vars pos $ replacePartials body
 replacePartials (Funcall expr args) = maybeLambda (Funcall (replacePartials expr)) args
 replacePartials (TypeCheck (tested, typeDecl) expr) = 
     TypeCheck (replacePartials tested, typeDecl) $ replacePartials expr
 
 maybeLambda body args =
   if numParams > 0
-    then Lambda (ArgExpr lambdaList [] Nothing) (Pos "<partial app>" 0 0 0) 
+    then Lambda argExpr (Just $ args2Vars argExpr) (Pos "<partial app>" 0 0 0) 
             . body $ substParams lambdaList args
     else body (map replacePartials args)
   where
@@ -260,6 +259,7 @@ maybeLambda body args =
     substParams (next:params) (Variable "?":args) = Variable next : substParams params args
     substParams params (arg:args) = replacePartials arg : substParams params args
     substParams params [] = []
+    argExpr = ArgExpr lambdaList [] Nothing
 
 -- argList comes in reversed, which is good for our purposes
 parseArgList argList body = (reverse $ names, argDefaults, newBody)
@@ -273,6 +273,11 @@ parseArgList argList body = (reverse $ names, argDefaults, newBody)
     unpack pair = error $ "Bad default argument: " ++ show pair
     makeTypeCheck (varName, _, Nothing) = id
     makeTypeCheck (varName, _, Just typeDecl) = TypeCheck (Variable varName, typeDecl)
+
+makeLambda pos (rawArgs, varargs) body = Lambda argExpr (Just $ args2Vars argExpr) pos newBody
+  where
+    (args, defaults, newBody) = parseArgList rawArgs body
+    argExpr = ArgExpr args defaults varargs
 
 findLastExpr (docString, defLines) = (lines, docString, last)
   where

@@ -1,4 +1,4 @@
-module Data(EveToken(..), SourcePos(..), ArgData(..), ArgExpr(..),
+module Data(EveToken(..), SourcePos(..), ArgData(..), ArgExpr(..), args2Vars,
             EveExpr(..), EveReplLine(..), EveFileLine(..), 
             EveError(..), EveStackTrace, EveData(..), EveType(..), TEnv, Env, 
             ModuleDef, getAccessibleBindings, 
@@ -22,6 +22,8 @@ instance Show ArgData where
         varArgList = map displayArg args ++ maybe [] (\argName -> ["*" ++ argName]) varargs 
         displayArg arg = maybe arg (\val -> arg ++ "=" ++ show val) $ lookup arg defaults
 
+type LocalVarList = Maybe [String]
+args2Vars (ArgExpr args _ varargs) = maybe id (:) varargs $ args
 
 data EveData = 
     Int Int Env
@@ -33,7 +35,7 @@ data EveData =
   | Record Env
   | RecordIter EveData Int Env
   | Primitive String ([EveData] -> EveM EveData) Env
-  | Function ArgData SourcePos EveExpr Env Env
+  | Function ArgData LocalVarList SourcePos EveExpr Env Env
 
 findPrototype :: Env -> EveData
 findPrototype fields = maybe (Bool False []) id $ lookup "proto" fields
@@ -47,7 +49,7 @@ attributes (SequenceIter _ _ fields) = fields
 attributes (Record fields) = fields
 attributes (RecordIter _ _ fields) = fields
 attributes (Primitive _ _ fields) = fields
-attributes (Function _ _ _ _ fields) = fields
+attributes (Function _ _ _ _ _ fields) = fields
 
 setAttributes (Int val fields) newFields = Int val newFields
 setAttributes (Bool val fields) newFields = Bool val newFields
@@ -57,8 +59,8 @@ setAttributes (Tuple val fields) newFields = Tuple val newFields
 setAttributes (SequenceIter val index fields) newFields = SequenceIter val index newFields
 setAttributes (Record fields) newFields = Record newFields
 setAttributes (Primitive name fn fields) newFields = Primitive name fn newFields
-setAttributes (Function argData pos body env fields) newFields = 
-    Function argData pos body env newFields
+setAttributes (Function argData vars pos body env fields) newFields = 
+    Function argData vars pos body env newFields
 
 prototype = findPrototype . attributes
 
@@ -94,7 +96,7 @@ instance Eq EveData where
   Record x1 == Record x2 = eqRecord x1 x2
   RecordIter x1 i1 _ == RecordIter x2 i2 _ = i1 == i2 && x1 == x2
   Primitive name1 _ _ == Primitive name2 _ _ = name1 == name2
-  Function argData1 _ body1 _ _ == Function argData2 _ body2 _ _ = argData1 == argData2 && body1 == body2
+  Function argData1 _ _ body1 _ _ == Function argData2 _ _ body2 _ _ = argData1 == argData2 && body1 == body2
   _ == _ = False
 
 instance Show EveData where
@@ -107,9 +109,9 @@ instance Show EveData where
   show (Record fields) = showRecord fields
   show (RecordIter val index fields) = "Iterator(" ++ show index ++ ") for " ++ show val 
   show (Primitive name _ fields) = name
-  show fn@(Function argData pos body _ fields) = maybe (showFunc fn) showMethod $ lookup "im_func" fields
+  show fn@(Function argData vars pos body _ fields) = maybe (showFunc fn) showMethod $ lookup "im_func" fields
     where 
-      showFunc (Function argData _ body _ _) = "{| " ++ show argData ++ " | " ++ abbrev (show body) ++ " }"
+      showFunc (Function argData _ _ body _ _) = "{| " ++ show argData ++ " | " ++ abbrev (show body) ++ " }"
       showMethod method = "bound method: " ++ showFunc method
       abbrev text = if length text > 40 then take 37 text ++ "..." else text 
 
@@ -236,7 +238,7 @@ data EveExpr =
   | Variable String
   | Cond [(EveExpr, EveExpr)]
   | Funcall EveExpr [EveExpr]
-  | Lambda ArgExpr SourcePos EveExpr
+  | Lambda ArgExpr LocalVarList SourcePos EveExpr
   | Letrec [(String, EveExpr)] EveExpr
   | TypeCheck (EveExpr, EveType) EveExpr
   deriving (Eq)
@@ -252,7 +254,7 @@ instance Show EveExpr where
   show (Funcall name args) = show name ++ "(" ++ join ", " (map show args) ++ ")"
   show (Cond args) = "Cond: " ++ join ", " (map showClause args)
     where showClause (pred, expr) = show pred ++ "->" ++ show expr
-  show (Lambda argData pos body) = "{|" ++ show argData ++ "| " ++ show body ++ "}"
+  show (Lambda argData vars pos body) = "{|" ++ show argData ++ "| " ++ show body ++ "}"
   show (Letrec clauses body) = show body ++ " with " ++ join ", " (map showClause clauses)
     where showClause (name, expr) = name ++ " = " ++ show expr
   show (TypeCheck (tested, typeDecl) body) = show tested ++ " as " ++ show typeDecl ++
@@ -260,11 +262,11 @@ instance Show EveExpr where
 
 -- Stack frames
 
-data StackFrame = Frame EveData [String] [EveData]
+data StackFrame = Frame EveData [EveData]
 
 instance Show StackFrame where
-  show (Frame (Primitive name _ _) vars args) = name ++ "(" ++ join ", " (map show args) ++ ")"
-  show (Frame (Function _ pos _ _ fields) vars args) = fName ++ "(" ++ join ", " (map show args) ++ ") at " ++ show pos
+  show (Frame (Primitive name _ _) args) = name ++ "(" ++ join ", " (map show args) ++ ")"
+  show (Frame (Function _ _ pos _ _ fields) args) = fName ++ "(" ++ join ", " (map show args) ++ ") at " ++ show pos
     where fName = maybe "<lambda>" show $ lookup "name" fields
 
 -- Errors
@@ -311,7 +313,7 @@ getEnv :: (MonadState InterpreterState m) => m Env
 getEnv = getStateField env
 
 pushCall :: EveData -> [EveData] -> EveM ()
-pushCall fn args = modify $ \s -> s { stack = Frame fn [] args : stack s }
+pushCall fn args = modify $ \s -> s { stack = Frame fn args : stack s }
 
 popCall :: EveM ()
 popCall = modify $ \s -> s { stack = tail $ stack s }
