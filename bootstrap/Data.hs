@@ -4,8 +4,9 @@ module Data(EveToken(..), SourcePos(..), ArgData(..), ArgExpr(..), args2Vars,
             ModuleDef, getAccessibleBindings, 
             recordFields, sortRecord, showFields, prototype, 
             attributes, setAttributes, getAttr, hasAttr, dropAttrs, attrNames,
-            EveM, runEveM, getEnv, setEnv, addTopLevelBinding, pushCall, popCall, frameVars, throwEveError,
-            modules, getStateField, join) where
+            EveM, runEveM, getModules, getEnv, setEnv, addTopLevelBinding, 
+            pushCall, popCall, frameVars, throwEveError,
+            modules, join) where
 import Data.List
 import Control.Monad.State hiding (join)
 import Control.Monad.Error hiding (join)
@@ -262,12 +263,17 @@ instance Show EveExpr where
 
 -- Stack frames
 
-data StackFrame = Frame EveData [EveData]
+data StackFrame = Frame {
+    frame_name :: String,
+    frame_pos :: Maybe SourcePos,
+    frame_vars :: [String],
+    frame_env :: Env,
+    frame_args :: [EveData]
+}
 
 instance Show StackFrame where
-  show (Frame (Primitive name _ _) args) = name ++ "(" ++ join ", " (map show args) ++ ")"
-  show (Frame (Function _ _ pos _ _ fields) args) = fName ++ "(" ++ join ", " (map show args) ++ ") at " ++ show pos
-    where fName = maybe "<lambda>" show $ lookup "name" fields
+  show (Frame name pos _ _ args) = name ++ "(" ++ join ", " (map show args) ++ ")" ++ maybe "" showSourcePos pos
+    where showSourcePos pos = " at " ++ show pos
 
 -- Errors
 
@@ -301,44 +307,62 @@ instance Error EveStackTrace where
 
 -- Interpreter monad
 data InterpreterState = Interpreter { 
-    env :: Env, 
     stack :: [StackFrame],
     modules :: ModuleEnv 
 }
 type EveM = StateT InterpreterState (ErrorT EveStackTrace IO)
 
-getStateField selector = get >>= return . selector
+getModules :: EveM ModuleEnv
+getModules = get >>= return . modules
 
-getEnv :: (MonadState InterpreterState m) => m Env
-getEnv = getStateField env
+getEnv :: EveM Env
+getEnv = topFrame >>= return . frame_env
 
 setEnv :: Env -> EveM ()
-setEnv env = modify $ \s -> s { env = env }
+setEnv env = modify $ \s -> s { stack = modifyEnv $ stack s }
+  where
+    modifyEnv [] = error "top-level frame was popped"
+    modifyEnv (top : rest) = top { frame_env = env } : rest
 
 pushCall :: EveData -> [EveData] -> EveM ()
-pushCall fn args = modify $ \s -> s { stack = Frame fn args : stack s }
+pushCall fn@(Function _ rawVars pos _ env fields) args = 
+    addStackFrame $ Frame fName (Just pos) vars env args
+  where 
+    fName = maybe "<function>" show $ lookup "name" fields
+    vars = maybe [] id rawVars
+pushCall fn@(Primitive name _ _) args = do
+    env <- getEnv
+    addStackFrame $ Frame name Nothing [] env args
+addStackFrame frame = modify $ \s -> s { stack = frame : stack s }
 
 popCall :: EveM ()
 popCall = modify $ \s -> s { stack = tail $ stack s }
 
-frameVars :: EveM [String]
-frameVars = getStateField stack >>= return . unpackVars
+topFrame :: EveM StackFrame
+topFrame = get >>= return . top . stack
   where
-    unpackVars (Frame (Function _ (Just vars) _ _ _ _) _ : _) = vars
+    top [] = error "Top-level stack frame has been popped."
+    top (frame : rest) = frame
+
+frameVars :: EveM [String]
+frameVars = get >>= return . unpackVars . stack
+  where
+    unpackVars (Frame _ (Just _) vars _ _ : _) = vars
     -- Needed because locals() introduces its own stack frame
-    unpackVars (Frame (Primitive _ _ _) _ : rest) = unpackVars rest
-    unpackVars (Frame _ _ : _) = []
-    unpackVars [] = []
+    unpackVars (Frame "locals" _ _ _ _ : rest) = unpackVars rest
+    unpackVars _ = []
 
 throwEveError error = do
-    frames <- getStateField stack
+    frames <- get >>= return . stack
     throwError $ StackTrace frames error
 
 addTopLevelBinding :: (MonadState InterpreterState m) => 
                       String -> EveData -> m ()
 addTopLevelBinding var value = modify addBinding
   where
-    addBinding state = state { env = (var, value) : env state }
+    addBinding state = state { stack = addBindingToBottom $ stack state }
+    addBindingToBottom [frame] = [frame { frame_env = (var, value) : frame_env frame }]
+    addBindingToBottom (frame : rest) = frame : addBindingToBottom rest
 
 runEveM :: EveM a -> Env -> IO (Either EveStackTrace (a, InterpreterState))
-runEveM monad env = runErrorT $ runStateT monad $ Interpreter env [] []
+runEveM monad env = runErrorT $ runStateT monad $ Interpreter [Frame "top-level" Nothing [] env []] []

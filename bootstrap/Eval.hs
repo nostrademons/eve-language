@@ -100,7 +100,7 @@ readModule :: String -> String -> EveM ModuleDef
 readModule moduleName fileText = do
     (imports, bindings, defs, typeDefs) <- lexer moduleName fileText >>= parseFile 
                  >>= return . parseFileLines
-    moduleDefs <- getStateField modules 
+    moduleDefs <- getModules
     importEnv <- mapM loadModule imports >>= return . ((startingEnv ++ autoImportEnv moduleDefs) ++) . concat
     evalEnv <- foldl (>>=) (return importEnv) $ map evalBinding bindings
     defResults <- mapM (evalDef evalEnv $ map parseType typeDefs) defs
@@ -119,7 +119,7 @@ readModule moduleName fileText = do
       return $ (var, datum) : env 
 
 loadModule :: [String] -> EveM ModuleDef
-loadModule path = getStateField modules >>= maybeLoad
+loadModule path = getModules >>= maybeLoad
   where
     moduleName = join "." path
     maybeLoad modules = maybe firstTimeLoad return $ lookup moduleName modules
