@@ -36,7 +36,14 @@ data EveData =
   | Record Env
   | RecordIter EveData Int Env
   | Primitive String ([EveData] -> EveM EveData) Env
-  | Function ArgData LocalVarList SourcePos EveExpr Env Env
+  | Function {
+        fn_args :: ArgData,
+        fn_vars :: LocalVarList,
+        fn_pos :: SourcePos,
+        fn_body :: EveExpr,
+        fn_env :: Env,
+        fn_fields :: Env
+    }
 
 findPrototype :: Env -> EveData
 findPrototype fields = maybe (Bool False []) id $ lookup "proto" fields
@@ -191,8 +198,21 @@ data EveFileLine =
   | NakedExpr EveExpr
   | Binding (Either [String] String) SourcePos EveExpr
   | TypeDef String EveType
-  | Def String ArgExpr String (Maybe EveType) [EveFileLine] SourcePos EveExpr
-  | Class String (Maybe String) SourcePos (String, [EveFileLine])
+  | Def {
+        def_name :: String,
+        def_args :: ArgExpr,
+        def_doc :: String,
+        def_type :: Maybe EveType,
+        def_lines :: [EveFileLine],
+        def_pos :: SourcePos,
+        def_body :: EveExpr
+    }
+  | Class {
+        class_name :: String,
+        class_super :: Maybe String,
+        class_pos :: SourcePos,
+        class_doc_lines :: (String, [EveFileLine])
+    }
 
 instance Show EveFileLine where
   show (Export bindings) = "export " ++ join ", " bindings ++ "\n"

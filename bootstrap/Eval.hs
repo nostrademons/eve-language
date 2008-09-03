@@ -39,84 +39,104 @@ startingEnv = primitiveEnv ++ makePrimitives [
     ("restrict", filterRecord elem),
     ("exclude", filterRecord notElem)]
 
-categorize (NakedExpr _) val = val
-categorize (Import x) (i, b, d, t) = (x : i, b, d, t)
-categorize x@(Binding _ _ _) (i, b, d, t) = (i, x : b, d, t)
-categorize x@(Def _ _ _ _ _ _ _) (i, b, d, t) = (i, b, x : d, t)
-categorize x@(Class _ _ _ _) (i, b, d, t) = (i, b, x : d, t)
-categorize x@(TypeDef _ _) (i, b, d, t) = (i, b, d, x : t)
+funcall name args = Funcall (Variable name) args
 
-parseFileLines = foldr categorize ([], [], [], [])
+parseFileLines [] = ([], [], [])
+parseFileLines (Import x : rest) = (x : imports, typedefs, lines) 
+  where (imports, typedefs, lines) = parseFileLines rest
+parseFileLines (line@(TypeDef name typedef) : rest) = 
+    (imports, (name, typedef) : typedefs, lines)
+  where (imports, typedefs, lines) = parseFileLines rest
+parseFileLines (line@(Def _ _ _ _ def _ _) : rest) = 
+    (defImports ++ imports, defTypes ++ typedefs, newDef : lines)
+  where 
+    (defImports, defTypes, newLines) = parseFileLines def
+    (imports, typedefs, lines) = parseFileLines rest
+    newDef = line { def_lines = lines }
+parseFileLines (line@(Class _ _ _ (doc, cls)) : rest) = 
+    (classImports ++ imports, classTypes ++ typedefs, newClass : lines)
+  where 
+    (classImports, classTypes, newLines) = parseFileLines cls
+    (imports, typedefs, lines) = parseFileLines rest
+    newClass = line { class_doc_lines = (doc, newLines) }
+parseFileLines (line : rest) = (imports, typedefs, line : lines)
+  where (imports, typedefs, lines) = parseFileLines rest
 
-parseDef :: TEnv -> EveFileLine -> (String, EveExpr)
-parseDef typeEnv (Def name argData docstring typeDecl lines pos body) = (name, convertedBody)
+findVarNames lines = concatMap varNames lines
   where
-    (_, bindings, defs, _) = parseFileLines lines
-    convertedBody = Lambda argData vars pos $ 
-        (maybe id (addTypeCheck . convertTypeDefs) typeDecl) $
-        foldr convertBinding defBody bindings
-    defBody = Letrec (map (parseDef typeEnv) defs) body
-    vars = (Just $ args2Vars argData ++ concatMap varNames bindings ++ concatMap varNames defs)
     varNames (Binding (Left vars) _ _) = vars
     varNames (Binding (Right var) _ _) = [var]
     varNames (Def fnName _ _ _ _ _ _) = [fnName]
     varNames (Class className _ _ _) = [className]
+
+convertBindings bindings body = foldr convertBinding body bindings
+  where
     convertBinding (Binding (Left vars) pos expr) rest = 
-        Funcall (Variable "apply") [Lambda (ArgExpr vars [] Nothing) Nothing pos rest, expr]
+        Funcall (Variable "apply") [Lambda (ArgExpr vars [] Nothing) 
+                                    Nothing pos rest, expr]
     convertBinding (Binding (Right var) pos expr) rest = 
         Funcall (Lambda (ArgExpr [var] [] Nothing) Nothing pos rest) [expr]
+    convertBinding _ rest = rest
+
+convertDefs typeEnv defs body = Letrec (map convertDef $ filter isDef defs) body
+  where
+    isDef (Def {}) = True
+    isDef _ = False
+    convertDef def@(Def name _ _ _ _ _ _) = (name, parseDef typeEnv def)
+
+methodRecord lines = RecordLiteral $ map makeMethod $ findVarNames lines
+  where
+    makeMethod methodName = (methodName, Variable methodName)
+
+parseDef :: TEnv -> EveFileLine -> EveExpr
+parseDef typeEnv (Def name argData doc typeDecl lines pos body) = 
+    funcall "extend" [convertedBody, Literal . Record 
+        $ [("name", makeString name), ("doc", makeString doc)]]
+  where
+    convertedBody = Lambda argData vars pos . 
+        (maybe id (addTypeCheck . convertTypeDefs) typeDecl) .
+        convertBindings lines . convertDefs typeEnv lines $ body
+    vars = (Just $ args2Vars argData ++ findVarNames lines)
     addTypeCheck typeDecl body = TypeCheck (body, typeDecl) body
     convertTypeDefs :: EveType -> EveType
     convertTypeDefs (TPrim name) = maybe (TPrim name) id $ lookup name typeEnv
     convertTypeDefs (TLiteral datum) = TLiteral datum
     convertTypeDefs (TTuple types) = TTuple $ map convertTypeDefs types
-    convertTypeDefs (TRecord types) = TRecord $ zip keys $ map convertTypeDefs values
+    convertTypeDefs (TRecord types) = 
+            TRecord $ zip keys $ map convertTypeDefs values
       where (keys, values) = unzip types
-    convertTypeDefs (TFunc args ret) = TFunc (map convertTypeDefs args) $ convertTypeDefs ret
+    convertTypeDefs (TFunc args ret) = 
+        TFunc (map convertTypeDefs args) $ convertTypeDefs ret
 
-evalDef :: Env -> TEnv -> EveFileLine -> EveM (String, EveData)
-evalDef env tEnv def@(Def name _ doc _ _ _ _) = do
-    (name, fn@(Function _ _ _ _ _ fields)) <- evalPair env $ parseDef tEnv def
-    return (name, setAttributes fn ([("name", makeString name), ("doc", makeString doc)] ++ fields))
-evalDef env tEnv (Class name superDecl pos (docstring, lines)) = do
-    methods <- mapM (evalPair env) methodExprs
-    constr <- constructor methods
-    return (name, constr)
+parseDef tEnv (Class name superDecl pos (doc, lines)) = 
+        funcall "extend" [classBody, RecordLiteral $ [("proto", Variable "Function"), 
+                ("name", Literal $ makeString name), ("doc", Literal $ makeString doc)]]
   where
-    constructor methods = do
-        oldProto <- getAttr "proto" baseFunc
-        return $ setAttributes baseFunc (("proto", oldProto) : methods)
-      where baseFunc = makeFunction (Args [] [] (Just "args")) Nothing pos classBody (methods ++ env)
-    funcall name args = Funcall (Variable name) args
-    classBody = funcall "extend" [funcall "apply" [Variable "init", Variable "args"], proto]
-    proto = RecordLiteral [("proto", RecordLiteral $ buildProto superDecl)]
-    buildProto (Just superclass) = ("proto", Variable superclass) : methodExprs
-    buildProto Nothing = methodExprs
-    isDef (Def _ _ _ _ _ _ _) = True
-    isDef _ = False
-    methodExprs = map (parseDef tEnv) $ filter isDef lines
+    classBody = Funcall (parseDef tEnv defBody) (maybeSuper Variable)
+    maybeSuper fn = maybe [] (\x -> [fn x]) superDecl
+    defBody = Def name (ArgExpr (maybeSuper $ const "proto") [] Nothing) 
+                    doc Nothing lines pos convertedBody
+    convertedBody = Lambda (ArgExpr [] [] (Just "args")) Nothing pos constrBody
+    constrBody = funcall "extend" [funcall "apply" (map Variable ["init", "args"]), proto]
+    proto = RecordLiteral [("proto", methodRecord lines)]
 
 readModule :: String -> String -> EveM ModuleDef
 readModule moduleName fileText = do
-    (imports, bindings, defs, typeDefs) <- lexer moduleName fileText >>= parseFile 
+    (imports, typedefs, lines) <- lexer moduleName fileText >>= parseFile 
                  >>= return . parseFileLines
     moduleDefs <- getModules
-    importEnv <- mapM loadModule imports >>= return . ((startingEnv ++ autoImportEnv moduleDefs) ++) . concat
-    evalEnv <- foldl (>>=) (return importEnv) $ map evalBinding bindings
-    defResults <- mapM (evalDef evalEnv $ map parseType typeDefs) defs
-    defEnv <- return $ closeOverBindings defResults
-    return $ take (length bindings) evalEnv ++ defEnv
+    importEnv <- mapM loadModule imports >>= return . (baseEnv moduleDefs ++) . concat
+    fn <- eval . parseDef typedefs . makeDef $ lines
+    Record bindings <- apply (fn { fn_env = importEnv }) []
+    return bindings
   where
-    parseType (TypeDef name val) = (name, val)
+    makeDef lines = Def ("<module " ++ moduleName ++ ">") (ArgExpr [] [] Nothing) ""
+        Nothing lines (Pos moduleName 0 0 0) (methodRecord lines)
+    baseEnv moduleDefs = startingEnv ++ autoImportEnv moduleDefs
     autoImportEnv :: [(String, ModuleDef)] -> Env
     autoImportEnv moduleDefs = concatMap (lookupModule moduleDefs) autoImports
     lookupModule :: [(String, ModuleDef)] -> String -> ModuleDef
-    lookupModule moduleDefs name = 
-        maybe (error $ "Module " ++ moduleName ++ " not loaded") id $ lookup name moduleDefs
-    -- TODO: sequence-unpacking top-level binding
-    evalBinding (Binding (Right var) pos expr) env = do
-      datum <- eval env expr
-      return $ (var, datum) : env 
+    lookupModule moduleDefs name = maybe [] id $ lookup name moduleDefs 
 
 loadModule :: [String] -> EveM ModuleDef
 loadModule path = getModules >>= maybeLoad
@@ -132,13 +152,13 @@ loadModule path = getModules >>= maybeLoad
     addModule moduleDef state = 
         state { modules = (moduleName, moduleDef) : modules state}
 
-evalRepl env (Expr expr) = eval env expr
-evalRepl env (ReplImport path) = loadModule path >>= liftM head . mapM addBinding 
+evalRepl (Expr expr) = eval expr
+evalRepl (ReplImport path) = loadModule path >>= liftM head . mapM addBinding 
   where
     addBinding (var, value) = 
         addTopLevelBinding var value >> return value
-evalRepl env (Assignment var expr) = do
-  value <- eval env expr
+evalRepl (Assignment var expr) = do
+  value <- eval expr
   addTopLevelBinding var value
   return value
 
@@ -148,41 +168,46 @@ closeOverBindings bindings = result
     editFunctionEnv (name, (Function argData vars pos body env fields)) = 
         (name, Function argData vars pos body (result ++ env) fields)
 
-evalDefaults env (ArgExpr args defaults varargs) = do
-    values <- mapM (eval env) defaultExprs
+evalDefaults (ArgExpr args defaults varargs) = do
+    values <- mapM eval defaultExprs
     return $ Args args (zip names values) varargs
   where
     (names, defaultExprs) = unzip defaults
 
-evalPair env (name, body) = do
-    result <- eval env body
+evalPair (name, body) = do
+    result <- eval body
     return (name, result)
 
-eval :: Env -> EveExpr -> EveM EveData
-eval env (Literal val) = return val
-eval env (TupleLiteral args) = mapM (eval env) args >>= return . makeTuple
-eval env (RecordLiteral args) = mapM evalRecord args >>= return . Record
+eval :: EveExpr -> EveM EveData
+eval (Literal val) = return val
+eval (TupleLiteral args) = mapM eval args >>= return . makeTuple
+eval (RecordLiteral args) = mapM evalRecord args >>= return . Record
   where evalRecord (label, expr) = 
-            do value <- eval env expr
+            do value <- eval expr
                return (label, value)
-eval env (Variable var) = maybe (throwEveError $ UnboundVar var) return $ lookup var env
-eval env (Funcall fnExpr argExpr) = do
-  fn <- eval env fnExpr
-  args <- mapM (eval env) argExpr
+eval (Variable var) = do
+    env <- getEnv
+    maybe (throwEveError $ UnboundVar var) return $ lookup var env
+eval (Funcall fnExpr argExpr) = do
+  fn <- eval fnExpr
+  args <- mapM eval argExpr
   apply fn args
-eval env (Cond ((pred, action):rest)) = do
-  predResult <- eval env pred
+eval (Cond ((pred, action):rest)) = do
+  predResult <- eval pred
   case predResult of
-    Bool True _ -> eval env action 
-    otherwise -> eval env (Cond rest)
-eval env (Lambda argExpr vars pos body) = do
-    argData <- evalDefaults env argExpr
+    Bool True _ -> eval action 
+    otherwise -> eval (Cond rest)
+eval (Lambda argExpr vars pos body) = do
+    argData <- evalDefaults argExpr
+    env <- getEnv
     return $ makeFunction argData vars pos body env
-eval env (Letrec bindings body) = do
-    fns <- mapM (evalPair env) bindings
-    eval (closeOverBindings fns ++ env) body
-eval env (TypeCheck (tested, typeDecl) body) = 
-    eval env tested >>= throwIfInvalid typeDecl >> eval env body
+eval (Letrec bindings body) = do
+    fns <- mapM evalPair bindings
+    env <- getEnv
+    setEnv (closeOverBindings fns ++ env)
+    eval body
+eval (TypeCheck (tested, typeDecl) body) = 
+    eval tested >>= throwIfInvalid typeDecl >> eval body
   where
     throwIfInvalid (TPrim "Int") val@(Int _ _) = return val
     throwIfInvalid (TPrim "Bool") val@(Bool _ _) = return val
@@ -209,7 +234,7 @@ apply call@(Function argData vars pos body env _) args = maybe doApply (const do
     doApply = do
         boundArgs <- bindArgs argData args
         setEnv (boundArgs ++ env)
-        eval (boundArgs ++ env) body
+        eval body
     doWithStackFrame = do
         pushCall call args
         result <- doApply

@@ -60,9 +60,7 @@ testLines filename fn (rawInput:output:rest) =
                 ": \nExpected: " ++ output ++ "\nFound:    " ++ result
 testLines filename fn _ = liftIO $ putStrLn ("Error in input format for file " ++ filename)
 
-evalLine filename line = do
-    env <- getEnv
-    lexer filename line >>= parseRepl >>= evalRepl env
+evalLine filename line = lexer filename line >>= parseRepl >>= evalRepl
 
 evalInitial = mapM_ evalImport autoImports
   where evalImport moduleName = evalLine moduleName $ "import " ++ moduleName
@@ -77,10 +75,8 @@ runTest filename = openTestFile filename
       lexer filename input 
         >>= (if prompt == "Eve" then showAction parseRepl else showAction parseFile) 
         >>= return
-    runEval prompt input = do
-      env <- getEnv 
-      evalInitial
-      lexer filename input >>= parseRepl >>= showAction (evalRepl env)
+    runEval prompt input = 
+        evalInitial >> lexer filename input >>= parseRepl >>= showAction evalRepl
     showAction action arg = action arg >>= return . show
     f :: String -> String -> EveM String
     f = case () of 
