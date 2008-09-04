@@ -355,7 +355,6 @@ setEnv env = modify $ \s -> s { interp_stack = modifyEnv $ interp_stack s }
 withPos newPos action = do
     oldPos <- get >>= return . interp_pos
     setPos newPos
-    liftIO $ putStrLn $ "Evaluating " ++ show newPos
     result <- action
     setPos oldPos
     return result

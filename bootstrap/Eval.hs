@@ -78,16 +78,15 @@ convertBindings bindings body = foldr convertBinding body bindings
         (Funcall (Lambda (ArgExpr [var] [] Nothing) Nothing rest, pos) [expr], pos)
     convertBinding _ rest = rest
 
-convertDefs typeEnv defs body = (Letrec (map convertDef $ filter isDef defs) body, firstPos)
+convertDefs typeEnv defs body = (Letrec (map convertDef $ filter isDef defs) body, snd body)
   where
-    firstPos  = if length defs > 0 then snd (defs !! 0) else defaultPos
     isDef (Def {}, pos) = True
     isDef _ = False
     convertDef def@(Def name _ _ _ _ _, pos) = (name, parseDef typeEnv def)
 
-methodRecord lines pos = (RecordLiteral $ map makeMethod $ findVarNames lines, pos)
+methodRecord lines pos = (RecordLiteral $ map makeMethod $ zip (findVarNames lines) $ map snd lines, pos)
   where
-    makeMethod methodName = (methodName, (Variable methodName, pos))
+    makeMethod (methodName, methodPos) = (methodName, (Variable methodName, methodPos))
 
 parseDef :: TEnv -> EveFileLine -> EveExpr
 parseDef typeEnv (Def name argData doc typeDecl lines body, pos) = 
@@ -191,14 +190,14 @@ eval (Variable var, pos) = withPos pos $ do
     env <- getEnv
     maybe (throwEveError $ UnboundVar var) return $ lookup var env
 eval (Funcall fnExpr argExpr, pos) = withPos pos $ do
-  fn <- eval fnExpr
-  args <- mapM eval argExpr
-  apply fn args
+    fn <- eval fnExpr
+    args <- mapM eval argExpr
+    apply fn args
 eval (Cond ((pred, action):rest), pos) = withPos pos $ do
-  predResult <- eval pred
-  case predResult of
-    Bool True _ -> eval action 
-    otherwise -> eval (Cond rest, pos)
+    predResult <- eval pred
+    case predResult of
+        Bool True _ -> eval action 
+        otherwise -> eval (Cond rest, pos)
 eval (Lambda argExpr vars body, pos) = withPos pos $ do
     argData <- evalDefaults argExpr
     env <- getEnv
