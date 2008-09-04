@@ -68,6 +68,7 @@ findVarNames lines = concatMap varNames lines
     varNames (Binding (Right var) _, _) = [var]
     varNames (Def fnName _ _ _ _ _, _) = [fnName]
     varNames (Class className _ _, _) = [className]
+    varNames _ = []
 
 convertBindings bindings body = foldr convertBinding body bindings
   where
@@ -85,7 +86,7 @@ convertDefs typeEnv defs body = (Letrec (map convertDef $ filter isDef defs) bod
     isDef _ = False
     convertDef def@(val, pos) = (def_name val, parseDef typeEnv def)
 
-methodRecord lines pos = (RecordLiteral $ map makeMethod $ zip (findVarNames lines) $ map snd lines, pos)
+methodRecord lines = map makeMethod $ zip (findVarNames lines) $ map snd lines
   where
     makeMethod (methodName, methodPos) = (methodName, (Variable methodName, methodPos))
 
@@ -113,13 +114,12 @@ parseDef tEnv (Class name superDecl (doc, lines), pos) =
     funcall "extend" [classBody, (RecordLiteral $ [("proto", (Variable "Function", pos)), 
         ("name", (Literal $ makeString name, pos)), ("doc", (Literal $ makeString doc, pos))], pos)] pos
   where
-    classBody = (Funcall (parseDef tEnv defBody) (maybeSuper (\x -> (Variable x, pos))), pos)
-    maybeSuper fn = maybe [] (\x -> [fn x]) superDecl
-    defBody = (Def name (ArgExpr (maybeSuper $ const "proto") [] Nothing) 
-                    doc Nothing lines convertedBody, pos)
-    convertedBody = (Lambda (ArgExpr [] [] (Just "args")) Nothing constrBody, pos)
+    classBody = (Funcall (parseDef tEnv defBody) [], pos)
+    maybeSuper = maybe id (\var methods -> ("proto", (Variable var, pos)) : methods) superDecl
+    defBody = (Def name (ArgExpr [] [] Nothing) doc Nothing lines constr, pos)
+    constr = (Lambda (ArgExpr [] [] (Just "args")) Nothing constrBody, pos)
     constrBody = funcall "extend" [funcall "apply" (map (\var -> (Variable var, pos)) ["init", "args"]) pos, proto] pos
-    proto = (RecordLiteral [("proto", methodRecord lines pos)], pos)
+    proto = (RecordLiteral [("proto", (RecordLiteral $ maybeSuper $ methodRecord lines, pos))], pos)
 
 readModule :: String -> String -> EveM ModuleDef
 readModule moduleName fileText = do
@@ -133,7 +133,7 @@ readModule moduleName fileText = do
   where
     modulePos = defaultPos { file = moduleName }
     makeDef lines = (Def ("<module " ++ moduleName ++ ">") (ArgExpr [] [] Nothing) ""
-        Nothing lines (methodRecord lines modulePos), modulePos)
+        Nothing lines (RecordLiteral $ methodRecord lines, modulePos), modulePos)
     baseEnv moduleDefs = startingEnv ++ autoImportEnv moduleDefs
     autoImportEnv :: [(String, ModuleDef)] -> Env
     autoImportEnv moduleDefs = concatMap (lookupModule moduleDefs) autoImports
@@ -176,9 +176,6 @@ evalDefaults (ArgExpr args defaults varargs) = do
   where
     (names, defaultExprs) = unzip defaults
 
-evalPair (name, body) = do
-    result <- eval body
-    return (name, result)
 
 eval :: EveExpr -> EveM EveData
 eval (Literal val, _) = return val
@@ -204,12 +201,14 @@ eval (Lambda argExpr vars body, pos) = withPos pos $ do
     env <- getEnv
     return $ makeFunction argData vars pos body env
 eval (Letrec bindings body, pos) = withPos pos $ do
-    liftIO $ putStrLn $ "Evaluating letrec (" ++ (join ", " $ fst $ unzip bindings) 
-        ++ ") " ++ show body ++ " @ " ++ show pos
     fns <- mapM evalPair bindings
     env <- getEnv
     setEnv (closeOverBindings fns ++ env)
     eval body
+  where
+    evalPair (name, body) = do
+        result <- eval body
+        return (name, result)
 eval (TypeCheck (tested, typeDecl) body, pos) = withPos pos $
     eval tested >>= throwIfInvalid typeDecl >> eval body
   where
