@@ -7,6 +7,8 @@
 # Ignore the executable and generated lexer/parser
 bootstrap/eve
 bootstrap/test
+bootstrap/lex
+bootstrap/parse
 bootstrap/Lexer.hs
 bootstrap/Parser.hs
 # Ignore old svn directories that really should be removed from the
