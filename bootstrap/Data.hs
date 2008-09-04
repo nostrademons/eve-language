@@ -1,7 +1,7 @@
 module Data(EveToken(..), defaultPos, SourcePos(..), ArgData(..), ArgExpr(..), args2Vars,
             EveExpr, EveExprValue(..), EveReplLine(..), EveFileLine, EveFileLineValue(..), 
             EveError(..), EveStackTrace, EveData(..), EveType(..), TEnv, Env, 
-            ModuleDef, getAccessibleBindings, 
+            ShowEve(showExpr), ModuleDef, getAccessibleBindings, 
             recordFields, sortRecord, showFields, prototype, 
             attributes, setAttributes, getAttr, hasAttr, dropAttrs, attrNames,
             EveM, runEveM, getModules, getEnv, setEnv, addTopLevelBinding, 
@@ -88,8 +88,8 @@ recordFields fields = dropAttrFields ["proto"] fields
 
 sortRecord = sortBy fieldCompare 
   where fieldCompare (x, _) (y, _) = compare x y
-showFields (label, value) = "'" ++ label ++ "': " ++ show value
-showTuple val = "[" ++ join ", " (map show val) ++ "]"
+showFields (label, value) = "'" ++ label ++ "': " ++ showExpr value
+showTuple val = "[" ++ join ", " (map showExpr val) ++ "]"
 showRecord fields = "{" ++ join ", " (map showFields $ recordFields fields) ++ "}"
 eqTuple x1 x2 = and $ zipWith (==) x1 x2
 eqRecord x1 x2 = and $ zipWith (==) (sortRecord x1) (sortRecord x2)
@@ -117,9 +117,11 @@ instance Show EveData where
   show (Record fields) = showRecord fields
   show (RecordIter val index fields) = "Iterator(" ++ show index ++ ") for " ++ show val 
   show (Primitive name _ fields) = name
-  show fn@(Function argData vars pos body _ fields) = maybe (showFunc fn) showMethod $ lookup "im_func" fields
+  show fn@(Function argData vars pos body _ fields) = 
+        maybe (showFunc fn) showMethod $ lookup "im_func" fields
     where 
-      showFunc (Function argData _ _ body _ _) = "{| " ++ show argData ++ " | " ++ abbrev (show body) ++ " }"
+      showFunc (Function argData _ _ body _ _) = 
+            "{| " ++ show argData ++ " | " ++ abbrev (showExpr body) ++ " }"
       showMethod method = "bound method: " ++ showFunc method
       abbrev text = if length text > 40 then take 37 text ++ "..." else text 
 
@@ -186,7 +188,7 @@ instance Show ArgExpr where
     show (ArgExpr args defaults varargs) = join ", " varArgList
       where
         varArgList = map displayArg args ++ maybe [] (\argName -> ["*" ++ argName]) varargs 
-        displayArg arg = maybe arg (\val -> arg ++ "=" ++ show val) $ lookup arg defaults
+        displayArg arg = maybe arg (\val -> arg ++ "=" ++ showExpr val) $ lookup arg defaults
 
 data EveReplLine = 
     Expr EveExpr
@@ -194,9 +196,9 @@ data EveReplLine =
   | Assignment String EveExpr
 
 instance Show EveReplLine where
-  show (Expr expr) = show expr
+  show (Expr expr) = showExpr expr
   show (ReplImport path) = "import " ++ join "." path
-  show (Assignment var expr) = var ++ "=" ++ show expr
+  show (Assignment var expr) = var ++ "=" ++ showExpr expr
 
 type EveFileLine = (EveFileLineValue, SourcePos)
 data EveFileLineValue =
@@ -225,14 +227,14 @@ data EveFileLineValue =
 instance Show EveFileLineValue where
   show (Export bindings) = "export " ++ join ", " bindings ++ "\n"
   show (Import path) = "import " ++ join "." path ++ "\n"
-  show (NakedExpr expr) = show expr
-  show (Binding (Left vars) expr) = join ", " vars ++ "=" ++ show expr
-  show (Binding (Right var) expr) = var ++ "=" ++ show expr
+  show (NakedExpr expr) = showExpr expr
+  show (Binding (Left vars) expr) = join ", " vars ++ "=" ++ showExpr expr
+  show (Binding (Right var) expr) = var ++ "=" ++ showExpr expr
   show (TypeDef name value) = "typedef " ++ name ++ ": " ++ show value
   show (Def name argData docstring Nothing defines body) = 
     "def " ++ name ++ "(" ++ show argData ++ ")"
   show (Def name argData docstring (Just typeExpr) defines body) = 
-    "@type(" ++ show typeExpr ++ ")\ndef " ++ name ++ "(" ++ show argData ++ "): " ++ show body
+    "@type(" ++ show typeExpr ++ ")\ndef " ++ name ++ "(" ++ show argData ++ "): " ++ showExpr body
   show (Class name superclass (docstring, lines)) = 
     "class " ++ name ++ maybe "" (\className -> "(" ++ className ++ ")") superclass
 
@@ -275,19 +277,40 @@ data EveExprValue =
 join sep [] = ""
 join sep ws = foldr1 (\w s -> w ++ sep ++ s) ws
 
+class ShowEve a where
+    showExpr :: a -> String
+
+instance ShowEve EveExpr where
+    showExpr (val, pos) = show val
+
+instance ShowEve EveFileLine where
+    showExpr (val, pos) = show val
+
+instance ShowEve [EveFileLine] where
+    showExpr lines = showTuple lines
+
+instance ShowEve EveReplLine where
+    showExpr val = show val
+
+instance ShowEve EveData where
+    showExpr val = show val
+
+instance ShowEve EveType where
+    showExpr val = show val
+
 instance Show EveExprValue where
-  show (Literal val) = show val
-  show (TupleLiteral exprList) = "[" ++ join ", " (map show exprList) ++ "]"
-  show (RecordLiteral pairList) = "{" ++ join ", " (map showFields pairList) ++ "}"
-  show (Variable val) = val
-  show (Funcall name args) = show name ++ "(" ++ join ", " (map show args) ++ ")"
-  show (Cond args) = "Cond: " ++ join ", " (map showClause args)
-    where showClause (pred, expr) = show pred ++ "->" ++ show expr
-  show (Lambda argData vars body) = "{|" ++ show argData ++ "| " ++ show body ++ "}"
-  show (Letrec clauses body) = show body ++ " with " ++ join ", " (map showClause clauses)
-    where showClause (name, expr) = name ++ " = " ++ show expr
-  show (TypeCheck (tested, typeDecl) body) = show tested ++ " as " ++ show typeDecl ++
-        (if tested == body then "" else " => " ++ show body)
+    show (Literal val) = show val
+    show (TupleLiteral exprList) = "[" ++ join ", " (map showExpr exprList) ++ "]"
+    show (RecordLiteral pairList) = "{" ++ join ", " (map showFields pairList) ++ "}"
+    show (Variable val) = val
+    show (Funcall name args) = showExpr name ++ "(" ++ join ", " (map showExpr args) ++ ")"
+    show (Cond args) = "Cond: " ++ join ", " (map showClause args)
+      where showClause (pred, expr) = showExpr pred ++ "->" ++ showExpr expr
+    show (Lambda argData vars body) = "{|" ++ show argData ++ "| " ++ showExpr body ++ "}"
+    show (Letrec clauses body) = showExpr body ++ " with " ++ join ", " (map showClause clauses)
+      where showClause (name, expr) = name ++ " = " ++ showExpr expr
+    show (TypeCheck (tested, typeDecl) body) = show tested ++ " as " ++ show typeDecl ++
+        (if tested == body then "" else " => " ++ showExpr body)
 
 -- Stack frames
 

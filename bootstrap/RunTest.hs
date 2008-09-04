@@ -71,12 +71,13 @@ runTest filename = openTestFile filename
   where 
     runLex prompt input = lexer filename input >>= return . show . map showTok
     runParse :: String -> String -> EveM String
-    runParse prompt input = 
-      lexer filename input 
-        >>= (if prompt == "Eve" then showAction parseRepl else showAction parseFile) 
-        >>= return
+    runParse prompt input = lexer filename input >>= parser prompt
     runEval prompt input = 
         evalInitial >> lexer filename input >>= parseRepl >>= showAction evalRepl
+    parseReplLine line = parseRepl line >>= return . showExpr
+    parseFileLine line = parseFile line >>= return . showExpr
+    parser :: String -> [(EveToken, SourcePos)] -> EveM String
+    parser prompt = if prompt == "Eve" then parseReplLine else parseFileLine
     showAction action arg = action arg >>= return . show
     f :: String -> String -> EveM String
     f = case () of 
