@@ -6,7 +6,7 @@ import Utils
 import Lexer
 
 printLex filename = openFile filename ReadMode >>= hGetContents >>= 
-    flip runEveM [] . lexer >>= showResult
+    flip runEveM [] . lexer filename >>= showResult
   where 
     showResult (Left err) = putStrLn $ show err
     showResult (Right (tokenList, _)) = putStrLn . show $ map showTok tokenList
