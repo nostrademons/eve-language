@@ -12,7 +12,7 @@ printLex filename = openFile filename ReadMode >>= hGetContents >>= lexParse >>=
     showResult (Left err) = putStrLn $ show err
     showResult (Right (parseTree, _)) = putStrLn $ join "\n" $ map (showFileLine 0) parseTree
     showFileLine i (line@Def {}, pos) = showLine i line (def_lines line) pos
-    showFileLine i (line@Class {}, pos) = showLine i line (snd . class_doc_lines $ line) pos
+    showFileLine i (line@Class {}, pos) = showLine i line (snd . def_doc_lines $ line) pos
     showFileLine i (line, pos) = showLine i line [] pos
     showLine i obj lines pos = 
         indent i ++ show obj ++ " @ " ++ show pos ++ "\n" ++ (join "\n" $ map (showFileLine (i + 1)) lines)

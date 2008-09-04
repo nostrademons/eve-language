@@ -58,7 +58,7 @@ parseFileLines ((line@(Class _ _ (doc, cls)), pos) : rest) =
   where 
     (classImports, classTypes, newLines) = parseFileLines cls
     (imports, typedefs, lines) = parseFileLines rest
-    newClass = (line { class_doc_lines = (doc, newLines) }, pos)
+    newClass = (line { def_doc_lines = (doc, newLines) }, pos)
 parseFileLines (line : rest) = (imports, typedefs, line : lines)
   where (imports, typedefs, lines) = parseFileLines rest
 
@@ -81,8 +81,9 @@ convertBindings bindings body = foldr convertBinding body bindings
 convertDefs typeEnv defs body = (Letrec (map convertDef $ filter isDef defs) body, snd body)
   where
     isDef (Def {}, pos) = True
+    isDef (Class {}, pos) = True
     isDef _ = False
-    convertDef def@(Def name _ _ _ _ _, pos) = (name, parseDef typeEnv def)
+    convertDef def@(val, pos) = (def_name val, parseDef typeEnv def)
 
 methodRecord lines pos = (RecordLiteral $ map makeMethod $ zip (findVarNames lines) $ map snd lines, pos)
   where
@@ -203,6 +204,8 @@ eval (Lambda argExpr vars body, pos) = withPos pos $ do
     env <- getEnv
     return $ makeFunction argData vars pos body env
 eval (Letrec bindings body, pos) = withPos pos $ do
+    liftIO $ putStrLn $ "Evaluating letrec (" ++ (join ", " $ fst $ unzip bindings) 
+        ++ ") " ++ show body ++ " @ " ++ show pos
     fns <- mapM evalPair bindings
     env <- getEnv
     setEnv (closeOverBindings fns ++ env)

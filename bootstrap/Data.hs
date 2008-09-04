@@ -217,9 +217,9 @@ data EveFileLineValue =
         def_body :: EveExpr
     }
   | Class {
-        class_name :: String,
-        class_super :: Maybe String,
-        class_doc_lines :: (String, [EveFileLine])
+        def_name :: String,
+        def_super :: Maybe String,
+        def_doc_lines :: (String, [EveFileLine])
     }
 
 instance Show EveFileLineValue where
