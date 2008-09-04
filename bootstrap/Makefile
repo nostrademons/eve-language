@@ -18,6 +18,9 @@ test: RunTest.hs $(SOURCES)
 lex: PrintTokens.hs $(SOURCES)
 	$(GHCMAKE) $< -o $@
 
+parse: PrintParse.hs $(SOURCES)
+	$(GHCMAKE) $< -o $@
+
 check: test
 	./test
 

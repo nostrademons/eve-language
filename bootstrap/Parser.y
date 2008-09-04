@@ -217,7 +217,10 @@ LabeledList : LabeledPair                   { [$1] }
 
 {
 
+parseFile :: [(EveToken, SourcePos)] -> EveM [EveFileLine]
 parseFile input = eveFile input >>= return . reverse . map replaceFilePartials 
+
+parseRepl :: [(EveToken, SourcePos)] -> EveM EveReplLine
 parseRepl input = replLine input >>= return . replaceReplPartials
 
 pos :: (a, SourcePos) -> SourcePos

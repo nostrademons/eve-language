@@ -230,12 +230,11 @@ instance Show EveFileLineValue where
   show (Binding (Right var) expr) = var ++ "=" ++ show expr
   show (TypeDef name value) = "typedef " ++ name ++ ": " ++ show value
   show (Def name argData docstring Nothing defines body) = 
-    "def " ++ name ++ "(" ++ show argData ++ "): " ++ show body
+    "def " ++ name ++ "(" ++ show argData ++ ")"
   show (Def name argData docstring (Just typeExpr) defines body) = 
     "@type(" ++ show typeExpr ++ ")\ndef " ++ name ++ "(" ++ show argData ++ "): " ++ show body
   show (Class name superclass (docstring, lines)) = 
     "class " ++ name ++ maybe "" (\className -> "(" ++ className ++ ")") superclass
-            ++ ":\n    " ++ join "\n    " (map show lines)
 
 data EveType =
     TPrim String
