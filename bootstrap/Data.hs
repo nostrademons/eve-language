@@ -1,12 +1,12 @@
-module Data(EveToken(..), SourcePos(..), ArgData(..), ArgExpr(..), args2Vars,
-            EveExpr(..), EveReplLine(..), EveFileLine(..), 
+module Data(EveToken(..), defaultPos, SourcePos(..), ArgData(..), ArgExpr(..), args2Vars,
+            EveExpr, EveExprValue(..), EveReplLine(..), EveFileLine, EveFileLineValue(..), 
             EveError(..), EveStackTrace, EveData(..), EveType(..), TEnv, Env, 
             ModuleDef, getAccessibleBindings, 
             recordFields, sortRecord, showFields, prototype, 
             attributes, setAttributes, getAttr, hasAttr, dropAttrs, attrNames,
             EveM, runEveM, getModules, getEnv, setEnv, addTopLevelBinding, 
-            pushCall, popCall, frameVars, throwEveError,
-            modules, join) where
+            withPos, pushCall, popCall, frameVars, throwEveError,
+            interp_modules, join) where
 import Data.List
 import Control.Monad.State hiding (join)
 import Control.Monad.Error hiding (join)
@@ -139,8 +139,14 @@ type ModuleEnv = [(String, ModuleDef)]
 
 -- Tokens
 
-data SourcePos = Pos String  !Int !Int !Int
-	deriving (Eq)
+data SourcePos = Pos {
+    file :: String,
+    offset :: !Int,
+    line :: !Int,
+    col :: !Int
+} deriving (Eq)
+
+defaultPos = Pos "" 0 0 0
 
 instance Show SourcePos where
   show (Pos file offset line col) = file ++ ":" ++ show line ++ ":" ++ show col
@@ -192,11 +198,15 @@ instance Show EveReplLine where
   show (ReplImport path) = "import " ++ join "." path
   show (Assignment var expr) = var ++ "=" ++ show expr
 
-data EveFileLine =
+type EveFileLine = (EveFileLineValue, SourcePos)
+data EveFileLineValue =
     Export [String]
   | Import [String]
   | NakedExpr EveExpr
-  | Binding (Either [String] String) SourcePos EveExpr
+  | Binding {
+        def_var :: Either [String] String,
+        def_body :: EveExpr
+    }
   | TypeDef String EveType
   | Def {
         def_name :: String,
@@ -204,28 +214,26 @@ data EveFileLine =
         def_doc :: String,
         def_type :: Maybe EveType,
         def_lines :: [EveFileLine],
-        def_pos :: SourcePos,
         def_body :: EveExpr
     }
   | Class {
         class_name :: String,
         class_super :: Maybe String,
-        class_pos :: SourcePos,
         class_doc_lines :: (String, [EveFileLine])
     }
 
-instance Show EveFileLine where
+instance Show EveFileLineValue where
   show (Export bindings) = "export " ++ join ", " bindings ++ "\n"
   show (Import path) = "import " ++ join "." path ++ "\n"
   show (NakedExpr expr) = show expr
-  show (Binding (Left vars) pos expr) = join ", " vars ++ "=" ++ show expr
-  show (Binding (Right var) pos expr) = var ++ "=" ++ show expr
+  show (Binding (Left vars) expr) = join ", " vars ++ "=" ++ show expr
+  show (Binding (Right var) expr) = var ++ "=" ++ show expr
   show (TypeDef name value) = "typedef " ++ name ++ ": " ++ show value
-  show (Def name argData docstring Nothing defines pos body) = 
+  show (Def name argData docstring Nothing defines body) = 
     "def " ++ name ++ "(" ++ show argData ++ "): " ++ show body
-  show (Def name argData docstring (Just typeExpr) defines pos body) = 
+  show (Def name argData docstring (Just typeExpr) defines body) = 
     "@type(" ++ show typeExpr ++ ")\ndef " ++ name ++ "(" ++ show argData ++ "): " ++ show body
-  show (Class name superclass pos (docstring, lines)) = 
+  show (Class name superclass (docstring, lines)) = 
     "class " ++ name ++ maybe "" (\className -> "(" ++ className ++ ")") superclass
             ++ ":\n    " ++ join "\n    " (map show lines)
 
@@ -252,14 +260,15 @@ instance Eq EveType where
 
 type TEnv = [(String, EveType)]
 
-data EveExpr =
+type EveExpr = (EveExprValue, SourcePos)
+data EveExprValue =
     Literal EveData
   | TupleLiteral [EveExpr]
   | RecordLiteral [(String, EveExpr)]
   | Variable String
   | Cond [(EveExpr, EveExpr)]
   | Funcall EveExpr [EveExpr]
-  | Lambda ArgExpr LocalVarList SourcePos EveExpr
+  | Lambda ArgExpr LocalVarList EveExpr
   | Letrec [(String, EveExpr)] EveExpr
   | TypeCheck (EveExpr, EveType) EveExpr
   deriving (Eq)
@@ -267,7 +276,7 @@ data EveExpr =
 join sep [] = ""
 join sep ws = foldr1 (\w s -> w ++ sep ++ s) ws
 
-instance Show EveExpr where
+instance Show EveExprValue where
   show (Literal val) = show val
   show (TupleLiteral exprList) = "[" ++ join ", " (map show exprList) ++ "]"
   show (RecordLiteral pairList) = "{" ++ join ", " (map showFields pairList) ++ "}"
@@ -275,7 +284,7 @@ instance Show EveExpr where
   show (Funcall name args) = show name ++ "(" ++ join ", " (map show args) ++ ")"
   show (Cond args) = "Cond: " ++ join ", " (map showClause args)
     where showClause (pred, expr) = show pred ++ "->" ++ show expr
-  show (Lambda argData vars pos body) = "{|" ++ show argData ++ "| " ++ show body ++ "}"
+  show (Lambda argData vars body) = "{|" ++ show argData ++ "| " ++ show body ++ "}"
   show (Letrec clauses body) = show body ++ " with " ++ join ", " (map showClause clauses)
     where showClause (name, expr) = name ++ " = " ++ show expr
   show (TypeCheck (tested, typeDecl) body) = show tested ++ " as " ++ show typeDecl ++
@@ -298,8 +307,8 @@ instance Show StackFrame where
 -- Errors
 
 data EveError =
-    LexError Char SourcePos
-  | ParseError EveToken SourcePos
+    LexError Char
+  | ParseError EveToken
   | UnboundVar String
   | MissingField EveData String
   | TypeError String
@@ -307,82 +316,91 @@ data EveError =
   deriving (Eq)
 
 instance Show EveError where
-  show (LexError c posn) = "Lexical error at " ++ show posn 
-                           ++ " on character " ++ [c]
-  show (ParseError tok posn) = "Parse error at " ++ show posn
-                               ++ ": unexpected token " ++ show tok
+  show (LexError c) = "Lexical error on character " ++ [c]
+  show (ParseError tok) = "Parse error: unexpected token " ++ show tok
   show (TypeError msg) = "Type error: " ++ msg
   show (UnboundVar var) = "Unbound variable: " ++ var
   show (MissingField record field) = "Missing field: " ++ show record ++ " has no " ++ field
   show (Default str) = "An error occurred: " ++ str
 
-data EveStackTrace = StackTrace [StackFrame] EveError
+data EveStackTrace = StackTrace SourcePos [StackFrame] EveError
 
 instance Show EveStackTrace where
-  show (StackTrace frames error) = show error ++ ".  Traceback:\n" ++ join "\n" (map (("  " ++) . show) frames)
+  show (StackTrace pos frames error) = show error ++ " @ " ++ show pos 
+            ++ ".  Traceback:\n" ++ join "\n" (map (("  " ++) . show) frames)
 
 instance Error EveStackTrace where
-  noMsg = StackTrace [] $ Default "unknown"
-  strMsg = StackTrace [] . Default
+  noMsg = strMsg "unknown"
+  strMsg = StackTrace defaultPos [] . Default
 
 -- Interpreter monad
 data InterpreterState = Interpreter { 
-    stack :: [StackFrame],
-    modules :: ModuleEnv 
+    interp_pos :: SourcePos,
+    interp_stack :: [StackFrame],
+    interp_modules :: ModuleEnv 
 }
 type EveM = StateT InterpreterState (ErrorT EveStackTrace IO)
 
 getModules :: EveM ModuleEnv
-getModules = get >>= return . modules
+getModules = get >>= return . interp_modules
 
 getEnv :: EveM Env
 getEnv = topFrame >>= return . frame_env
 
 setEnv :: Env -> EveM ()
-setEnv env = modify $ \s -> s { stack = modifyEnv $ stack s }
+setEnv env = modify $ \s -> s { interp_stack = modifyEnv $ interp_stack s }
   where
     modifyEnv [] = error "top-level frame was popped"
     modifyEnv (top : rest) = top { frame_env = env } : rest
 
+withPos newPos action = do
+    oldPos <- get >>= return . interp_pos
+    setPos newPos
+    result <- action
+    setPos oldPos
+    return result
+  where
+    setPos interp_pos = modify $ \s -> s { interp_pos = newPos }
+
 pushCall :: EveData -> [EveData] -> EveM ()
-pushCall fn@(Function _ rawVars pos _ env fields) args = 
-    addStackFrame $ Frame fName (Just pos) vars env args
+pushCall fn@(Function _ rawVars interp_pos _ env fields) args = 
+    addStackFrame $ Frame fName (Just interp_pos) vars env args
   where 
     fName = maybe "<function>" show $ lookup "name" fields
     vars = maybe [] id rawVars
 pushCall fn@(Primitive name _ _) args = do
     env <- getEnv
     addStackFrame $ Frame name Nothing [] env args
-addStackFrame frame = modify $ \s -> s { stack = frame : stack s }
+addStackFrame frame = modify $ \s -> s { interp_stack = frame : interp_stack s }
 
 popCall :: EveM ()
-popCall = modify $ \s -> s { stack = tail $ stack s }
+popCall = modify $ \s -> s { interp_stack = tail $ interp_stack s }
 
 topFrame :: EveM StackFrame
-topFrame = get >>= return . top . stack
+topFrame = get >>= return . top . interp_stack
   where
-    top [] = error "Top-level stack frame has been popped."
+    top [] = error "Top-level interp_stack frame has been popped."
     top (frame : rest) = frame
 
 frameVars :: EveM [String]
-frameVars = get >>= return . unpackVars . stack
+frameVars = get >>= return . unpackVars . interp_stack
   where
     unpackVars (Frame _ (Just _) vars _ _ : _) = vars
-    -- Needed because locals() introduces its own stack frame
+    -- Needed because locals() introduces its own interp_stack frame
     unpackVars (Frame "locals" _ _ _ _ : rest) = unpackVars rest
     unpackVars _ = []
 
 throwEveError error = do
-    frames <- get >>= return . stack
-    throwError $ StackTrace frames error
+    pos <- get >>= return . interp_pos
+    frames <- get >>= return . interp_stack
+    throwError $ StackTrace pos frames error
 
-addTopLevelBinding :: (MonadState InterpreterState m) => 
-                      String -> EveData -> m ()
+addTopLevelBinding :: String -> EveData -> EveM ()
 addTopLevelBinding var value = modify addBinding
   where
-    addBinding state = state { stack = addBindingToBottom $ stack state }
+    addBinding state = state { interp_stack = addBindingToBottom $ interp_stack state }
     addBindingToBottom [frame] = [frame { frame_env = (var, value) : frame_env frame }]
     addBindingToBottom (frame : rest) = frame : addBindingToBottom rest
 
 runEveM :: EveM a -> Env -> IO (Either EveStackTrace (a, InterpreterState))
-runEveM monad env = runErrorT $ runStateT monad $ Interpreter [Frame "top-level" Nothing [] env []] []
+runEveM monad env = runErrorT $ runStateT monad $ Interpreter defaultPos [Frame "top-level" Nothing [] env []] []

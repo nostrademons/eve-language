@@ -50,8 +50,8 @@ tokens :-
 
 data ActionResult = 
     StartState Int
-  | EndState (SourcePos, EveToken)
-  | Token (SourcePos, EveToken)
+  | EndState (EveToken, SourcePos)
+  | Token (EveToken, SourcePos)
 
 -- The input type
 
@@ -87,13 +87,13 @@ alexMove (Pos f a l c) '\t' = Pos f (a+1)  l     (((c+7) `div` 8)*8+1)
 alexMove (Pos f a l c) '\n' = Pos f (a+1) (l+1)   1
 alexMove (Pos f a l c) _    = Pos f (a+1)  l     (c+1)
 
-alexScanTokens :: String -> String -> [EveM (SourcePos, EveToken)]
+alexScanTokens :: String -> String -> [EveM (EveToken, SourcePos)]
 alexScanTokens filename str = go (alexStartPos filename,'\n',str) 0
   where 
-    go inp@(pos,_,str) startCode = case alexScan inp startCode of
+    go inp@(pos, _, str) startCode = case alexScan inp startCode of
         AlexEOF -> []
-        AlexError (posn, _, (c:_)) -> [throwEveError $ LexError c posn]
-        AlexError (posn, _, []) -> [throwEveError $ LexError '\n' posn]
+        AlexError (nextPos, _, (c:_)) -> [withPos nextPos $ throwEveError $ LexError c]
+        AlexError (nextPos, _, []) -> [withPos nextPos $ throwEveError $ LexError '\n']
         AlexSkip  inp' len     -> go inp' startCode
         AlexToken inp' len act -> case act pos (take len str) of
             StartState newStartCode -> go inp' newStartCode
@@ -101,12 +101,12 @@ alexScanTokens filename str = go (alexStartPos filename,'\n',str) 0
             Token token -> return token : go inp' startCode
 
 -- Helper functions to return token actions
-begin startCode posn str = StartState startCode
-end posminus action posn@(Pos f a l c) str = 
-            EndState $ (Pos f (a - posminus) l (c - posminus), token)
-  where Token (_, token) = action posn str
-tokenStr constr posn str = Token (posn, constr str)
-tokenChar constr posn str = Token (posn, constr (str !! 0))
+begin startCode pos str = StartState startCode
+end posminus action pos@(Pos f a l c) str = 
+            EndState $ (token, Pos f (a - posminus) l (c - posminus))
+  where Token (token, _) = action pos str
+tokenStr constr pos str = Token (constr str, pos)
+tokenChar constr pos str = Token (constr (str !! 0), pos)
 extractNum [(num, _)] = num
 
 -----
@@ -116,13 +116,13 @@ extractNum [(num, _)] = num
 operators = ["and", "or", "not", "then", "else", "as"]
 keywords = ["if", "import", "export", "def", "class", "cond", "typedef"]
 
-replaceKeywords :: [(SourcePos, EveToken)] -> [(SourcePos, EveToken)]
+replaceKeywords :: [(EveToken, SourcePos)] -> [(EveToken, SourcePos)]
 replaceKeywords = map changeKeyword 
   where
-    changeKeyword (pos, TokVar text)
-      | text `elem` operators = (pos, TokOp text)
-      | text `elem` keywords = (pos, TokKeyword text)
-      | otherwise = (pos, TokVar text)
+    changeKeyword (TokVar text, pos)
+      | text `elem` operators = (TokOp text, pos)
+      | text `elem` keywords = (TokKeyword text, pos)
+      | otherwise = (TokVar text, pos)
     changeKeyword nonVar = nonVar
 
 
@@ -137,20 +137,20 @@ type DelimState = (Int, Int, Int)
 noDelims :: DelimState -> Bool
 noDelims (parens, braces, brackets) = parens == 0 && braces == 0 && brackets == 0
 
-hasLineBreak :: (SourcePos, EveToken) -> [(SourcePos, EveToken)] -> Bool
-hasLineBreak (_, TokOp _) _ = False
-hasLineBreak _ ((_, TokOp _):_) = False
-hasLineBreak (Pos _ _ line _, _) ((Pos _ _ nextLine _, _):rest) = line < nextLine
+hasLineBreak :: (EveToken, SourcePos) -> [(EveToken, SourcePos)] -> Bool
+hasLineBreak (TokOp _, _) _ = False
+hasLineBreak _ ((TokOp _, _):_) = False
+hasLineBreak (_, Pos _ _ line _) ((_, Pos _ _ nextLine _):rest) = line < nextLine
 hasLineBreak _ [] = False
 
-addNewlines :: DelimState -> [(SourcePos, EveToken)] -> [(SourcePos, EveToken)]
-addNewlines delims@(parens, braces, brackets) (tok@(pos, TokDelim c) : rest)
+addNewlines :: DelimState -> [(EveToken, SourcePos)] -> [(EveToken, SourcePos)]
+addNewlines delims@(parens, braces, brackets) (tok@(TokDelim c, pos) : rest)
   | c == '(' || c == '{' || c == '[' = startDelim $ addDelim delims
   | noDelims subDelim && hasLineBreak tok rest = 
-            tok : (pos, TokNewline) : addNewlines subDelim rest
+            tok : (TokNewline, pos) : addNewlines subDelim rest
   | otherwise = tok : addNewlines subDelim rest
   where 
-    startDelim newDelims = (pos, TokDelim c) : addNewlines newDelims rest
+    startDelim newDelims = (TokDelim c, pos) : addNewlines newDelims rest
     addDelim = case c of
       '(' -> \(parens, braces, brackets) -> (parens + 1, braces, brackets)
       '{' -> \(parens, braces, brackets) -> (parens, braces + 1, brackets)
@@ -159,31 +159,30 @@ addNewlines delims@(parens, braces, brackets) (tok@(pos, TokDelim c) : rest)
       ')' -> if parens > 0 then (parens - 1, braces, brackets) else delims
       '}' -> if braces > 0 then (parens, braces - 1, brackets) else delims
       ']' -> if brackets > 0 then (parens, braces, brackets - 1) else delims
-addNewlines delims (tok@(pos, _) : rest) = if noDelims delims && hasLineBreak tok rest
-  then tok : (pos, TokNewline) : addNewlines delims rest
+addNewlines delims (tok@(_, pos) : rest) = if noDelims delims && hasLineBreak tok rest
+  then tok : (TokNewline, pos) : addNewlines delims rest
   else tok : addNewlines delims rest
 addNewlines delims [] = []
 
-addIndents :: [Int] -> [(SourcePos, EveToken)] -> [(SourcePos, EveToken)]
-addIndents indentStack [] = replicate (length indentStack) (Pos "endfile" 0 0 0, TokDedent)
-addIndents indentStack (tok@(pos, TokNewline) : []) = [tok]
-addIndents indentStack (tok@(pos, TokNewline) : next : rest)
-  | indent > lastIndent = tok : (pos, TokIndent) : next : addIndents (indent : indentStack) rest
-  | indent < lastIndent = dedents ++ [tok, next] ++ addIndents newStack rest
+addIndents :: [Int] -> [(EveToken, SourcePos)] -> [(EveToken, SourcePos)]
+addIndents indentStack [] = replicate (length indentStack) (TokDedent, Pos "endfile" 0 0 0)
+addIndents indentStack (tok@(TokNewline, pos) : []) = [tok]
+addIndents indentStack (tok@(TokNewline, pos) : next : rest)
+  | indent > lastIndent = tok : (TokIndent, pos) : next : addIndents (indent : indentStack) rest
+  | indent < lastIndent = dedents ++ [tok, next] ++ addIndents (drop numDedents indentStack) rest
   | indent == lastIndent = tok : next : addIndents indentStack rest
   where 
     lastIndent = if null indentStack then 1 else head indentStack
-    (nextPos, _) = next
+    (_, nextPos) = next
     Pos _ _ _ indent = nextPos
-    dedents = zip (repeat pos) (replicate numDedents TokDedent)
+    dedents = zip (replicate numDedents TokDedent) (repeat pos)
     numDedents = length $ takeWhile (> indent) indentStack
-    newStack = drop numDedents indentStack
 addIndents indentStack (nonNewline : rest) = nonNewline : addIndents indentStack rest
 
-lexer :: String -> String -> EveM [(SourcePos, EveToken)]
+lexer :: String -> String -> EveM [(EveToken, SourcePos)]
 lexer filename input = sequence (alexScanTokens filename input) 
           >>= return . addIndents [] . addNewlines (0, 0, 0) . replaceKeywords
 
-showTok (_, tok) = show tok
+showTok (tok, _) = show tok
 
 }

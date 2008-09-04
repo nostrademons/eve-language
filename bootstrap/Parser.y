@@ -1,66 +1,66 @@
 {
-module Parser(parseRepl, parseFile, EveData(..), EveExpr(..)) where
+module Parser(parseRepl, parseFile) where
 import Control.Monad.Error hiding (join)
 import Lexer
 import Data
 import Primitives
 }
 
-%name file File
+%name eveFile File
 %name replLine ReplLine
 %monad { EveM } 
-%tokentype { (SourcePos, EveToken) }
+%tokentype { (EveToken, SourcePos) }
 
 %token
-INT   { (_, TokInt $$) }
-BOOL  { (_, TokBool $$) }
-STR   { (_, TokString $$) }
-SYM   { (_, TokSym $$) }
-VAR   { (_, TokVar $$) }
-EOL   { (_, TokNewline) }
-INDENT { (_, TokIndent) }
-DEDENT { (_, TokDedent) }
-'**'  { (_, TokOp "**") }
-'*'   { (_, TokOp "*") }
-'/'   { (_, TokOp "/") }
-'%'   { (_, TokOp "%") }
-'+'   { (_, TokOp "+") }
-'-'   { (_, TokKeyword "-") }
-'<'   { (_, TokOp "<") }
-'>'   { (_, TokOp ">") }
-'<='  { (_, TokOp "<=") }
-'>='  { (_, TokOp ">=") }
-'=='  { (_, TokOp "==") }
-'!='  { (_, TokOp "!=") }
-'='   { (_, TokOp "=")  }
-'->'  { (_, TokOp "->") }
-'..'  { (_, TokOp "..") }
-'and' { (_, TokOp "and") }
-'or'  { (_, TokOp "or") }
-'not' { (_, TokOp "not") }
-'def' { (_, TokKeyword "def") }
-'class'{(_, TokKeyword "class") }
-'if'  { (_, TokKeyword "if") }
-'then'{ (_, TokOp "then") }
-'else'{ (_, TokOp "else") }
-'cond'{ (_, TokKeyword "cond") }
-'as'  { (_, TokOp "as") }
-'typedef'   { (_, TokKeyword "typedef") }
-','   { (_, TokKeyword ",") }
-'.'   { (_, TokOp ".") }
-'|'   { (_, TokOp "|") }
-'&'   { (_, TokOp "&") }
-'~'   { (_, TokOp "~") }
-':'   { (_, TokKeyword ":") }
-'@'   { (_, TokKeyword "@") }
-'('   { (_, TokDelim '(') }
-')'   { (_, TokDelim ')') }
-'{'   { (_, TokDelim '{') }
-'}'   { (_, TokDelim '}') }
-'['   { (_, TokDelim '[') }
-']'   { (_, TokDelim ']') }
-'import' { (_, TokKeyword "import") }
-'export' { (_, TokKeyword "export") }
+INT   { (TokInt $$, _) }
+BOOL  { (TokBool $$, _) }
+STR   { (TokString $$, _) }
+SYM   { (TokSym $$, _) }
+VAR   { (TokVar _, _) }
+EOL   { (TokNewline, _) }
+INDENT { (TokIndent, _) }
+DEDENT { (TokDedent, _) }
+'**'  { (TokOp "**", _) }
+'*'   { (TokOp "*", _) }
+'/'   { (TokOp "/", _) }
+'%'   { (TokOp "%", _) }
+'+'   { (TokOp "+", _) }
+'-'   { (TokKeyword "-", _) }
+'<'   { (TokOp "<", _) }
+'>'   { (TokOp ">", _) }
+'<='  { (TokOp "<=", _) }
+'>='  { (TokOp ">=", _) }
+'=='  { (TokOp "==", _) }
+'!='  { (TokOp "!=", _) }
+'='   { (TokOp "=", _)  }
+'->'  { (TokOp "->", _) }
+'..'  { (TokOp "..", _) }
+'and' { (TokOp "and", _) }
+'or'  { (TokOp "or", _) }
+'not' { (TokOp "not", _) }
+'def' { (TokKeyword "def", _) }
+'class'{(TokKeyword "class", _) }
+'if'  { (TokKeyword "if", _) }
+'then'{ (TokOp "then", _) }
+'else'{ (TokOp "else", _) }
+'cond'{ (TokKeyword "cond", _) }
+'as'  { (TokOp "as", _) }
+'typedef'   { (TokKeyword "typedef", _) }
+','   { (TokKeyword ",", _) }
+'.'   { (TokOp ".", _) }
+'|'   { (TokOp "|", _) }
+'&'   { (TokOp "&", _) }
+'~'   { (TokOp "~", _) }
+':'   { (TokKeyword ":", _) }
+'@'   { (TokKeyword "@", _) }
+'('   { (TokDelim '(', _) }
+')'   { (TokDelim ')', _) }
+'{'   { (TokDelim '{', _) }
+'}'   { (TokDelim '}', _) }
+'['   { (TokDelim '[', _) }
+']'   { (TokDelim ']', _) }
+'import' { (TokKeyword "import", _) }
+'export' { (TokKeyword "export", _) }
 
 %left '&' '~'
 %left '|'
@@ -80,21 +80,19 @@ File : FileLine { [$1] }
      | File EOL FileLine { $3 : $1 }
 
 FileLine : SequenceUnpack               { $1 }
-         | 'import' DottedIdent         { Import (reverse $2) }
-         | 'export' VarList             { Export (reverse $2) }
-         | 'typedef' VAR ':' TypeExpr   { TypeDef $2 $4 }
+         | 'import' DottedIdent         { (Import (reverse $2), pos $1) }
+         | 'export' VarList             { (Export (reverse $2), pos $1) }
+         | 'typedef' VAR ':' TypeExpr   { (TypeDef (extractVar $2) $4, pos $1) }
          | DefDecl                      { $1 }
          | ClassDecl                    { $1 }
 
 DefDecl     : 'def' VAR '(' VarArgList ')' TypeDecl ':' DefBody
-    { let (lines, docString, body) = findLastExpr $8 in 
-        let (args, defaults, newBody) = parseArgList (fst $4) body in 
-            Def $2 (ArgExpr args defaults (snd $4)) docString $6 lines (fst $1) newBody }
+    { (makeDef (extractVar $2) $4 $6 $8, pos $1) }
 
-ClassDecl   : 'class' VAR SubClassDecl ':' DefBody   { Class $2 $3 (fst $1) $5 }
+ClassDecl   : 'class' VAR SubClassDecl ':' DefBody   { (Class (extractVar $2) $3 $5, pos $1) }
 
 SubClassDecl    : {- Empty -}   { Nothing }
-                | '(' VAR ')'   { Just $2 }
+                | '(' VAR ')'   { Just (extractVar $2) }
 
 DocString   : {- Empty -}       { "" }
             | STR EOL           { $1 }
@@ -105,7 +103,7 @@ DefaultDecl : {- Empty -}           { Nothing }
 TypeDecl    : {- Empty -}       { Nothing }
             | 'as' TypeExpr     { Just $2 }
 
-TypeExpr    : VAR                               { TPrim $1 }
+TypeExpr    : VAR                               { TPrim (extractVar $1) }
             | Literal                           { TLiteral $1 }
             | '[' TypeList ']'                  { TTuple (reverse $2) }
             | '{' LabeledTypeList '}'           { TRecord (reverse $2) }
@@ -119,11 +117,11 @@ LabeledTypePair     : Label ':' TypeExpr    { ($1, $3) }
 LabeledTypeList     : LabeledTypePair                       { [$1] }
                     | LabeledTypeList ',' LabeledTypePair   { $3 : $1 }
 
-DefBody : Expr                                      { ("", [NakedExpr $1]) }
+DefBody : Expr                                      { ("", [(NakedExpr $1, pos $1)]) }
         | EOL INDENT DocString DefLineList DEDENT   { ($3, reverse $4) }
 
-DefLine : Expr                  { NakedExpr $1 }
-        | MultiLineExpr         { NakedExpr $1 }
+DefLine : Expr                  { (NakedExpr $1, pos $1) }
+        | MultiLineExpr         { (NakedExpr $1, pos $1) }
         | SequenceUnpack        { $1 }
         | DefDecl               { $1 }
         | ClassDecl             { $1 }
@@ -133,12 +131,12 @@ DefLineList     : DefLine                   { [$1] }
 
 ReplLine : Expr                 { Expr $1 }
          | 'import' DottedIdent { ReplImport (reverse $2) }
-         | VAR '=' Expr         { Assignment $1 $3 }
+         | VAR '=' Expr         { Assignment (extractVar $1) $3 }
 
-MultiLineExpr   : 'cond' ':' EOL INDENT CondClauseList DEDENT   { Cond (reverse $5) }
+MultiLineExpr   : 'cond' ':' EOL INDENT CondClauseList DEDENT   { (Cond (reverse $5), pos $1) }
 
-SequenceUnpack : VAR '=' Expr          { Binding (Right $1) (fst $2) $3 }
-               | VarList '=' Expr      { Binding (Left $1) (fst $2) $3 }
+SequenceUnpack : VAR '=' Expr          { (Binding (Right $ extractVar $1) $3, pos $2) }
+               | VarList '=' Expr      { (Binding (Left $1) $3, pos $2) }
 
 CondClause : Expr ':' Expr      { ($1, $3) }
 
@@ -146,46 +144,50 @@ CondClauseList : CondClause                     { [$1] }
                 | CondClauseList EOL CondClause { $3 : $1 }
 
 Expr : Operand             { $1 }
-     | '-' Expr %prec NEG  { binop "sub" (Literal (makeInt 0)) $2 }
-     | Expr '**' Expr { binop "pow" $1 $3 }
-     | Expr '*' Expr { binop "mul" $1 $3 }
-     | Expr '/' Expr { binop "div" $1 $3 }
-     | Expr '%' Expr { binop "mod" $1 $3 }
-     | Expr '+' Expr { binop "add" $1 $3 }
-     | Expr '-' Expr { binop "sub" $1 $3 }
-     | Expr '..' Expr { funcall "Range" [$1, $3] }
-     | Expr '..' Expr { funcall "Range" [$1, $3] }
-     | Expr '==' Expr { binop "eq" $1 $3 }
-     | Expr '!=' Expr { binop "ne" $1 $3 }
-     | Expr '>' Expr  { binop "gt" $1 $3 }
-     | Expr '<' Expr  { binop "lt" $1 $3 }
-     | Expr '>=' Expr { binop "ge" $1 $3 }
-     | Expr '<=' Expr { binop "le" $1 $3 }
-     | Expr 'and' Expr  { binop "and_" $1 $3 }
-     | Expr 'or' Expr   { binop "or_" $1 $3 }
-     | 'not' Expr       { funcall "not_" [$2] }
-     | Expr '|' Expr    { binop "extend" $1 $3 }
-     | Expr '&' Expr    { binop "restrict" $1 $3 }
-     | Expr '~' Expr    { binop "exclude" $1 $3 }
-     | Expr '->' Expr   { Funcall $3 [$1] }
+     | '-' Expr %prec NEG  { funcall (pos $1) "sub" [(Literal (makeInt 0), pos $1), $2] }
+     | Expr '**' Expr { funcall (pos $2) "pow" [$1, $3] }
+     | Expr '*' Expr { funcall (pos $2) "mul" [$1, $3] }
+     | Expr '/' Expr { funcall (pos $2) "div" [$1, $3] }
+     | Expr '%' Expr { funcall (pos $2) "mod" [$1, $3] }
+     | Expr '+' Expr { funcall (pos $2) "add" [$1, $3] }
+     | Expr '-' Expr { funcall (pos $2) "sub" [$1, $3] }
+     | Expr '..' Expr { funcall (pos $2) "Range" [$1, $3] }
+     | Expr '..' Expr { funcall (pos $2) "Range" [$1, $3] }
+     | Expr '==' Expr { funcall (pos $2) "eq" [$1, $3] }
+     | Expr '!=' Expr { funcall (pos $2) "ne" [$1, $3] }
+     | Expr '>' Expr  { funcall (pos $2) "gt" [$1, $3] }
+     | Expr '<' Expr  { funcall (pos $2) "lt" [$1, $3] }
+     | Expr '>=' Expr { funcall (pos $2) "ge" [$1, $3] }
+     | Expr '<=' Expr { funcall (pos $2) "le" [$1, $3] }
+     | Expr 'and' Expr  { funcall (pos $2) "and_" [$1, $3] }
+     | Expr 'or' Expr   { funcall (pos $2) "or_" [$1, $3] }
+     | 'not' Expr       { funcall (pos $1) "not_" [$2] }
+     | Expr '|' Expr    { funcall (pos $2) "extend" [$1, $3] }
+     | Expr '&' Expr    { funcall (pos $2) "restrict" [$1, $3] }
+     | Expr '~' Expr    { funcall (pos $2) "exclude" [$1, $3] }
+     | Expr '->' Expr   { (Funcall $3 [$1], pos $2) }
      | 'if' Expr 'then' Expr 'else' Expr
-       { Cond [($2, $4), (Literal (makeBool True), $6)] }
+       { (Cond [($2, $4), ((Literal (makeBool True), pos $1), $6)], pos $1) }
 
-Operand     : Literal                      { Literal $1 }
-            | VAR                          { Variable $1 }
-            | '[' ExprList ']'             { TupleLiteral (reverse $2) }
-            | '{' LabeledList '}'          { RecordLiteral (reverse $2) }
+{- Faking the position on Literal so we don't need to plumb the position back 
+    up from them; errors never happen on literals anyway. -}
+Operand     : Literal                      { (Literal $1, defaultPos) }
+            | VAR                          { (Variable $ extractVar $1, pos $1) }
+            | '[' ExprList ']'             { (TupleLiteral (reverse $2), pos $1) }
+            | '{' LabeledList '}'          { (RecordLiteral (reverse $2), pos $1) }
             | '(' Expr ')'                 { $2 }
-            | Operand '[' ']'              { methodcall "get" $1 [] }
-            | Operand '[' Expr ']'         { methodcall "get" $1 [$3] }
-            | Operand '(' ExprList ')'        { Funcall $1 (reverse $3) }
-            | Operand '(' ')'                 { Funcall $1 [] }
-            | Operand '(' '*' Operand ')'     { funcall "apply" [$1, $4] }
+            | Operand '[' ']'              { methodcall (pos $2) "get" $1 [] }
+            | Operand '[' Expr ']'         { methodcall (pos $2) "get" $1 [$3] }
+            | Operand '(' ExprList ')'        { (Funcall $1 (reverse $3), pos $2) }
+            | Operand '(' ')'                 { (Funcall $1 [], pos $2) }
+            | Operand '(' '*' Operand ')'     { funcall (pos $2) "apply" [$1, $4] }
             | Operand '(' ExprList ',' '*' Operand ')' 
-                { funcall "apply" [$1, funcall "add" [TupleLiteral (reverse $3), $6]] }
-            | Operand '.' VAR                 { funcall "attr" [$1, Literal (makeString $3)] }
-            | '{' '|' VarArgList '|' Expr '}' { makeLambda (fst $1) $3 $5 }
-            | Operand 'as' TypeExpr        { TypeCheck ($1, $3) $1 }
+                { funcall (pos $2) "apply" [$1, funcall (pos $2) "add" 
+                                            [(TupleLiteral (reverse $3), pos $2), $6]] }
+            | Operand '.' VAR                 
+                { funcall (pos $2) "attr" [$1, (Literal . makeString . extractVar $ $3, pos $2)] }
+            | '{' '|' VarArgList '|' Expr '}' { makeLambda (pos $1) $3 $5 }
+            | Operand 'as' TypeExpr        { (TypeCheck ($1, $3) $1, pos $2) }
 
 Literal     : INT                          { makeInt $1 }
             | BOOL                         { makeBool $1 }
@@ -194,20 +196,20 @@ Literal     : INT                          { makeInt $1 }
             | '[' ']'                      { makeTuple [] }
 
 Label       : STR                      { $1 }
-            | VAR                      { $1 }
+            | VAR                      { extractVar $1 }
 
-DottedIdent : VAR { [$1] }
-            | DottedIdent '.' VAR      { $3 : $1 }
+DottedIdent : VAR { [extractVar $1] }
+            | DottedIdent '.' VAR      { extractVar $3 : $1 }
 LabeledPair : Label ':' Expr           { ($1, $3) }
 
-VarList     : VAR                      { [$1] }
-            | VarList ',' VAR          { $3 : $1 }
+VarList     : VAR                      { [extractVar $1] }
+            | VarList ',' VAR          { extractVar $3 : $1 }
 ArgList     : {- empty -}                          { [] }
-            | VAR DefaultDecl TypeDecl             { [($1, $2, $3)] }
-            | ArgList ',' VAR DefaultDecl TypeDecl { ($3, $4, $5) : $1 }
+            | VAR DefaultDecl TypeDecl             { [(extractVar $1, $2, $3)] }
+            | ArgList ',' VAR DefaultDecl TypeDecl { (extractVar $3, $4, $5) : $1 }
 VarArgList  : ArgList                  { ($1, Nothing) }
-            | '*' VAR                  { ([], Just $2) }
-            | ArgList ',' '*' VAR      { ($1, Just $4) }
+            | '*' VAR                  { ([], Just . extractVar $ $2) }
+            | ArgList ',' '*' VAR      { ($1, Just . extractVar $ $4) }
 ExprList    : Expr                     { [$1] }
             | ExprList ',' Expr        { $3 : $1 }
 LabeledList : LabeledPair                   { [$1] }
@@ -215,15 +217,27 @@ LabeledList : LabeledPair                   { [$1] }
 
 {
 
-parseFile input = file input >>= return . reverse . map replaceFilePartials 
+parseFile input = eveFile input >>= return . reverse . map replaceFilePartials 
 parseRepl input = replLine input >>= return . replaceReplPartials
 
+pos :: (a, SourcePos) -> SourcePos
+pos = snd
+
+extractVar :: (EveToken, SourcePos) -> String
+extractVar (TokVar val, _) = val
+
+makeDef name (rawArgs, varargs) typeDecl rawBody = 
+    Def name (ArgExpr args defaults varargs) docString typeDecl lines newBody 
+  where
+    (args, defaults, newBody) = parseArgList rawArgs body 
+    (lines, docString, body) = findLastExpr rawBody
+
 replaceFilePartials :: EveFileLine -> EveFileLine
-replaceFilePartials (Binding var pos expr) = Binding var pos $ replacePartials expr
-replaceFilePartials (Def name argData docstring typeDecl defines pos body) =
-    Def name argData docstring typeDecl (map replaceFilePartials defines) pos (replacePartials body)
-replaceFilePartials (Class name superclass pos (docstring, lines)) =
-    Class name superclass pos (docstring, map replaceFilePartials lines)
+replaceFilePartials (Binding var expr, pos) = (Binding var $ replacePartials expr, pos)
+replaceFilePartials (Def name argData docstring typeDecl defines body, pos) =
+    (Def name argData docstring typeDecl (map replaceFilePartials defines) (replacePartials body), pos)
+replaceFilePartials (Class name superclass (docstring, lines), pos) =
+    (Class name superclass (docstring, map replaceFilePartials lines), pos)
 replaceFilePartials line = line
 
 replaceReplPartials :: EveReplLine -> EveReplLine
@@ -233,36 +247,38 @@ replaceReplPartials line = line
 
 -- Also TODO: Expand the legal positions so that eg. if statements can also have partials
 replacePartials :: EveExpr -> EveExpr
-replacePartials (Literal val) = Literal val
-replacePartials (TupleLiteral args) = maybeLambda TupleLiteral args
-replacePartials (RecordLiteral pairs) = maybeLambda reconstruct $ snd $ unzip pairs
+replacePartials expr@(Literal val, pos) = expr
+replacePartials (TupleLiteral args, pos) = maybeLambda pos (\vals -> (TupleLiteral vals, pos)) args
+replacePartials (RecordLiteral pairs, pos) = maybeLambda pos reconstruct $ snd $ unzip pairs
   where
     labels = fst $ unzip pairs
-    reconstruct = RecordLiteral . zip labels
-replacePartials (Variable var) = Variable var
-replacePartials (Cond condList) = Cond $ map handleClause condList
+    reconstruct vals = (RecordLiteral $ zip labels vals, pos)
+replacePartials (Variable var, pos) = (Variable var, pos)
+replacePartials (Cond condList, pos) = (Cond $ map handleClause condList, pos)
   where handleClause (pred, action) = (replacePartials pred, replacePartials action)
-replacePartials (Lambda argData vars pos body) = Lambda argData vars pos $ replacePartials body
-replacePartials (Funcall expr args) = maybeLambda (Funcall (replacePartials expr)) args
-replacePartials (TypeCheck (tested, typeDecl) expr) = 
-    TypeCheck (replacePartials tested, typeDecl) $ replacePartials expr
+replacePartials (Lambda argData vars body, pos) = (Lambda argData vars $ replacePartials body, pos)
+replacePartials (Funcall expr args, pos) = maybeLambda pos (\vals -> (Funcall (replacePartials expr) vals, pos)) args
+replacePartials (TypeCheck (tested, typeDecl) expr, pos) = 
+    (TypeCheck (replacePartials tested, typeDecl) $ replacePartials expr, pos)
 
-maybeLambda body args =
+maybeLambda :: SourcePos -> ([EveExpr] -> EveExpr) -> [EveExpr] -> EveExpr
+maybeLambda pos body args =
   if numParams > 0
-    then Lambda argExpr (Just $ args2Vars argExpr) (Pos "<partial app>" 0 0 0) 
-            . body $ substParams lambdaList args
-    else body (map replacePartials args)
+    then (Lambda argExpr (Just $ args2Vars argExpr) . body $ substParams lambdaList args, pos)
+    else body $ map replacePartials args
   where
-    numParams = length . filter (== Variable "?") $ args
+    numParams = length . filter ((== Variable "?") . fst) $ args
     lambdaList = map (("__" ++) . (: [])) $ take numParams ['a'..]
     substParams :: [String] -> [EveExpr] -> [EveExpr]
-    substParams (next:params) (Variable "?":args) = Variable next : substParams params args
+    substParams (next:params) ((Variable "?", _):args) = 
+        (Variable next, pos) : substParams params args
     substParams params (arg:args) = replacePartials arg : substParams params args
     substParams params [] = []
     argExpr = ArgExpr lambdaList [] Nothing
 
 -- argList comes in reversed, which is good for our purposes
-parseArgList argList body = (reverse $ names, argDefaults, newBody)
+parseArgList :: [(String, Maybe EveExpr, Maybe EveType)] -> EveExpr -> ([String], [(String, EveExpr)], EveExpr)
+parseArgList argList body@(_, pos) = (reverse $ names, argDefaults, newBody)
   where 
     newBody = foldr makeTypeCheck body argList
     (names, defaults, types) = unzip3 argList
@@ -271,24 +287,22 @@ parseArgList argList body = (reverse $ names, argDefaults, newBody)
     hasDefault (name, Just argDefault) = True
     unpack (name, Just val) = (name, val)
     unpack pair = error $ "Bad default argument: " ++ show pair
-    makeTypeCheck (varName, _, Nothing) = id
-    makeTypeCheck (varName, _, Just typeDecl) = TypeCheck (Variable varName, typeDecl)
+    makeTypeCheck (varName, _, Nothing) body = body
+    makeTypeCheck (varName, _, Just typeDecl) body = 
+        (TypeCheck ((Variable varName, pos), typeDecl) body, pos)
 
-makeLambda pos (rawArgs, varargs) body = Lambda argExpr (Just $ args2Vars argExpr) pos newBody
+makeLambda pos (rawArgs, varargs) body = (Lambda argExpr (Just $ args2Vars argExpr) newBody, pos)
   where
     (args, defaults, newBody) = parseArgList rawArgs body
     argExpr = ArgExpr args defaults varargs
 
 findLastExpr (docString, defLines) = (lines, docString, last)
   where
-    (lines, [NakedExpr last]) = splitAt (length defLines - 1) defLines
+    (lines, [(NakedExpr last, pos)]) = splitAt (length defLines - 1) defLines
 
--- This is so not the final behavior: it creates a def (the constructor) which invokes the
--- init method, then updates the prototype of the resulting datum with the other methods.
+funcall pos name args = (Funcall (Variable name, pos) args, pos)
+methodcall pos name obj args = 
+    (Funcall (funcall pos "attr" [obj, (Literal $ makeString name, pos)]) args, pos)
 
-funcall name args = Funcall (Variable name) args
-methodcall name obj args = Funcall (funcall "attr" [obj, Literal $ makeString name]) args
-binop name left right = funcall name [left, right]
-
-happyError ((posn, token):whatever) = throwEveError $ ParseError token posn
+happyError ((token, pos):whatever) = withPos pos $ throwEveError $ ParseError token 
 }
