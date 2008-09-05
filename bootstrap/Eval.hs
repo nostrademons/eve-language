@@ -233,7 +233,7 @@ apply call@(Primitive name fn _) args = do
     popCall
     return result
   where
-    argLabels = map makeArg (iterate (+ 1) 1)
+    argLabels = take (length args) $ map makeArg (iterate (+ 1) 1)
     makeArg num = "arg" ++ show num
     fakeEnv = zip argLabels args
 
