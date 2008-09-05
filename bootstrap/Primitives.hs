@@ -78,7 +78,7 @@ makeSymbol val = Symbol val [("proto", symProto)]
 makeTuple val = Tuple val [("proto", tupleProto)]
 makeRecord val = Record $ ("proto", recordProto) : val
 makePrimitive (name, fn) = Primitive name fn [("proto", primitiveProto)]
-makeFunction argData vars pos body env = Function argData vars pos body env [("proto", functionProto)]
+makeFunction argData isShown pos body env = Function argData isShown pos body env [("proto", functionProto)]
 
 typeError = throwEveError . TypeError
 
@@ -198,10 +198,4 @@ dump [val] = return $ makeString (show val ++ "\n" ++ showProtoChain val)
     showProtoChain obj = join "\n" (map showFields $ attributes obj) 
                                 ++ "\n\n" ++ showProtoChain (prototype obj)
 
-locals [] = do
-    vars <- frameVars
-    env <- getEnv
-    return $ makeRecord $ foldr (maybe id (:) . lookupPair env) [] vars
-  where
-    lookupPair [] key = Nothing
-    lookupPair ((k, v) : pairs) key = if k == key then Just (k, v) else lookupPair pairs key
+locals [] = frameVars >>= return . makeRecord

@@ -74,9 +74,9 @@ convertBindings bindings body = foldr convertBinding body bindings
   where
     convertBinding (Binding (Left vars) expr, pos) rest = 
         (Funcall (Variable "apply", pos) [(Lambda (ArgExpr vars [] Nothing) 
-                                    Nothing rest, pos), expr], pos)
+                                    False rest, pos), expr], pos)
     convertBinding (Binding (Right var) expr, pos) rest = 
-        (Funcall (Lambda (ArgExpr [var] [] Nothing) Nothing rest, pos) [expr], pos)
+        (Funcall (Lambda (ArgExpr [var] [] Nothing) False rest, pos) [expr], pos)
     convertBinding _ rest = rest
 
 convertDefs typeEnv defs body = (Letrec (map convertDef $ filter isDef defs) body, snd body)
@@ -95,10 +95,9 @@ parseDef typeEnv (Def name argData doc typeDecl lines body, pos) =
     funcall "extend" [convertedBody, (Literal . Record 
         $ [("name", makeString name), ("doc", makeString doc)], pos)] pos
   where
-    convertedBody = (Lambda argData vars . 
+    convertedBody = (Lambda argData True . 
         (maybe id (addTypeCheck . convertTypeDefs) typeDecl) .
         convertBindings lines . convertDefs typeEnv lines $ body, pos)
-    vars = (Just $ args2Vars argData ++ findVarNames lines)
     addTypeCheck typeDecl body = (TypeCheck (body, typeDecl) body, pos)
     convertTypeDefs :: EveType -> EveType
     convertTypeDefs (TPrim name) = maybe (TPrim name) id $ lookup name typeEnv
@@ -117,7 +116,7 @@ parseDef tEnv (Class name superDecl (doc, lines), pos) =
     classBody = (Funcall (parseDef tEnv defBody) [], pos)
     maybeSuper = maybe id (\var methods -> ("proto", (Variable var, pos)) : methods) superDecl
     defBody = (Def name (ArgExpr [] [] Nothing) doc Nothing lines constr, pos)
-    constr = (Lambda (ArgExpr [] [] (Just "args")) Nothing constrBody, pos)
+    constr = (Lambda (ArgExpr [] [] (Just "args")) True constrBody, pos)
     constrBody = funcall "extend" [funcall "apply" (map (\var -> (Variable var, pos)) ["init", "args"]) pos, proto] pos
     proto = (RecordLiteral [("proto", (RecordLiteral $ maybeSuper $ methodRecord lines, pos))], pos)
 
@@ -154,7 +153,9 @@ loadModule path = getModules >>= maybeLoad
     addModule moduleDef state = 
         state { interp_modules = (moduleName, moduleDef) : interp_modules state}
 
-evalRepl (Expr expr) = eval expr
+evalRepl (Expr expr) = do
+    env <- getEnv
+    eval expr
 evalRepl (ReplImport path) = loadModule path >>= liftM head . mapM addBinding 
   where
     addBinding (var, value) = 
@@ -167,8 +168,8 @@ evalRepl (Assignment var expr) = do
 closeOverBindings bindings = result
   where
     result = map editFunctionEnv bindings
-    editFunctionEnv (name, (Function argData vars pos body env fields)) = 
-        (name, Function argData vars pos body (result ++ env) fields)
+    editFunctionEnv (name, (Function argData isShown pos body env fields)) = 
+        (name, Function argData isShown pos body (result ++ env) fields)
 
 evalDefaults (ArgExpr args defaults varargs) = do
     values <- mapM eval defaultExprs
@@ -196,10 +197,10 @@ eval (Cond ((pred, action):rest), pos) = withPos pos $ do
     case predResult of
         Bool True _ -> eval action 
         otherwise -> eval (Cond rest, pos)
-eval (Lambda argExpr vars body, pos) = withPos pos $ do
+eval (Lambda argExpr isShown body, pos) = withPos pos $ do
     argData <- evalDefaults argExpr
     env <- getEnv
-    return $ makeFunction argData vars pos body env
+    return $ makeFunction argData isShown pos body env
 eval (Letrec bindings body, pos) = withPos pos $ do
     fns <- mapM evalPair bindings
     env <- getEnv
@@ -227,23 +228,22 @@ eval (TypeCheck (tested, typeDecl) body, pos) = withPos pos $
 
 apply :: EveData -> [EveData] -> EveM EveData
 apply call@(Primitive name fn _) args = do
-    pushCall call args
+    pushCall call argLabels fakeEnv
     result <- fn args
     popCall
     return result
-
-apply call@(Function argData vars pos body env _) args = 
-    maybe doApply (const doWithStackFrame) vars
   where
-    doApply = do
-        boundArgs <- bindArgs argData args
-        setEnv (boundArgs ++ env)
-        eval body
-    doWithStackFrame = do
-        pushCall call args
-        result <- doApply
-        popCall
-        return result
+    argLabels = map makeArg (iterate (+ 1) 1)
+    makeArg num = "arg" ++ show num
+    fakeEnv = zip argLabels args
+
+apply call@(Function argData _ pos body env _) args = do
+    boundArgs <- bindArgs argData args
+    pushCall call (fst . unzip $ boundArgs) (boundArgs ++ env)
+    result <- eval body
+    popCall
+    return result
+  where
     bindArgs (Args argNames defaults varargs) args = case numArgs of
         numArgs | numArgs == numProvided -> return $ bindVarArgs varargs $ boundArgs
         numArgs | numArgs < numProvided && hasVarArgs -> return $ bindVarArgs varargs $ boundArgs
@@ -319,7 +319,7 @@ attrPrimitive [obj, field@(String name _)] = tryRecord `catchError` tryAttr
     tryRecord = getAttr name obj >>= return . maybeMakeMethod
     tryAttr e | hasAttr "attr" obj = getAttr "attr" obj >>= flip apply [obj, field]
     tryAttr e = throwError e
-    wrappedFunction fn pos env = Function (Args [] [] (Just "args")) Nothing pos
+    wrappedFunction fn pos env = Function (Args [] [] (Just "args")) True pos
         (Funcall (Variable "apply", pos) [(Literal fn, pos), 
             (Funcall (Variable "add", pos) [(Literal $ makeTuple [obj], pos), (Variable "args", pos)], pos)], pos) 
         env [("proto", fn), ("im_self", obj), ("im_func", fn)]

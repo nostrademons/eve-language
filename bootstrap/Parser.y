@@ -259,7 +259,7 @@ replacePartials (RecordLiteral pairs, pos) = maybeLambda pos reconstruct $ snd $
 replacePartials (Variable var, pos) = (Variable var, pos)
 replacePartials (Cond condList, pos) = (Cond $ map handleClause condList, pos)
   where handleClause (pred, action) = (replacePartials pred, replacePartials action)
-replacePartials (Lambda argData vars body, pos) = (Lambda argData vars $ replacePartials body, pos)
+replacePartials (Lambda argData isShown body, pos) = (Lambda argData isShown $ replacePartials body, pos)
 replacePartials (Funcall expr args, pos) = maybeLambda pos (\vals -> (Funcall (replacePartials expr) vals, pos)) args
 replacePartials (TypeCheck (tested, typeDecl) expr, pos) = 
     (TypeCheck (replacePartials tested, typeDecl) $ replacePartials expr, pos)
@@ -267,7 +267,7 @@ replacePartials (TypeCheck (tested, typeDecl) expr, pos) =
 maybeLambda :: SourcePos -> ([EveExpr] -> EveExpr) -> [EveExpr] -> EveExpr
 maybeLambda pos body args =
   if numParams > 0
-    then (Lambda argExpr (Just $ args2Vars argExpr) . body $ substParams lambdaList args, pos)
+    then (Lambda argExpr True . body $ substParams lambdaList args, pos)
     else body $ map replacePartials args
   where
     numParams = length . filter ((== Variable "?") . fst) $ args
@@ -294,7 +294,7 @@ parseArgList argList body@(_, pos) = (reverse $ names, argDefaults, newBody)
     makeTypeCheck (varName, _, Just typeDecl) body = 
         (TypeCheck ((Variable varName, pos), typeDecl) body, pos)
 
-makeLambda pos (rawArgs, varargs) body = (Lambda argExpr (Just $ args2Vars argExpr) newBody, pos)
+makeLambda pos (rawArgs, varargs) body = (Lambda argExpr True newBody, pos)
   where
     (args, defaults, newBody) = parseArgList rawArgs body
     argExpr = ArgExpr args defaults varargs

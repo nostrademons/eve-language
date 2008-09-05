@@ -1,11 +1,11 @@
-module Data(EveToken(..), defaultPos, SourcePos(..), ArgData(..), ArgExpr(..), args2Vars,
+module Data(EveToken(..), defaultPos, SourcePos(..), ArgData(..), ArgExpr(..), 
             EveExpr, EveExprValue(..), EveReplLine(..), EveFileLine, EveFileLineValue(..), 
             EveError(..), EveStackTrace, EveData(..), EveType(..), TEnv, Env, 
             ShowEve(showExpr), ModuleDef, getAccessibleBindings, 
             recordFields, sortRecord, showFields, prototype, 
             attributes, setAttributes, getAttr, hasAttr, dropAttrs, attrNames,
             EveM, runEveM, getModules, getEnv, setEnv, addTopLevelBinding, 
-            withPos, pushCall, popCall, frameVars, throwEveError,
+            withPos, pushCall, popCall, frameVars, throwEveError, 
             interp_modules, join) where
 import Data.List
 import Control.Monad.State hiding (join)
@@ -23,9 +23,6 @@ instance Show ArgData where
         varArgList = map displayArg args ++ maybe [] (\argName -> ["*" ++ argName]) varargs 
         displayArg arg = maybe arg (\val -> arg ++ "=" ++ show val) $ lookup arg defaults
 
-type LocalVarList = Maybe [String]
-args2Vars (ArgExpr args _ varargs) = maybe id (:) varargs $ args
-
 data EveData = 
     Int Int Env
   | Bool Bool Env  
@@ -38,7 +35,7 @@ data EveData =
   | Primitive String ([EveData] -> EveM EveData) Env
   | Function {
         fn_args :: ArgData,
-        fn_vars :: LocalVarList,
+        fn_is_shown :: Bool,
         fn_pos :: SourcePos,
         fn_body :: EveExpr,
         fn_env :: Env,
@@ -67,8 +64,8 @@ setAttributes (Tuple val fields) newFields = Tuple val newFields
 setAttributes (SequenceIter val index fields) newFields = SequenceIter val index newFields
 setAttributes (Record fields) newFields = Record newFields
 setAttributes (Primitive name fn fields) newFields = Primitive name fn newFields
-setAttributes (Function argData vars pos body env fields) newFields = 
-    Function argData vars pos body env newFields
+setAttributes (Function argData is_shown pos body env fields) newFields = 
+    Function argData is_shown pos body env newFields
 
 prototype = findPrototype . attributes
 
@@ -117,7 +114,7 @@ instance Show EveData where
   show (Record fields) = showRecord fields
   show (RecordIter val index fields) = "Iterator(" ++ show index ++ ") for " ++ show val 
   show (Primitive name _ fields) = name
-  show fn@(Function argData vars pos body _ fields) = 
+  show fn@(Function argData is_shown pos body _ fields) = 
         maybe (showFunc fn) showMethod $ lookup "im_func" fields
     where 
       showFunc (Function argData _ _ body _ _) = 
@@ -269,7 +266,7 @@ data EveExprValue =
   | Variable String
   | Cond [(EveExpr, EveExpr)]
   | Funcall EveExpr [EveExpr]
-  | Lambda ArgExpr LocalVarList EveExpr
+  | Lambda ArgExpr Bool EveExpr
   | Letrec [(String, EveExpr)] EveExpr
   | TypeCheck (EveExpr, EveType) EveExpr
   deriving (Eq)
@@ -306,7 +303,7 @@ instance Show EveExprValue where
     show (Funcall name args) = showExpr name ++ "(" ++ join ", " (map showExpr args) ++ ")"
     show (Cond args) = "Cond: " ++ join ", " (map showClause args)
       where showClause (pred, expr) = showExpr pred ++ "->" ++ showExpr expr
-    show (Lambda argData vars body) = "{|" ++ show argData ++ "| " ++ showExpr body ++ "}"
+    show (Lambda argData is_shown body) = "{|" ++ show argData ++ "| " ++ showExpr body ++ "}"
     show (Letrec clauses body) = showExpr body ++ " with " ++ join ", " (map showClause clauses)
       where showClause (name, expr) = name ++ " = " ++ showExpr expr
     show (TypeCheck (tested, typeDecl) body) = show tested ++ " as " ++ show typeDecl ++
@@ -317,14 +314,18 @@ instance Show EveExprValue where
 data StackFrame = Frame {
     frame_name :: String,
     frame_pos :: Maybe SourcePos,
-    frame_vars :: [String],
-    frame_env :: Env,
-    frame_args :: [EveData]
+    frame_is_shown :: Bool,
+    frame_args :: [String],
+    frame_env :: Env
 }
 
-instance Show StackFrame where
-  show (Frame name pos _ _ args) = name ++ "(" ++ join ", " (map show args) ++ ")" ++ maybe "" showSourcePos pos
-    where showSourcePos pos = " at " ++ show pos
+showStackFrame precedingText (Frame name pos is_shown argNames env) = precedingText ++
+    (if is_shown 
+        then "\n  " ++ name ++ "(" ++ join ", " args ++ ")" ++ maybe "" showSourcePos pos
+        else "")
+  where 
+    args = map show . snd . unzip . take (length argNames) $ env
+    showSourcePos pos = " at " ++ show pos
 
 -- Errors
 
@@ -349,7 +350,7 @@ data EveStackTrace = StackTrace SourcePos [StackFrame] EveError
 
 instance Show EveStackTrace where
   show (StackTrace pos frames error) = show error ++ " @ " ++ show pos 
-            ++ ".  Traceback:\n" ++ join "\n" (map (("  " ++) . show) frames)
+            ++ ".  Traceback:" ++ foldl' showStackFrame "\n  " frames
 
 instance Error EveStackTrace where
   noMsg = strMsg "unknown"
@@ -384,15 +385,13 @@ withPos newPos action = do
   where
     setPos interp_pos = modify $ \s -> s { interp_pos = newPos }
 
-pushCall :: EveData -> [EveData] -> EveM ()
-pushCall fn@(Function _ rawVars interp_pos _ env fields) args = 
-    addStackFrame $ Frame fName (Just interp_pos) vars env args
+pushCall :: EveData -> [String] -> Env -> EveM ()
+pushCall fn@(Function _ isShown pos _ _ fields) args env = 
+    addStackFrame $ Frame fName (Just pos) isShown args env
   where 
     fName = maybe "<function>" show $ lookup "name" fields
-    vars = maybe [] id rawVars
-pushCall fn@(Primitive name _ _) args = do
-    env <- getEnv
-    addStackFrame $ Frame name Nothing [] env args
+pushCall fn@(Primitive name _ _) args env = do
+    addStackFrame $ Frame name Nothing True args env
 addStackFrame frame = modify $ \s -> s { interp_stack = frame : interp_stack s }
 
 popCall :: EveM ()
@@ -404,13 +403,14 @@ topFrame = get >>= return . top . interp_stack
     top [] = error "Top-level interp_stack frame has been popped."
     top (frame : rest) = frame
 
-frameVars :: EveM [String]
-frameVars = get >>= return . unpackVars . interp_stack
+frameVars :: EveM [(String, EveData)]
+frameVars = get >>= return . findVars [] . interp_stack
   where
-    unpackVars (Frame _ (Just _) vars _ _ : _) = vars
     -- Needed because locals() introduces its own interp_stack frame
-    unpackVars (Frame "locals" _ _ _ _ : rest) = unpackVars rest
-    unpackVars _ = []
+    findVars vars (Frame "locals" _ _ _ _ : rest) = findVars vars rest
+    findVars vars (Frame _ _ False args env : rest) = findVars (vars ++ args) rest
+    findVars vars (Frame _ _ True args env : _) = take (length vars + length args) env
+    findVars _ _ = []
 
 throwEveError error = do
     pos <- get >>= return . interp_pos
@@ -425,4 +425,4 @@ addTopLevelBinding var value = modify addBinding
     addBindingToBottom (frame : rest) = frame : addBindingToBottom rest
 
 runEveM :: EveM a -> Env -> IO (Either EveStackTrace (a, InterpreterState))
-runEveM monad env = runErrorT $ runStateT monad $ Interpreter defaultPos [Frame "top-level" Nothing [] env []] []
+runEveM monad env = runErrorT $ runStateT monad $ Interpreter defaultPos [Frame "top-level" Nothing False [] env ] []
