@@ -176,11 +176,12 @@ Operand     : Literal                      { (Literal $1, defaultPos) }
             | '[' ExprList ']'             { (TupleLiteral (reverse $2), pos $1) }
             | '{' LabeledList '}'          { (RecordLiteral (reverse $2), pos $1) }
             | '(' Expr ')'                 { $2 }
-            | Operand '[' ']'              { methodcall (pos $2) "get" $1 [] }
-            | Operand '[' Expr ']'         { methodcall (pos $2) "get" $1 [$3] }
-            | Operand '(' ExprList ')'        { (Funcall $1 (reverse $3), pos $2) }
-            | Operand '(' ')'                 { (Funcall $1 [], pos $2) }
-            | Operand '(' '*' Operand ')'     { funcall (pos $2) "apply" [$1, $4] }
+            | Operand '[' ']'                   { methodcall (pos $2) "get" $1 [] }
+            | Operand '[' Expr ']'              { methodcall (pos $2) "get" $1 [$3] }
+            | Operand '[' Expr ':' Expr ']'     { methodcall (pos $2) "slice" $1 [$3, $5] }
+            | Operand '(' ExprList ')'          { (Funcall $1 (reverse $3), pos $2) }
+            | Operand '(' ')'                   { (Funcall $1 [], pos $2) }
+            | Operand '(' '*' Operand ')'       { funcall (pos $2) "apply" [$1, $4] }
             | Operand '(' ExprList ',' '*' Operand ')' 
                 { funcall (pos $2) "apply" [$1, funcall (pos $2) "add" 
                                             [(TupleLiteral (reverse $3), pos $2), $6]] }

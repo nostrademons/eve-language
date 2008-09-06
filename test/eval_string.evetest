@@ -34,7 +34,7 @@ Eve>>> "Foo".len()
 3
 Eve>>> "Frob".iter().next().get()
 'r'
-Eve>>> "Foobar"[1..4]
+Eve>>> "Foobar"[1:4]
 'oob'
-Eve>>> "Foobar"[-3..-1]
+Eve>>> "Foobar"[-3:-1]
 'ba'

@@ -44,7 +44,8 @@ sequencePrimitives = makePrimitives [
   ("mul", repeat'),
   ("iter", iter),
   ("len", len),
-  ("get", get)]
+  ("get", get),
+  ("slice", slice)]
 
 -- Type objects, serving as constructor functions, type flags, and prototypes
 baseProto = Record $ ("proto", (Bool False [])) : eqPrimitives
@@ -113,21 +114,15 @@ len _ = typeError "Length requires a sequence or container"
 
 fixNegative xs index = if index < 0 then length xs + index else index
 getHelper xs index = return $ xs !! fixNegative xs index
-sliceHelper constr xs fields = do
-    start <- lookupField "start"
-    end <- lookupField "stop"
-    return . constr $ take (end - start) (drop start xs)
+sliceHelper constr xs rawStart rawEnd = return . constr $ take (end - start) (drop start xs)
   where
-    extract (Int num _) = return $ fixNegative xs num
-    extract _ = typeError "Index is not an integer"
-    lookupField field = maybe (typeError $ "No " ++ field ++ " field") extract $ lookup field fields
+    start = fixNegative xs rawStart
+    end = fixNegative xs rawEnd
 
-get [String xs _, Int index _] = getHelper xs index >>= \c -> return (makeString [c])
+get [String xs _, Int index _] = getHelper xs index >>= return . makeString . (: [])
 get [Tuple xs _, Int index _] = getHelper xs index
 get [Record xs, String index _] = 
     maybe (typeError $ "Unknown field " ++ index) return $ lookup index xs
-get [String xs _, Record fields] = sliceHelper makeString xs fields
-get [Tuple xs _, Record fields] = sliceHelper makeTuple xs fields
 get [Tuple xs _] = getHelper xs 0
 get [SequenceIter (String xs _) index _] = return $ makeString [xs !! index]
 get [SequenceIter (Tuple xs _) index _] = return $ xs !! index
@@ -135,6 +130,10 @@ get [RecordIter (Record xs) index _] = return $ makeTuple [makeString $ fst pair
   where pair = xs !! index
 get (val:_) = typeError (show val ++ " is not indexable")
 get _ = typeError "get requires at least one argument"
+
+slice [String xs _, Int start _, Int end _] = sliceHelper makeString xs start end
+slice [Tuple xs _, Int start _, Int end _] = sliceHelper makeTuple xs start end
+slice _ = typeError "slice requires a sequence, an integer start, and an integer end"
 
 allIterPrimitives = concat [eqPrimitives, iterPrimitives]
 makeIter constr val = do
