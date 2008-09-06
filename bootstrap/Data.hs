@@ -117,6 +117,7 @@ instance Show EveData where
   show fn@(Function argData is_shown pos body _ fields) = 
         maybe (showFunc fn) showMethod $ lookup "im_func" fields
     where 
+      showFunc prim@(Primitive {}) = show prim
       showFunc (Function argData _ _ body _ _) = 
             "{| " ++ show argData ++ " | " ++ abbrev (showExpr body) ++ " }"
       showMethod method = "bound method: " ++ showFunc method
