@@ -15,7 +15,7 @@ split delim s
     | otherwise = token : split delim (tail rest)
   where (token,rest) = span (/=delim) s
 
-autoImports = ["eve.lang.functions", "eve.data.iterator", "eve.data.range"]
+autoImports = ["eve.lang.functions", "eve.data.iterator", "eve.data.range", "eve.data.list"]
 -- autoImports = []
 
 startingEnv = primitiveEnv ++ makePrimitives [
