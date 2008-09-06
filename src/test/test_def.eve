@@ -1,8 +1,12 @@
 def double(x): 2
 foo = 2
 
+def binding(x, y):
+    z = x + y
+    z / 2
+
 def length_if_large(s):
-    strlen = len(s)
+    strlen = s.len()
     if strlen > 5 then Str(strlen) else s
 
 def a_record(val):

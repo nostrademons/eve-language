@@ -314,17 +314,17 @@ instance Show EveExprValue where
 data StackFrame = Frame {
     frame_name :: String,
     frame_pos :: Maybe SourcePos,
-    frame_is_shown :: Bool,
-    frame_args :: [String],
+    frame_isShown :: Bool,
+    frame_numArgs :: Int,
     frame_env :: Env
 }
 
-showStackFrame precedingText (Frame name pos is_shown argNames env) = precedingText ++
-    (if is_shown 
+showStackFrame precedingText (Frame name pos isShown numArgs env) = precedingText ++
+    (if isShown 
         then "\n  " ++ name ++ "(" ++ join ", " args ++ ")" ++ maybe "" showSourcePos pos
         else "")
   where 
-    args = map show . snd . unzip . take (length argNames) $ env
+    args = map show . snd . unzip . take numArgs $ env
     showSourcePos pos = " at " ++ show pos
 
 -- Errors
@@ -385,9 +385,10 @@ withPos newPos action = do
   where
     setPos interp_pos = modify $ \s -> s { interp_pos = newPos }
 
-pushCall :: String -> Maybe SourcePos -> Bool -> [String] -> Env -> EveM ()
-pushCall name pos isShown args env = do
+pushCall :: String -> Maybe SourcePos -> Bool -> Int -> Env -> EveM ()
+pushCall name pos isShown args env = 
     addStackFrame $ Frame name pos isShown args env
+
 addStackFrame frame = modify $ \s -> s { interp_stack = frame : interp_stack s }
 
 popCall :: EveM ()
@@ -405,8 +406,8 @@ frameVars = get >>= return . findVars [] . interp_stack
   where
     -- Needed because locals() introduces its own interp_stack frame
     findVars vars (Frame "locals" _ _ _ _ : rest) = findVars vars rest
-    findVars vars (Frame _ _ False args env : rest) = findVars (vars ++ args) rest
-    findVars vars (Frame _ _ True args env : _) = take (length vars + length args) env
+    findVars vars (Frame _ _ False numArgs env : rest) = findVars (vars ++ take numArgs env) rest
+    findVars vars (Frame _ _ True numArgs env : _) = vars ++ take numArgs env
     findVars _ _ = []
 
 throwEveError error = do
@@ -422,4 +423,4 @@ addTopLevelBinding var value = modify addBinding
     addBindingToBottom (frame : rest) = frame : addBindingToBottom rest
 
 runEveM :: EveM a -> Env -> IO (Either EveStackTrace (a, InterpreterState))
-runEveM monad env = runErrorT $ runStateT monad $ Interpreter defaultPos [Frame "top-level" Nothing False [] env ] []
+runEveM monad env = runErrorT $ runStateT monad $ Interpreter defaultPos [Frame "top-level" Nothing False 0 env] []

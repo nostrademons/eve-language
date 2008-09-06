@@ -1,5 +1,5 @@
 Eve>>> import test.locals
-{| k, v, *args | locals() with test_multiline_locals =... }
+{| k, v, *args | locals() with  }
 Eve>>> test_locals(2, 3)
 {'args': [], 'k': 2, 'v': 3}
 Eve>>> test_locals(1, 2, 3, 4, 5)
@@ -9,4 +9,4 @@ Eve>>> test_locals('foo', 'bar').k
 Eve>>> {| x, y | locals() }(0, 5).x
 0
 Eve>>> test_multiline_locals(2, 3)
-{'x': 2, 'y': 3, 'z': 5}
+{'z': 5, 'x': 2, 'y': 3}

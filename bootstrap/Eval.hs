@@ -203,7 +203,7 @@ eval (Lambda argExpr isShown body, pos) = withPos pos $ do
 eval (Letrec bindings body, pos) = withPos pos $ do
     fns <- mapM evalPair bindings
     env <- getEnv
-    pushCall "<letrec>" Nothing False (fst . unzip $ fns) (closeOverBindings fns ++ env)
+    pushCall "<letrec>" Nothing False (length fns) (closeOverBindings fns ++ env)
     result <- eval body
     popCall
     return result
@@ -229,18 +229,18 @@ eval (TypeCheck (tested, typeDecl) body, pos) = withPos pos $
 
 apply :: EveData -> [EveData] -> EveM EveData
 apply (Primitive name fn _) args = do
-    pushCall name Nothing True argLabels fakeEnv
+    env <- getEnv
+    pushCall name Nothing True (length args) (zip argLabels args ++ env)
     result <- fn args
     popCall
     return result
   where
     argLabels = take (length args) $ map makeArg (iterate (+ 1) 1)
     makeArg num = "arg" ++ show num
-    fakeEnv = zip argLabels args
 
-apply call@(Function argData isShown pos body env fields) args = do
+apply (Function argData isShown pos body env fields) args = do
     boundArgs <- bindArgs argData args
-    pushCall name (Just pos) isShown (fst . unzip $ boundArgs) (boundArgs ++ env)
+    pushCall name (Just pos) isShown (length boundArgs) (boundArgs ++ env)
     result <- eval body
     popCall
     return result
