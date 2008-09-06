@@ -1,2 +1,2 @@
 Eve>>> import test.test_def
-2
+{| x | 2 with  }

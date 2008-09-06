@@ -229,7 +229,7 @@ instance Show EveFileLineValue where
   show (Binding (Right var) expr) = var ++ "=" ++ showExpr expr
   show (TypeDef name value) = "typedef " ++ name ++ ": " ++ show value
   show (Def name argData docstring Nothing defines body) = 
-    "def " ++ name ++ "(" ++ show argData ++ ")"
+    "def " ++ name ++ "(" ++ show argData ++ "): " ++ showExpr body
   show (Def name argData docstring (Just typeExpr) defines body) = 
     "@type(" ++ show typeExpr ++ ")\ndef " ++ name ++ "(" ++ show argData ++ "): " ++ showExpr body
   show (Class name superclass (docstring, lines)) = 
