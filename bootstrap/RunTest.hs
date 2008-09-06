@@ -72,7 +72,7 @@ runTest filename = openTestFile filename
     runLex prompt input = lexer filename input >>= return . show . map showTok
     runParse :: String -> String -> EveM String
     runParse prompt input = lexer filename input >>= parser prompt
-    runEval prompt input = 
+    runEval prompt input = do
         evalInitial >> lexer filename input >>= parseRepl >>= showAction evalRepl
     parseReplLine line = parseRepl line >>= return . showExpr
     parseFileLine line = parseFile line >>= return . showExpr

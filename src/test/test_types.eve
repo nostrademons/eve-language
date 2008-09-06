@@ -1,2 +1,0 @@
-def factorial(x as Int) as Int: x * factorial(x - 1)
-def factorial(x as 0) as Int: 1

@@ -1,4 +1,0 @@
-Eve>>> import test.test_types
-{| x | x as Int => mul(x, factorial(sub(x, 1... }
-Eve>>> factorial(0)
-1
