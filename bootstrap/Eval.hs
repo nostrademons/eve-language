@@ -52,7 +52,7 @@ parseFileLines ((line@(Def _ _ _ _ def _), pos) : rest) =
   where 
     (defImports, defTypes, newLines) = parseFileLines def
     (imports, typedefs, lines) = parseFileLines rest
-    newDef = (line { def_lines = lines }, pos)
+    newDef = (line { def_lines = newLines }, pos)
 parseFileLines ((line@(Class _ _ (doc, cls)), pos) : rest) = 
     (classImports ++ imports, classTypes ++ typedefs, newClass : lines)
   where 
@@ -158,8 +158,7 @@ evalRepl (Expr expr) = do
     eval expr
 evalRepl (ReplImport path) = loadModule path >>= liftM head . mapM addBinding 
   where
-    addBinding (var, value) = 
-        addTopLevelBinding var value >> return value
+    addBinding (var, value) = addTopLevelBinding var value >> return value
 evalRepl (Assignment var expr) = do
   value <- eval expr
   addTopLevelBinding var value
@@ -204,9 +203,11 @@ eval (Lambda argExpr isShown body, pos) = withPos pos $ do
 eval (Letrec bindings body, pos) = withPos pos $ do
     fns <- mapM evalPair bindings
     env <- getEnv
-    setEnv (closeOverBindings fns ++ env)
-    eval body
-  where
+    pushCall "<letrec>" Nothing False (fst . unzip $ fns) (closeOverBindings fns ++ env)
+    result <- eval body
+    popCall
+    return result
+  where 
     evalPair (name, body) = do
         result <- eval body
         return (name, result)
@@ -227,8 +228,8 @@ eval (TypeCheck (tested, typeDecl) body, pos) = withPos pos $
     extractVals = snd . unzip . sortRecord
 
 apply :: EveData -> [EveData] -> EveM EveData
-apply call@(Primitive name fn _) args = do
-    pushCall call argLabels fakeEnv
+apply (Primitive name fn _) args = do
+    pushCall name Nothing True argLabels fakeEnv
     result <- fn args
     popCall
     return result
@@ -237,13 +238,14 @@ apply call@(Primitive name fn _) args = do
     makeArg num = "arg" ++ show num
     fakeEnv = zip argLabels args
 
-apply call@(Function argData _ pos body env _) args = do
+apply call@(Function argData isShown pos body env fields) args = do
     boundArgs <- bindArgs argData args
-    pushCall call (fst . unzip $ boundArgs) (boundArgs ++ env)
+    pushCall name (Just pos) isShown (fst . unzip $ boundArgs) (boundArgs ++ env)
     result <- eval body
     popCall
     return result
   where
+    name = maybe "<function>" show $ lookup "name" fields
     bindArgs (Args argNames defaults varargs) args = case numArgs of
         numArgs | numArgs == numProvided -> return $ bindVarArgs varargs $ boundArgs
         numArgs | numArgs < numProvided && hasVarArgs -> return $ bindVarArgs varargs $ boundArgs

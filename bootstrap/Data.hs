@@ -385,17 +385,14 @@ withPos newPos action = do
   where
     setPos interp_pos = modify $ \s -> s { interp_pos = newPos }
 
-pushCall :: EveData -> [String] -> Env -> EveM ()
-pushCall fn@(Function _ isShown pos _ _ fields) args env = 
-    addStackFrame $ Frame fName (Just pos) isShown args env
-  where 
-    fName = maybe "<function>" show $ lookup "name" fields
-pushCall fn@(Primitive name _ _) args env = do
-    addStackFrame $ Frame name Nothing True args env
+pushCall :: String -> Maybe SourcePos -> Bool -> [String] -> Env -> EveM ()
+pushCall name pos isShown args env = do
+    addStackFrame $ Frame name pos isShown args env
 addStackFrame frame = modify $ \s -> s { interp_stack = frame : interp_stack s }
 
 popCall :: EveM ()
-popCall = modify $ \s -> s { interp_stack = tail $ interp_stack s }
+popCall = do
+    modify $ \s -> s { interp_stack = tail $ interp_stack s }
 
 topFrame :: EveM StackFrame
 topFrame = get >>= return . top . interp_stack
