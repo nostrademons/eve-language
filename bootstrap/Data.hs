@@ -306,7 +306,7 @@ instance Show EveExprValue where
     show (Lambda argData is_shown body) = "{|" ++ show argData ++ "| " ++ showExpr body ++ "}"
     show (Letrec clauses body) = showExpr body ++ " with " ++ join ", " (map showClause clauses)
       where showClause (name, expr) = name ++ " = " ++ showExpr expr
-    show (TypeCheck (tested, typeDecl) body) = show tested ++ " as " ++ show typeDecl ++
+    show (TypeCheck (tested, typeDecl) body) = showExpr tested ++ " as " ++ show typeDecl ++
         (if tested == body then "" else " => " ++ showExpr body)
 
 -- Stack frames
