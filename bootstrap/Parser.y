@@ -14,6 +14,7 @@ import Primitives
 %token
 INT   { (TokInt $$, _) }
 BOOL  { (TokBool $$, _) }
+NONE  { (TokKeyword "None", _) }
 STR   { (TokString $$, _) }
 SYM   { (TokSym $$, _) }
 VAR   { (TokVar _, _) }
@@ -192,6 +193,7 @@ Operand     : Literal                      { (Literal $1, defaultPos) }
 
 Literal     : INT                          { makeInt $1 }
             | BOOL                         { makeBool $1 }
+            | NONE                         { makeNone }
             | STR                          { makeString $1 }
             | SYM                          { makeSymbol $1 }
             | '[' ']'                      { makeTuple [] }

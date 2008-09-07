@@ -1,5 +1,5 @@
-module Primitives(makeInt, makeBool, makeString, makeSymbol, 
-    makeTuple, makeRecord, makePrimitive, makeFunction, makePrimitives, primitiveEnv) where
+module Primitives(makeInt, makeBool, makeString, makeSymbol, makeTuple, makeRecord, 
+        makePrimitive, makeFunction, makePrimitives, makeNone, primitiveEnv) where
 import Data
 import Utils
 import Control.Monad.Error hiding (join)
@@ -19,8 +19,8 @@ numberPrimitives = makePrimitives [
   ("sub", numericBinop (-))]
 
 eqPrimitives = makePrimitives [
-  ("eq", numBoolBinop (==)),
-  ("ne", numBoolBinop (/=))]
+  ("eq", eqBinop (==)),
+  ("ne", eqBinop (/=))]
 
 orderedPrimitives = makePrimitives [
   ("lt", numBoolBinop (<)),
@@ -47,17 +47,21 @@ sequencePrimitives = makePrimitives [
   ("get", get),
   ("slice", slice)]
 
+clsPrimitives = makePrimitives [("im_receiver", const $ return makeNone)]
+
 -- Type objects, serving as constructor functions, type flags, and prototypes
 baseProto = Record $ ("proto", (Bool False [])) : eqPrimitives
 makeTypeObj name constr methods = Primitive name constr $ ("proto", baseProto) : concat methods
-intProto = makeTypeObj "Int" convertToInt [numberPrimitives, eqPrimitives, orderedPrimitives]
-boolProto = makeTypeObj "Bool" convertToBool [eqPrimitives]
-strProto = makeTypeObj "Str" convertToString [eqPrimitives, orderedPrimitives, sequencePrimitives]
-symProto = makeTypeObj "Sym" convertToSymbol [eqPrimitives]
-tupleProto = makeTypeObj "Tuple" convertToTuple [eqPrimitives, sequencePrimitives]
-recordProto = makeTypeObj "Record" typeObject [eqPrimitives]
-primitiveProto = makeTypeObj "Primitive" typeObject [eqPrimitives]
-functionProto = makeTypeObj "Function" typeObject [eqPrimitives]
+intProto = makeTypeObj "Int" convertToInt [numberPrimitives, eqPrimitives, orderedPrimitives, clsPrimitives]
+boolProto = makeTypeObj "Bool" convertToBool [eqPrimitives, clsPrimitives]
+strProto = makeTypeObj "Str" convertToString [eqPrimitives, orderedPrimitives, 
+    sequencePrimitives, clsPrimitives]
+symProto = makeTypeObj "Sym" convertToSymbol [eqPrimitives, clsPrimitives]
+tupleProto = makeTypeObj "Tuple" convertToTuple [eqPrimitives, sequencePrimitives, clsPrimitives]
+recordProto = makeTypeObj "Record" typeObject [eqPrimitives, clsPrimitives]
+primitiveProto = makeTypeObj "Primitive" typeObject [eqPrimitives, clsPrimitives]
+functionProto = makeTypeObj "Function" typeObject [eqPrimitives, clsPrimitives]
+makeNone = makeTypeObj "None" typeObject [eqPrimitives]
 
 -- Global primitives.  Augmented in Eval by the primitives that need access to apply
 primitiveEnv = makePrimitives [
@@ -86,6 +90,9 @@ typeError = throwEveError . TypeError
 numericBinop :: (Int -> Int -> Int) -> [EveData] -> EveM EveData
 numericBinop f [Int arg1 _, Int arg2 _] = return $ makeInt $ f arg1 arg2
 numericBinop f _ = typeError "Numeric operator expects 2 ints"
+
+eqBinop f [val1, val2] = return $ makeBool $ f val1 val2
+eqBinop f _ = typeError "Equality testing takes two arguments"
 
 numBoolBinop f [Int arg1 _, Int arg2 _] = return $ makeBool $ f arg1 arg2
 numBoolBinop f _ = typeError "Boolean operator expects 2 ints"

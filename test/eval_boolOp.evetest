@@ -4,6 +4,10 @@ Eve>>> 2 > 3 or 3 < 2
 False
 Eve>>> 3 == 2 + 1 and 3 * 2 == 6
 True
+Eve>>> 3 == None
+False
+Eve>>> None == None
+True
 Eve>>> not 2 > 3
 True
 Eve>>> Bool(42)
