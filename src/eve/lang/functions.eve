@@ -1,3 +1,4 @@
 def id(self): self
 def const(val): {| *args | val }
+def super(obj): obj.proto.proto | { im_receiver: obj }
 def add_superclass(cls, obj): obj | { proto: cls | { proto: obj.proto }}

@@ -4,8 +4,8 @@ class List(Iterator):
         if iter.has_next() 
             then [iter.get(), init(iter.next())]
             else []
-    def head(self): super(self).get(0)
-    def tail(self): super(self).get(1)
+    def head(self): Tuple.get(self, 0)
+    def tail(self): Tuple.get(self, 1)
     def get(self): self.head()
     def next(self): self.tail()
     def has_next(self): self.next() != []
