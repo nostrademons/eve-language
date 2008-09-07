@@ -1,2 +1,3 @@
 def id(self): self
 def const(val): {| *args | val }
+def add_superclass(cls, obj): obj | { proto: cls | { proto: obj.proto }}

@@ -1,16 +1,14 @@
 class List(Iterator):
-    def init(*seq):
+    def init(seq):
         iter = seq.iter()
         if iter.has_next() 
-            then addListMethods([iter.get(), List(iter.next())])
-            else addListMethods([])
-    def head(self): self[0]
-    def tail(self): self[1]
+            then [iter.get(), init(iter.next())]
+            else []
+    def head(self): super(self).get(0)
+    def tail(self): super(self).get(1)
     def get(self): self.head()
     def next(self): self.tail()
     def has_next(self): self.next() != []
-    def empty(self): tuple2List([])
+    def empty(self): add_superclass(List, [])
     def prepend(self, val): [val, self]
-
-addListMethods = add_superclass(List, ?)
 
