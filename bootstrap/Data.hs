@@ -1,6 +1,6 @@
 module Data(EveToken(..), defaultPos, SourcePos(..), ArgData(..), ArgExpr(..), 
             EveExpr, EveExprValue(..), EveReplLine(..), EveFileLine, EveFileLineValue(..), 
-            EveError(..), EveStackTrace, EveData(..), EveType(..), TEnv, Env, 
+            EveError(..), EveStackTrace(StackTrace), EveData(..), EveType(..), TEnv, Env, 
             ShowEve(showExpr), ModuleDef, getAccessibleBindings, 
             recordFields, sortRecord, showFields, prototype, 
             attributes, setAttributes, getAttr, hasAttr, dropAttrs, attrNames,

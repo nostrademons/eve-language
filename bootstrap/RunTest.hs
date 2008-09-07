@@ -45,14 +45,13 @@ getTestFiles = dirWalk "../test" >>= return . filterExtensions "evetest"
 
 testLines :: String -> (String -> String -> EveM String) -> [String] -> EveM ()
 testLines filename fn [] = return ()
-testLines filename fn (rawInput:output:rest) = 
-    runTest `catchError` printError >> testLines filename fn rest
+testLines filename fn (rawInput:output:rest) = runTest >> testLines filename fn rest
   where
-    printError = liftIO . putStrLn . (("Error in " ++ filename ++ " (\"" ++ input ++ "\"): ") ++) . show
+    printError (StackTrace _ _ err) = return . show $ err
     (prompt, notPrompt) = span (/= '>') rawInput
     input = drop 4 notPrompt
     runTest = do
-      result <- fn prompt input
+      result <- fn prompt input `catchError` printError
       if result == output
         then return ()
         else liftIO $ putStrLn $
