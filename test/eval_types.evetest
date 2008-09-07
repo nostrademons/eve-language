@@ -1,0 +1,4 @@
+Eve>>> 2 as Int
+2
+Eve>>> 2 as String
+Type error: 2 is not a String
