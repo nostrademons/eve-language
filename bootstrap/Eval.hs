@@ -118,7 +118,7 @@ parseDef tEnv (Class name superDecl (doc, lines), pos) =
     defBody = (Def name (ArgExpr [] [] Nothing) doc Nothing lines constr, pos)
     constr = (Lambda (ArgExpr [] [] (Just "args")) True constrBody, pos)
     constrBody = funcall "extend" [funcall "apply" (map (\var -> (Variable var, pos)) ["init", "args"]) pos, proto] pos
-    proto = (RecordLiteral [("proto", (RecordLiteral $ maybeSuper $ methodRecord lines, pos))], pos)
+    proto = (RecordLiteral [("proto", (RecordLiteral . maybeSuper $ methodRecord lines, pos))], pos)
 
 readModule :: String -> String -> EveM ModuleDef
 readModule moduleName fileText = do
@@ -318,17 +318,21 @@ extendPrimitive [dest, source] = return . setAttributes dest $
 
 attrPrimitive [obj, field@(String name _)] = tryRecord `catchError` tryAttr
   where
-    tryRecord = getAttr name obj >>= return . maybeMakeMethod
+    tryRecord = getAttr name obj >>= return . bindReceiver
     tryAttr e | hasAttr "attr" obj = getAttr "attr" obj >>= flip apply [obj, field]
     tryAttr e = throwError e
-    wrappedFunction fn pos env = Function (Args [] [] (Just "args")) True pos
-        (Funcall (Variable "apply", pos) [(Literal fn, pos), 
-            (Funcall (Variable "add", pos) [(Literal $ makeTuple [obj], pos), (Variable "args", pos)], pos)], pos) 
-        env [("proto", fn), ("im_self", obj), ("im_func", fn)]
-    maybeMakeMethod fn@(Primitive _ _ _) = wrappedFunction fn (Pos "<primitive>" 0 0 0) startingEnv
-    maybeMakeMethod fn@(Function (Args [] _ Nothing) _ _ _ _ _) = fn
-    maybeMakeMethod fn@(Function _ _ pos _ env _) = wrappedFunction fn pos env
-    maybeMakeMethod val = val
+    bindReceiver = case lookup "im_receiver" $ attributes obj of
+        Nothing -> id
+        Just (Primitive "None" _ _) -> maybeMakeMethod obj
+        Just val -> maybeMakeMethod val
+    wrappedFunction receiver fn pos env = Function (Args [] [] (Just "args")) True pos
+        (Funcall (Variable "apply", pos) [(Literal fn, pos), (Funcall (Variable "add", pos) 
+                [(Literal $ makeTuple [receiver], pos), (Variable "args", pos)], pos)], pos) 
+        env [("proto", fn), ("im_self", receiver), ("im_func", fn)]
+    maybeMakeMethod rcvr fn@(Primitive _ _ _) = wrappedFunction rcvr fn (Pos "<primitive>" 0 0 0) startingEnv
+    maybeMakeMethod _ fn@(Function (Args [] _ Nothing) _ _ _ _ _) = fn
+    maybeMakeMethod rcvr fn@(Function _ _ pos _ env _) = wrappedFunction rcvr fn pos env
+    maybeMakeMethod _ val = val
 attrPrimitive _ = throwEveError $ TypeError "Field access requires an object and a string"
 
 attrRawPrimitive [obj, String field _] = getAttr field obj

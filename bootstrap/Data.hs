@@ -32,7 +32,11 @@ data EveData =
   | SequenceIter EveData Int Env
   | Record Env
   | RecordIter EveData Int Env
-  | Primitive String ([EveData] -> EveM EveData) Env
+  | Primitive {
+        fn_name :: String,
+        fn_impl :: ([EveData] -> EveM EveData),
+        fn_env :: Env
+    }
   | Function {
         fn_args :: ArgData,
         fn_is_shown :: Bool,

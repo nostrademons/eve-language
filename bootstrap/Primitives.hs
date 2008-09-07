@@ -18,6 +18,8 @@ numberPrimitives = makePrimitives [
   ("add", numericBinop (+)),
   ("sub", numericBinop (-))]
 
+-- TODO: Eq should be a standalone function instead of an instance method, so
+-- it works on plain records
 eqPrimitives = makePrimitives [
   ("eq", eqBinop (==)),
   ("ne", eqBinop (/=))]
@@ -47,20 +49,18 @@ sequencePrimitives = makePrimitives [
   ("get", get),
   ("slice", slice)]
 
-clsPrimitives = makePrimitives [("im_receiver", const $ return makeNone)]
-
 -- Type objects, serving as constructor functions, type flags, and prototypes
 baseProto = Record $ ("proto", (Bool False [])) : eqPrimitives
 makeTypeObj name constr methods = Primitive name constr $ ("proto", baseProto) : concat methods
-intProto = makeTypeObj "Int" convertToInt [numberPrimitives, eqPrimitives, orderedPrimitives, clsPrimitives]
-boolProto = makeTypeObj "Bool" convertToBool [eqPrimitives, clsPrimitives]
+intProto = makeTypeObj "Int" convertToInt [numberPrimitives, eqPrimitives, orderedPrimitives]
+boolProto = makeTypeObj "Bool" convertToBool [eqPrimitives]
 strProto = makeTypeObj "Str" convertToString [eqPrimitives, orderedPrimitives, 
-    sequencePrimitives, clsPrimitives]
-symProto = makeTypeObj "Sym" convertToSymbol [eqPrimitives, clsPrimitives]
-tupleProto = makeTypeObj "Tuple" convertToTuple [eqPrimitives, sequencePrimitives, clsPrimitives]
-recordProto = makeTypeObj "Record" typeObject [eqPrimitives, clsPrimitives]
-primitiveProto = makeTypeObj "Primitive" typeObject [eqPrimitives, clsPrimitives]
-functionProto = makeTypeObj "Function" typeObject [eqPrimitives, clsPrimitives]
+    sequencePrimitives]
+symProto = makeTypeObj "Sym" convertToSymbol [eqPrimitives]
+tupleProto = makeTypeObj "Tuple" convertToTuple [eqPrimitives, sequencePrimitives]
+recordProto = makeTypeObj "Record" typeObject [eqPrimitives]
+primitiveProto = makeTypeObj "Primitive" typeObject [eqPrimitives]
+functionProto = makeTypeObj "Function" typeObject [eqPrimitives]
 makeNone = makeTypeObj "None" typeObject [eqPrimitives]
 
 -- Global primitives.  Augmented in Eval by the primitives that need access to apply
@@ -76,11 +76,11 @@ primitiveEnv = makePrimitives [
 -- Factories that bundle a basic data type up with the primitives associated
 -- with it
 
-makeInt val = Int val [("proto", intProto)]
-makeBool val = Bool val [("proto", boolProto)]
-makeString val = String val [("proto", strProto)]
+makeInt val = Int val [("proto", intProto), ("im_receiver", makeNone)]
+makeBool val = Bool val [("proto", boolProto), ("im_receiver", makeNone)]
+makeString val = String val [("proto", strProto), ("im_receiver", makeNone)]
 makeSymbol val = Symbol val [("proto", symProto)]
-makeTuple val = Tuple val [("proto", tupleProto)]
+makeTuple val = Tuple val [("proto", tupleProto), ("im_receiver", makeNone)]
 makeRecord val = Record $ ("proto", recordProto) : val
 makePrimitive (name, fn) = Primitive name fn [("proto", primitiveProto)]
 makeFunction argData isShown pos body env = Function argData isShown pos body env [("proto", functionProto)]
@@ -145,7 +145,7 @@ slice _ = typeError "slice requires a sequence, an integer start, and an integer
 allIterPrimitives = concat [eqPrimitives, iterPrimitives]
 makeIter constr val = do
     env <- getEnv
-    return $ constr val 0 $ ("proto", findIterator env) : allIterPrimitives
+    return $ constr val 0 $ [("proto", findIterator env), ("im_receiver", makeNone)] ++ allIterPrimitives
   where
     findIterator env = maybe (error "Iterator prototype not loaded") id $ lookup "Iterator" env
 iter [val@(String _ _)] = makeIter SequenceIter val
