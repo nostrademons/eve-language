@@ -5,6 +5,10 @@ def binding(x, y):
     z = x + y
     z / 2
 
+def recursive_def(x):
+    def inner(y): if y == 0 then 5 else recursive_def(y - 1)
+    inner(x)
+
 def length_if_large(s):
     strlen = s.len()
     if strlen > 5 then Str(strlen) else s
