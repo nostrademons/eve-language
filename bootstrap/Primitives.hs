@@ -57,7 +57,7 @@ boolProto = makeTypeObj "Bool" convertToBool [eqPrimitives]
 strProto = makeTypeObj "Str" convertToString [eqPrimitives, orderedPrimitives, 
     sequencePrimitives]
 symProto = makeTypeObj "Sym" convertToSymbol [eqPrimitives]
-tupleProto = makeTypeObj "Tuple" convertToTuple [eqPrimitives, sequencePrimitives]
+tupleProto = makeTypeObj "Tuple" typeObject [eqPrimitives, sequencePrimitives]
 recordProto = makeTypeObj "Record" typeObject [eqPrimitives]
 primitiveProto = makeTypeObj "Primitive" typeObject [eqPrimitives]
 functionProto = makeTypeObj "Function" typeObject [eqPrimitives]
@@ -67,9 +67,10 @@ makeNone = makeTypeObj "None" typeObject [eqPrimitives]
 primitiveEnv = makePrimitives [
     ("dump", dump),
     ("locals", locals)] ++ boolPrimitives ++ map bindPrimitive 
-        -- "Record" is added by the evaluator and relies on the fact that primitives with
-        -- equal names are equal
-        [intProto, boolProto, strProto, symProto, tupleProto, primitiveProto, functionProto]
+        -- "Record" and "Tuple" are added by the evaluator, since the require
+        -- access to the iterator machinery.  They rely on the fact that
+        -- primitives with equal names are equal
+        [intProto, boolProto, strProto, symProto, primitiveProto, functionProto]
   where
     bindPrimitive val@(Primitive name _ _) = (name, val)
 
@@ -107,7 +108,7 @@ typeOf [Int _ _] = return $ makePrimitive ("Int", convertToInt)
 typeOf [Bool _ _] = return $ makePrimitive ("Bool", convertToBool)
 typeOf [String _ _] = return $ makePrimitive ("Str", convertToString)
 typeOf [Symbol _ _] = return $ makePrimitive ("Sym", convertToSymbol)
-typeOf [Tuple _ _] = return $ makePrimitive ("Tuple", convertToTuple)
+typeOf [Tuple _ _] = return $ makePrimitive ("Tuple", typeObject)
 typeOf [Record _] = return $ makePrimitive ("Record", typeObject)
 typeOf [Function _ _ _ _ _ _] = return $ makePrimitive ("Function", typeObject)
 typeOf [Primitive _ _ _] = return $ makePrimitive ("Function", typeObject)
@@ -193,10 +194,6 @@ convertToString _ = typeError "String expects a single argument"
 
 convertToSymbol [String x _] = return $ makeSymbol x
 convertToSymbol _ = typeError "Sym expects a string"
-
-convertToTuple [Tuple xs _] = return $ makeTuple xs
-convertToTuple [x] = return $ makeTuple [x]
-convertToTuple xs = return $ makeTuple xs
 
 dump [val] = return $ makeString (show val ++ "\n" ++ showProtoChain val)
   where 

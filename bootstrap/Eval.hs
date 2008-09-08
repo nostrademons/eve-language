@@ -22,6 +22,7 @@ autoImports = ["eve.lang.functions", "eve.data.iterator", "eve.data.range", "eve
 startingEnv = primitiveEnv ++ makePrimitives [
     ("apply", applyPrimitive),
     ("Record", convertToRecord),
+    ("Tuple", convertToTuple),
     ("add", binopPrimitive "add"),
     ("sub", binopPrimitive "sub"),
     ("pow", binopPrimitive "pow"),
@@ -349,6 +350,12 @@ attrPrimitive _ = throwEveError $ TypeError "Field access requires an object and
 
 attrRawPrimitive [obj, String field _] = getAttr field obj
 attrRawPrimitive _ = throwEveError $ TypeError "Field access requires an object and a string"
+
+convertToTuple [Tuple xs _] = return $ makeTuple xs
+convertToTuple [x] = if hasAttr "iter" x 
+    then sequenceValues x >>= return . makeTuple 
+    else return $ makeTuple [x]
+convertToTuple xs = return $ makeTuple xs
 
 convertToRecord [sequence] = sequenceValues sequence >>= mapM toFieldList >>= return . makeRecord
   where
