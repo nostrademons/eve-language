@@ -109,9 +109,13 @@ TypeExpr    : VAR                               { TPrim (extractVar $1) }
             | '[' TypeList ']'                  { TTuple (reverse $2) }
             | '{' LabeledTypeList '}'           { TRecord (reverse $2) }
             | '(' TypeList '->' TypeExpr ')'    { TFunc (reverse $2) $4 }
+            | '(' TypeAlternatives ')'          { TOr (reverse $2) }
 
 TypeList    : TypeExpr                  { [$1] }
             | TypeList ',' TypeExpr     { $3 : $1 }
+
+TypeAlternatives    : TypeExpr                          { [$1] }
+                    | TypeAlternatives 'or' TypeExpr    { $3 : $1 }
 
 LabeledTypePair     : Label ':' TypeExpr    { ($1, $3) }
 

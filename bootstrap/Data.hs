@@ -244,6 +244,7 @@ data EveType =
     TPrim String
   | TLiteral EveData
   | TTuple [EveType]
+  | TOr [EveType]
   | TRecord [(String, EveType)]
   | TFunc [EveType] EveType
 

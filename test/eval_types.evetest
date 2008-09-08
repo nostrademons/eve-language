@@ -2,3 +2,17 @@ Eve>>> 2 as Int
 2
 Eve>>> 2 as String
 Type error: 2 is not a String
+Eve>>> (2 + 3) as 5
+5
+Eve>>> (2 + 3) as 4   
+Type error: 5 is not a 4
+Eve>>> 'foo' as :foo
+Type error: 'foo' is not a :foo
+Eve>>> [1, 2, 'foo'] as [Int, Int, Str]
+[1, 2, 'foo']
+Eve>>> { 'foo': [1, 2], 'bar': 3 } as { bar: Int }
+{'foo': [1, 2], 'bar': 3}
+Eve>>> 2 as (Str or Int) 
+2
+Eve>>> 2 as (Str or Sym)
+Type error: 2 is not a Sym

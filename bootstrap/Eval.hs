@@ -2,6 +2,7 @@ module Eval(eval, evalRepl, autoImports, startingEnv) where
 import Control.Monad.State hiding (join)
 import Control.Monad.Error hiding (join)
 import IO
+import Data.List
 
 import Data
 import Utils
@@ -102,6 +103,7 @@ parseDef typeEnv (Def name argData doc typeDecl lines body, pos) =
     convertTypeDefs :: EveType -> EveType
     convertTypeDefs (TPrim name) = maybe (TPrim name) id $ lookup name typeEnv
     convertTypeDefs (TLiteral datum) = TLiteral datum
+    convertTypeDefs (TOr types) = TOr $ map convertTypeDefs types
     convertTypeDefs (TTuple types) = TTuple $ map convertTypeDefs types
     convertTypeDefs (TRecord types) = 
             TRecord $ zip keys $ map convertTypeDefs values
@@ -221,6 +223,9 @@ eval (TypeCheck (tested, typeDecl) body, pos) = withPos pos $
     throwIfInvalid (TPrim "Sym") val@(Symbol _ _) = return val
     throwIfInvalid (TLiteral expected) val | val == expected = return val
     -- TODO: function types
+    throwIfInvalid (TOr (first : rest)) val = 
+        foldl' catchError (throwIfInvalid first val) $ 
+            map (const . (flip throwIfInvalid $ val)) rest
     throwIfInvalid (TTuple types) val@(Tuple fields _) = checkAll types fields val
     throwIfInvalid (TRecord types) val@(Record fields) = 
         checkAll (extractVals types) (extractVals $ recordFields fields) val
