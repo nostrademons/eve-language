@@ -16,3 +16,5 @@ Eve>>> 2 as (Str or Int)
 2
 Eve>>> 2 as (Str or Sym)
 Type error: 2 is not a Sym
+Eve>>> :red as (:red or :black)
+:red
