@@ -350,7 +350,7 @@ instance Show EveError where
   show (TypeError msg) = "Type error: " ++ msg
   show (UnboundVar var) = "Unbound variable: " ++ var
   show (MissingField record field) = "Missing field: " ++ show record ++ " has no " ++ field
-  show (Default str) = "An error occurred: " ++ str
+  show (Default str) = str
 
 data EveStackTrace = StackTrace SourcePos [StackFrame] EveError
 

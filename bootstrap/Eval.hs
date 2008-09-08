@@ -147,9 +147,13 @@ loadModule path = getModules >>= maybeLoad
   where
     moduleName = join "." path
     maybeLoad modules = maybe firstTimeLoad return $ lookup moduleName modules
-    firstTimeLoad = do
+    firstTimeLoad = liftIO (try $ readModuleText) >>= parseModuleContents
+    readModuleText = do
       filename <- return $ "../src/" ++ join "/" path ++ ".eve"
-      fileText <- liftIO $ openFile filename ReadMode >>= hGetContents 
+      openFile filename ReadMode >>= hGetContents 
+    parseModuleContents (Left err) = 
+      throwEveError $ Default $ "Error importing " ++ moduleName ++ ": " ++ show err
+    parseModuleContents (Right fileText) = do
       moduleDef <- readModule moduleName fileText
       modify $ addModule moduleDef
       return moduleDef
