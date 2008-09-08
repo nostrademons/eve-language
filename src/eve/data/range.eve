@@ -5,9 +5,36 @@ typedef Range: {
 }
 
 class Range(Iterator):
+    """
+    Represents a half-open range of integers, including the start point but
+    excluding the end.  There is syntactic sugar for the two-arg constructor:
+
+    Eve>>> Tuple(1..5)
+    [1, 2, 3, 4]
+
+    The one-argument constructor starts the range at zero:
+
+    Eve>>> Tuple(Range(3))
+    [0, 1, 2]
+
+    It's also possible to specify a step to increment by:
+
+    Eve>>> Tuple(Range(0, 10, 2))
+    [0, 2, 4, 6, 8]
+
+    Range objects are their own iterators and have a length method that returns
+    the number of elements that they'll return before being exhausted:
+
+    Eve>>> (1..5).next().get()
+    2
+    Eve>>> (1..5).len()
+    4
+
+    """
+
     def init(start=0, stop, step=1): { start: start, stop: stop, step: step }
     def iter(self): self
     def get(self): self.start
-    def next(self): self & { start: self.start + self.step }
-    def has_next(self): self.start + self.step < self.stop
+    def next(self): self | { start: self.start + self.step }
+    def has_next(self): self.start + self.step <= self.stop
     def len(self): (self.stop - self.start) / self.step
