@@ -163,9 +163,11 @@ loadModule path = getModules >>= maybeLoad
 evalRepl (Expr expr) = do
     env <- getEnv
     eval expr
-evalRepl (ReplImport path) = loadModule path >>= liftM head . mapM addBinding 
+evalRepl (ReplImport path) = loadModule path >>= liftM returnValue . mapM addBinding 
   where
     addBinding (var, value) = addTopLevelBinding var value >> return value
+    returnValue (first : rest) = first
+    returnValue _ = makeNone
 evalRepl (Assignment var expr) = do
   value <- eval expr
   addTopLevelBinding var value
