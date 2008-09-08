@@ -1,4 +1,24 @@
 def id(self): self
 def const(val): {| *args | val }
+
 def super(obj): obj.proto.proto | { im_receiver: obj }
 def add_superclass(cls, obj): obj | { proto: cls | { proto: obj.proto }}
+def make_class(superclass, methods): 
+    """
+    Creates a constructor function that invokes the init method of ``methods``,
+    then extends the result with a prototype chain built from ``methods`` and
+    ``superclass``.  The methods are also added as fields of the constructor
+    function as unbound functions.
+
+    Eve>>> cls = make_class(Int, { double: ? * 2, init: id })
+    {| *args | extend(apply(attr(methods, 'init'), a... }
+    Eve>>> cls(5).double()
+    10
+    Eve>>> cls.double(3)
+    6
+
+    """
+    {| *args | methods.init(*args) | { 
+        proto: methods | { proto: superclass },
+        im_receiver: None
+    }} | methods
