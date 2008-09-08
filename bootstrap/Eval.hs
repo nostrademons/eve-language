@@ -222,7 +222,7 @@ eval (TypeCheck (tested, typeDecl) body, pos) = withPos pos $
     throwIfInvalid (TPrim "Str") val@(String _ _) = return val
     throwIfInvalid (TPrim "Sym") val@(Symbol _ _) = return val
     throwIfInvalid (TLiteral expected) val | val == expected = return val
-    -- TODO: function types
+    -- Function types aren't really checkable until the function is evaluated
     throwIfInvalid (TOr (first : rest)) val = 
         foldl' catchError (throwIfInvalid first val) $ 
             map (const . (flip throwIfInvalid $ val)) rest
