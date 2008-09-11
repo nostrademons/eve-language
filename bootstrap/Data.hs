@@ -174,6 +174,7 @@ instance Show EveToken where
   show (TokBool True) = "true"
   show (TokBool False) = "false"
   show (TokString val) = "'" ++ val ++ "'"
+  show (TokSym val) = ":" ++ val
   show (TokVar val) = val
   show (TokOp val) = val
   show (TokKeyword val) = val

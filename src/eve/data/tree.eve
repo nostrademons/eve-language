@@ -1,0 +1,96 @@
+typedef Tree: {
+    color: (:red or :black),
+    left: Tree,
+    right: Tree,
+    key: Any, # Really Ord, if we have bounded polymorphism
+    value: Any
+}
+
+class TreeNode(Tree):
+    def init(key, value): { 
+        color: :red,
+        left: EMPTY,
+        right: EMPTY,
+        key: key,
+        value: value
+    }
+    def is_empty(self): False
+    def color(self): self.color
+
+    def iter(self): chain(self.left.iter(), [[self.key, self.value]].iter(), self.right.iter())
+    def get(self, key, not_found): 
+        cond:
+            key == self.key: self.value
+            key < self.key: self.left.get(key, not_found)
+            key > self.key: self.right.get(key, not_found)
+
+    def add(self, key, value):
+        def left_add(): self | { left: self.left.add(key, value) }
+        def right_add(): self | { right: self.right.add(key, value) }
+        cond:
+            key == self.key: self | { value: value }
+            key < self.key and self.left.is_empty(): left_add()
+            key < self.key and key < self.left.key: left_add()._ll_balance()
+            key < self.key and key > self.left.key: left_add()._lr_balance()
+            key > self.key and self.left.is_empty: right_add()
+            key > self.key and key < self.right.key: right_add()._rl_balance()
+            key > self.key and key > self.right.key: right_add()._rr_balance()
+
+    def _has_red_left(self): self.color == :black and self.left.color == :red
+    def _has_red_right(self): self.color == :black and self.right.color == :red
+
+    def _ll_balance(self):
+        grandchild = self.left.left
+        if self._has_red_left() and grandchild.color == :red
+            then self.left | { 
+                left: grandchild | { color: :black },
+                right: self | { left: self.left.right }
+            } else self
+
+    def _lr_balance(self):
+        grandchild = self.left.right
+        if self._has_red_left() and grandchild.color == :red
+            then grandchild | {
+                left: self.left | { color: :black, right: grandchild.left },
+                right: self | { left: grandchild.right }
+            } else self
+
+    def _rl_balance(self):
+        grandchild = self.right.left
+        if self._has_red_right() and grandchild.color == :red
+            then grandchild | {
+                left: self | { right: grandchild.left },
+                right: self.right | { color: :black, right: grandchild.right }
+            } else self
+
+    def _rr_balance(self):
+        grandchild = self.right.right
+        if self._has_red_right() and grandchild.color == :red
+            then self.right | {
+                left: self | { right: self.right.left },
+                right: grandchild | { color: :black }
+            } else self
+
+class EmptyTreeNode(Tree):
+    def init(): None
+    def is_empty(self): True
+    def color(self): :black
+
+    def get(self, key, not_found): not_found
+    def iter(self): [].iter()
+    def add(self, key, value): TreeNode(key, value)
+
+# EMPTY = EmptyTreeNode()
+
+class Tree:
+    def init(sequence=[]): 
+        { root: sequence.reduce({| elem, tree | tree.add(elem[0], elem[1])}, EMPTY) }
+    def clear(self): add_superclass(Tree, { root: EMPTY })
+
+    def has_key(self, key): self.get(key) != None
+    def get(self, key, not_found=None): self.root.get(key, not_found)
+    def add(self, key, value): self | { root: self.root.add(key, value) | { color: black }}
+
+    def keys(self): TreeIter(self.root).map(?.key)
+    def values(self): TreeIter(self.root).map(?.value)
+    def items(self): TreeIter(self.root).map({| tree | [tree.key, tree.value]})

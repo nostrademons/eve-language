@@ -11,4 +11,3 @@ class List(Iterator):
     def has_next(self): self.next() != []
     def empty(self): add_superclass(List, [])
     def prepend(self, val): [val, self]
-

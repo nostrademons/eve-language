@@ -22,15 +22,15 @@ class ProxyIterator(Iterable):
     def has_next(self): self.original.has_next()
 
 class chain(ProxyIterator):
-    def init(*iterables): 
-        master = iterables.iter()
-        ProxyIterator.init(master.get()) | { master: master }
+    def init(current, *rest): add_superclass(Iterator, { 
+        original: current.iter(),
+        rest: rest
+    })
     def next(self):
-        if super(self).has_next() 
-            then self | { original: super(self).next() }
-            else chain(*self.master.next())
-    def has_next(self):
-        super(self).has_next() or self.master.has_next()
+        if self.original.has_next() 
+            then self | { original: self.original.next() }
+            else self | { original: self.rest[0], rest: self.rest[1 : self.rest.len()] }
+    def has_next(self): self.original.has_next() or self.rest.len() > 0
 
 class repeat(Iterable):
     def init(value): locals()
@@ -42,7 +42,7 @@ class iterate(Iterable):
     def init(initial, f): { current: initial, f: ignore_self(f) }
     def get(self): self.current
     def next(self): self | { current: self.f(self.current) }
-    def has_next(self): True
+    def has_next(self): self.f(self.current) != None
 
 class Iterator(Iterable):
     class cycle(ProxyIterator):
