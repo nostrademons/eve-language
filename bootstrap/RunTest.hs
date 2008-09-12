@@ -1,9 +1,7 @@
 module Main(main) where
 import IO
-import Monad hiding (join)
 import Control.Monad.Trans
 import Control.Monad.Error hiding (join)
-import Directory
 import System.FilePath.Posix
 import Data.List
 
@@ -13,27 +11,6 @@ import Lexer
 import Parser
 import Eval
 import Primitives
-
--- For some reason, isInfixOf isn't in my version of GHC.
-contains [] needle = False
-contains haystack@(x:xs) needle = 
-    needle `isPrefixOf` haystack || xs `contains` needle
-
-stripTo haystack needle = 
-    drop (length (dropWhile (not . isSuffixOf needle) (inits haystack) !! 0)) haystack
-
-dirWalk :: FilePath -> IO [FilePath]
-dirWalk dir = let
-    isValid name = not $ ("/." `isSuffixOf` name) || ("/.." `isSuffixOf` name)
-    listDirs = filterM doesDirectoryExist
-    listFiles = filterM doesFileExist
-    joinName base path = base ++ "/" ++ path
-  in do
-    noDots <- getDirectoryContents dir 
-          >>= filterM (return . isValid) . map (joinName dir)
-    subDirFiles <- listDirs noDots >>= mapM dirWalk >>= return . concat
-    files <- listFiles noDots
-    return $ files ++ subDirFiles
 
 filterExtensions ext = 
          (filter (not . flip contains ".svn"))
@@ -64,9 +41,10 @@ evalLine filename line = lexer filename line >>= parseRepl >>= evalRepl
 evalInitial = mapM_ evalImport autoImports
   where evalImport moduleName = evalLine moduleName $ "import " ++ moduleName
 
-runTest filename = openTestFile filename 
-                   >>= flip runEveM (startingEnv) 
-                     . testLines filename f
+runTest filename = do
+    text <- openTestFile filename
+    env <- startingEnv
+    runEveM (testLines filename f text) env
   where 
     runLex prompt input = lexer filename input >>= return . show . map showTok
     runParse :: String -> String -> EveM String
@@ -110,7 +88,7 @@ printResults filename (testName, docstring) = do
     mapM (putStrLn . showFailure) $ filter (/= Nothing) failures
   where
     moduleName = join "." $ drop 2 $ splitDirectories $ dropExtension $ filename 
-    runTests lines = runEveM (evalInitial >> mapM runTest lines) startingEnv
+    runTests lines = liftIO startingEnv >>= runEveM (evalInitial >> mapM runTest lines) 
     runTest (test, expected) = do
         result <- (evalLine filename test >>= return . show) `catchError` (return . show)
         return $ if result == expected then Nothing else Just (test, expected, result)

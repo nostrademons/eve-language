@@ -19,7 +19,7 @@ split delim s
 autoImports = ["eve.lang.functions", "eve.data.iterator", "eve.data.range", "eve.data.list"]
 -- autoImports = []
 
-startingEnv = primitiveEnv ++ makePrimitives [
+startingEnv = makeEnv $ primitives ++ makePrimitives [
     ("apply", applyPrimitive),
     ("Record", convertToRecord),
     ("Tuple", convertToTuple),
@@ -129,7 +129,7 @@ readModule moduleName fileText = do
     (imports, typedefs, lines) <- lexer moduleName fileText >>= parseFile 
                  >>= return . parseFileLines
     moduleDefs <- getModules
-    importEnv <- mapM loadModule imports >>= return . (baseEnv moduleDefs ++) . concat
+    importEnv <- mapM loadModule imports >>= liftIO . makeEnv . concat >>= moduleEnv moduleDefs
     fn <- eval . parseDef typedefs . makeDef $ lines
     Record bindings <- apply (fn { fn_env = importEnv }) []
     return bindings
@@ -137,9 +137,10 @@ readModule moduleName fileText = do
     modulePos = defaultPos { file = moduleName }
     makeDef lines = (Def ("<module " ++ moduleName ++ ">") (ArgExpr [] [] Nothing) ""
         Nothing lines (RecordLiteral $ methodRecord lines, modulePos), modulePos)
-    baseEnv moduleDefs = startingEnv ++ autoImportEnv moduleDefs
-    autoImportEnv :: [(String, ModuleDef)] -> Env
-    autoImportEnv moduleDefs = concatMap (lookupModule moduleDefs) autoImports
+    moduleEnv moduleDefs importEnv = do
+        prim <- liftIO $ startingEnv
+        autoImportEnv <- mapM (liftIO . makeEnv . lookupModule moduleDefs) autoImports
+        return (concat (prim : autoImportEnv) ++ importEnv)
     lookupModule :: [(String, ModuleDef)] -> String -> ModuleDef
     lookupModule moduleDefs name = maybe [] id $ lookup name moduleDefs 
 
@@ -174,12 +175,6 @@ evalRepl (Assignment var expr) = do
   addTopLevelBinding var value
   return value
 
-closeOverBindings bindings = result
-  where
-    result = map editFunctionEnv bindings
-    editFunctionEnv (name, (Function argData isShown pos body env fields)) = 
-        (name, Function argData isShown pos body (result ++ env) fields)
-
 evalDefaults (ArgExpr args defaults varargs) = do
     values <- mapM eval defaultExprs
     return $ Args args (zip names values) varargs
@@ -194,9 +189,7 @@ eval (RecordLiteral args, pos) = withPos pos $ mapM evalRecord args >>= return .
   where evalRecord (label, expr) = 
             do value <- eval expr
                return (label, value)
-eval (Variable var, pos) = withPos pos $ do
-    env <- getEnv
-    maybe (throwEveError $ UnboundVar var) return $ lookup var env
+eval (Variable var, pos) = withPos pos $ lookupEnv var
 eval (Funcall fnExpr argExpr, pos) = withPos pos $ do
     fn <- eval fnExpr
     args <- mapM eval argExpr
@@ -211,16 +204,14 @@ eval (Lambda argExpr isShown body, pos) = withPos pos $ do
     env <- getEnv
     return $ makeFunction argData isShown pos body env
 eval (Letrec bindings body, pos) = withPos pos $ do
-    fns <- mapM evalPair bindings
-    env <- getEnv
-    pushCall "<letrec>" Nothing False (length fns) (closeOverBindings fns ++ env)
+    newEnv <- getEnv >>= extendEnv (zip (fst . unzip $ bindings) $ repeat makeNone)
+    pushCall "<letrec>" Nothing False (length bindings) newEnv
+    mapM evalBinding bindings
     result <- eval body
     popCall
     return result
-  where 
-    evalPair (name, body) = do
-        result <- eval body
-        return (name, result)
+  where evalBinding (name, body) = eval body >>= alterEnv name
+        
 eval (TypeCheck (tested, typeDecl) body, pos) = withPos pos $
     eval tested >>= throwIfInvalid typeDecl >> eval body
   where
@@ -242,8 +233,8 @@ eval (TypeCheck (tested, typeDecl) body, pos) = withPos pos $
 
 apply :: EveData -> [EveData] -> EveM EveData
 apply (Primitive name fn _) args = do
-    env <- getEnv
-    pushCall name Nothing True (length args) (zip argLabels args ++ env)
+    env <- getEnv >>= extendEnv (zip argLabels args)
+    pushCall name Nothing True (length args) $ env
     result <- fn args
     popCall
     return result
@@ -253,7 +244,8 @@ apply (Primitive name fn _) args = do
 
 apply (Function argData isShown pos body env fields) args = do
     boundArgs <- bindArgs argData args
-    pushCall name (Just pos) isShown (length boundArgs) (boundArgs ++ env)
+    newEnv <- extendEnv boundArgs env
+    pushCall name (Just pos) isShown (length boundArgs) newEnv
     result <- eval body
     popCall
     return result
@@ -284,21 +276,18 @@ eveMethodCall obj name args = getAttr name obj >>= flip apply (obj : args)
 
 iterableValues :: EveData -> EveM [EveData]
 iterableValues iter = do
-    env <- getEnv
-    Bool hasNext _ <- iterCall env "has_next"
+    Bool hasNext _ <- iterCall "has_next"
     if hasNext then do
-        val <- iterCall env "get"
-        next <- iterCall env "next"
+        val <- iterCall "get"
+        next <- iterCall "next"
         rest <- iterableValues next
         return $ val : rest
       else
         return []
-  where iterCall env name = eveMethodCall iter name []
+  where iterCall name = eveMethodCall iter name []
 
 sequenceValues :: EveData -> EveM [EveData]
-sequenceValues sequence = do
-    env <- getEnv 
-    eveMethodCall sequence "iter" [] >>= iterableValues
+sequenceValues sequence = eveMethodCall sequence "iter" [] >>= iterableValues
 
 applyPrimitive :: [EveData] -> EveM EveData
 applyPrimitive [fn, sequence] = sequenceValues sequence >>= apply fn
@@ -331,21 +320,22 @@ extendPrimitive [dest, source] = return . setAttributes dest $
 
 attrPrimitive [obj, field@(String name _)] = tryRecord `catchError` tryAttr
   where
-    tryRecord = getAttr name obj >>= return . bindReceiver
+    tryRecord = getAttr name obj >>= bindReceiver
     tryAttr e | hasAttr "attr" obj = getAttr "attr" obj >>= flip apply [obj, field]
     tryAttr e = throwError e
     bindReceiver = case lookup "im_receiver" $ attributes obj of
-        Nothing -> id
+        Nothing -> return
         Just (Primitive "None" _ _) -> maybeMakeMethod obj
         Just val -> maybeMakeMethod val
     wrappedFunction receiver fn pos env = Function (Args [] [] (Just "args")) True pos
         (Funcall (Variable "apply", pos) [(Literal fn, pos), (Funcall (Variable "add", pos) 
                 [(Literal $ makeTuple [receiver], pos), (Variable "args", pos)], pos)], pos) 
         env [("proto", fn), ("im_self", receiver), ("im_func", fn)]
-    maybeMakeMethod rcvr fn@(Primitive _ _ _) = wrappedFunction rcvr fn (Pos "<primitive>" 0 0 0) startingEnv
-    maybeMakeMethod _ fn@(Function (Args [] _ Nothing) _ _ _ _ _) = fn
-    maybeMakeMethod rcvr fn@(Function _ _ pos _ env _) = wrappedFunction rcvr fn pos env
-    maybeMakeMethod _ val = val
+    maybeMakeMethod rcvr fn@(Primitive _ _ _) = 
+        getEnv >>= return . wrappedFunction rcvr fn (Pos "<primitive>" 0 0 0)
+    maybeMakeMethod _ fn@(Function (Args [] _ Nothing) _ _ _ _ _) = return fn
+    maybeMakeMethod rcvr fn@(Function _ _ pos _ env _) = return $ wrappedFunction rcvr fn pos env
+    maybeMakeMethod _ val = return val
 attrPrimitive _ = throwEveError $ TypeError "Field access requires an object and a string"
 
 attrRawPrimitive [obj, String field _] = getAttr field obj

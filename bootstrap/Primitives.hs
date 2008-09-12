@@ -1,5 +1,5 @@
 module Primitives(makeInt, makeBool, makeString, makeSymbol, makeTuple, makeRecord, 
-        makePrimitive, makeFunction, makePrimitives, makeNone, primitiveEnv) where
+        makePrimitive, makeFunction, makePrimitives, makeNone, primitives) where
 import Data
 import Utils
 import Control.Monad.Error hiding (join)
@@ -64,7 +64,7 @@ functionProto = makeTypeObj "Function" typeObject [eqPrimitives]
 makeNone = makeTypeObj "None" typeObject [eqPrimitives]
 
 -- Global primitives.  Augmented in Eval by the primitives that need access to apply
-primitiveEnv = makePrimitives [
+primitives = makePrimitives [
     ("dump", dump),
     ("locals", locals)] ++ boolPrimitives ++ map bindPrimitive 
         -- "Record" and "Tuple" are added by the evaluator, since the require
@@ -145,10 +145,8 @@ slice _ = typeError "slice requires a sequence, an integer start, and an integer
 
 allIterPrimitives = concat [eqPrimitives, iterPrimitives]
 makeIter constr val = do
-    env <- getEnv
-    return $ constr val 0 $ [("proto", findIterator env), ("im_receiver", makeNone)] ++ allIterPrimitives
-  where
-    findIterator env = maybe (error "Iterator prototype not loaded") id $ lookup "Iterator" env
+    iterProto <- lookupEnv "Iterator" `catchError` (const $ return makeNone)
+    return $ constr val 0 $ [("proto", iterProto), ("im_receiver", makeNone)] ++ allIterPrimitives
 iter [val@(String _ _)] = makeIter SequenceIter val
 iter [val@(Tuple _ _)] = makeIter SequenceIter val
 iter [val@(Record _)] = makeIter RecordIter val

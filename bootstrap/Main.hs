@@ -17,4 +17,6 @@ printOutput input = replAction input >>= replOutput
 handleError action = flip catchError (liftIO . print) . action
 
 main = let setup = handleError $ const $ mapM_ (replAction . ("import " ++)) autoImports
-  in runEveM (setup "" >> runRepl "Eve" (handleError printOutput)) (startingEnv) >> return ()
+  in do
+    env <- startingEnv
+    runEveM (setup "" >> runRepl "Eve" (handleError printOutput)) env >> return ()

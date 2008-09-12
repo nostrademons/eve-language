@@ -4,16 +4,17 @@ module Data(EveToken(..), defaultPos, SourcePos(..), ArgData(..), ArgExpr(..),
             ShowEve(showExpr), ModuleDef, getAccessibleBindings, 
             recordFields, sortRecord, showFields, prototype, 
             attributes, setAttributes, getAttr, hasAttr, dropAttrs, attrNames,
-            EveM, runEveM, getModules, getEnv, setEnv, addTopLevelBinding, 
+            EveM, runEveM, getModules, addTopLevelBinding, 
+            getEnv, setEnv, lookupEnv, makeEnv, extendEnv, unwrapEnv, alterEnv,
             withPos, pushCall, popCall, frameVars, throwEveError, 
             interp_modules, join) where
 import Data.List
+import Data.IORef
 import Control.Monad.State hiding (join)
 import Control.Monad.Error hiding (join)
 
 -- Runtime data
 
-type Env = [(String, EveData)]
 type Attributes = [(String, EveData)]
 
 data ArgData = Args [String] [(String, EveData)] (Maybe String) deriving (Eq)
@@ -47,7 +48,7 @@ data EveData =
         fn_fields :: Attributes
     }
 
-findPrototype :: Env -> EveData
+findPrototype :: Attributes -> EveData
 findPrototype fields = maybe (Bool False []) id $ lookup "proto" fields
 
 attributes (Int _ fields) = fields
@@ -127,6 +128,36 @@ instance Show EveData where
             "{| " ++ show argData ++ " | " ++ abbrev (showExpr body) ++ " }"
       showMethod method = "bound method: " ++ showFunc method
       abbrev text = if length text > 40 then take 37 text ++ "..." else text 
+
+-- Environments
+
+-- We can't just use a straight, pure assoclist because Letrec requires that
+-- we build the list first and then mutably set its values.
+type Env = [(String, IORef EveData)]
+
+makeEnv :: [(String, EveData)] -> IO Env
+makeEnv bindings = (mapM newIORef values) >>= return . zip keys
+  where (keys, values) = unzip bindings
+
+extendEnv :: [(String, EveData)] -> Env -> EveM Env
+extendEnv bindings env = (liftIO $ makeEnv bindings) >>= return . (++ env)
+
+unwrapEnv :: Env -> EveM [(String, EveData)]
+unwrapEnv env = mapM extractValue env
+  where
+    extractValue (var, valueRef) = do
+        val <- liftIO $ readIORef valueRef
+        return (var, val)
+
+lookupEnv :: String -> EveM EveData
+lookupEnv var = do
+    env <- getEnv
+    maybe (throwEveError $ UnboundVar var) (liftIO . readIORef) $ lookup var env
+
+alterEnv :: String -> EveData -> EveM ()
+alterEnv var value = do
+    ref <- getEnv >>= maybe (throwEveError $ UnboundVar var) return . lookup var
+    liftIO $ writeIORef ref value
 
 -- Modules
 
@@ -329,11 +360,9 @@ data StackFrame = Frame {
 
 showStackFrame precedingText (Frame name pos isShown numArgs env) = precedingText ++
     (if isShown 
-        then "\n  " ++ name ++ "(" ++ join ", " args ++ ")" ++ maybe "" showSourcePos pos
+        then "\n  " ++ name ++ maybe "" showSourcePos pos
         else "")
-  where 
-    args = map show . snd . unzip . take numArgs $ env
-    showSourcePos pos = " at " ++ show pos
+  where showSourcePos pos = " at " ++ show pos
 
 -- Errors
 
@@ -409,14 +438,18 @@ topFrame = get >>= return . top . interp_stack
     top [] = error "Top-level interp_stack frame has been popped."
     top (frame : rest) = frame
 
-frameVars :: EveM [(String, EveData)]
-frameVars = get >>= return . findVars [] . interp_stack
+frameVars :: EveM Attributes
+frameVars = get >>= findVars [] . interp_stack
   where
+    takeVars :: Attributes -> Int -> Env -> EveM Attributes
+    takeVars vars numArgs env = (unwrapEnv $ take numArgs env) >>= return . (vars ++)
     -- Needed because locals() introduces its own interp_stack frame
     findVars vars (Frame "locals" _ _ _ _ : rest) = findVars vars rest
-    findVars vars (Frame _ _ False numArgs env : rest) = findVars (vars ++ take numArgs env) rest
-    findVars vars (Frame _ _ True numArgs env : _) = vars ++ take numArgs env
-    findVars _ _ = []
+    findVars vars (Frame _ _ False numArgs env : rest) = do
+        newVals <- takeVars vars numArgs env 
+        findVars newVals rest
+    findVars vars (Frame _ _ True numArgs env : _) = takeVars vars numArgs env
+    findVars _ _ = return []
 
 throwEveError error = do
     pos <- get >>= return . interp_pos
@@ -424,11 +457,10 @@ throwEveError error = do
     throwError $ StackTrace pos frames error
 
 addTopLevelBinding :: String -> EveData -> EveM ()
-addTopLevelBinding var value = modify addBinding
-  where
-    addBinding state = state { interp_stack = addBindingToBottom $ interp_stack state }
-    addBindingToBottom [frame] = [frame { frame_env = (var, value) : frame_env frame }]
-    addBindingToBottom (frame : rest) = frame : addBindingToBottom rest
+addTopLevelBinding var value = do
+    frames <- get >>= return . interp_stack
+    newEnv <- extendEnv [(var, value)] . frame_env . last $ frames
+    modify $ \s -> s { interp_stack = (init frames ++ [(last frames) { frame_env = newEnv }]) }
 
 runEveM :: EveM a -> Env -> IO (Either EveStackTrace (a, InterpreterState))
 runEveM monad env = runErrorT $ runStateT monad $ Interpreter defaultPos [Frame "top-level" Nothing False 0 env] []
