@@ -117,12 +117,9 @@ parseDef tEnv (Class name superDecl (doc, lines), pos) =
         ("name", (Literal $ makeString name, pos)), ("doc", (Literal $ makeString doc, pos))], pos)] pos
   where
     classBody = (Funcall (parseDef tEnv defBody) [], pos)
-    maybeSuper = maybe id (\var methods -> ("proto", (Variable var, pos)) : methods) superDecl
+    maybeSuper = maybe "Function" id superDecl
     defBody = (Def name (ArgExpr [] [] Nothing) doc Nothing lines constr, pos)
-    constr = (Lambda (ArgExpr [] [] (Just "args")) True constrBody, pos)
-    constrBody = funcall "extend" [funcall "apply" (map (\var -> (Variable var, pos)) ["init", "args"]) pos, proto] pos
-    proto = (RecordLiteral [("proto", (RecordLiteral . maybeSuper $ methodRecord lines, pos)), 
-                            ("im_receiver", (Literal makeNone, pos))], pos)
+    constr = funcall "make_class" [(Variable maybeSuper, pos), funcall "locals" [] pos] pos
 
 readModule :: String -> String -> EveM ModuleDef
 readModule moduleName fileText = do

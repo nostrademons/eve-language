@@ -12,10 +12,10 @@ class Iterable:
     # self.iter().reduce(*args) }
 
 class ProxyIterator(Iterable):
-    '''
+    """
     An iterator that proxies calls through to an underlying iterator.  Used as
     a base class for many of the functions here.
-    '''
+    """
     def init(original): add_superclass(Iterator, { original: original.iter() })
     def get(self): self.original.get()
     def next(self): self | { original: self.original.next() }
@@ -58,7 +58,6 @@ class Iterator(Iterable):
     class map(ProxyIterator):
         def init(self, f): { original: original -> iter, f: ignore_self(f) }
         def get(self): self.f(super(self).get())
-        make_class(ProxyIterator, locals())
 
     class filter(ProxyIterator):
         def next_legal(self):
