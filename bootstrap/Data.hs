@@ -14,6 +14,7 @@ import Control.Monad.Error hiding (join)
 -- Runtime data
 
 type Env = [(String, EveData)]
+type Attributes = [(String, EveData)]
 
 data ArgData = Args [String] [(String, EveData)] (Maybe String) deriving (Eq)
 
@@ -24,18 +25,18 @@ instance Show ArgData where
         displayArg arg = maybe arg (\val -> arg ++ "=" ++ show val) $ lookup arg defaults
 
 data EveData = 
-    Int Int Env
-  | Bool Bool Env  
-  | String String Env
-  | Symbol String Env
-  | Tuple [EveData] Env
-  | SequenceIter EveData Int Env
-  | Record Env
-  | RecordIter EveData Int Env
+    Int Int Attributes
+  | Bool Bool Attributes  
+  | String String Attributes
+  | Symbol String Attributes
+  | Tuple [EveData] Attributes
+  | SequenceIter EveData Int Attributes
+  | Record Attributes
+  | RecordIter EveData Int Attributes
   | Primitive {
         fn_name :: String,
         fn_impl :: ([EveData] -> EveM EveData),
-        fn_env :: Env
+        fn_fields :: Attributes
     }
   | Function {
         fn_args :: ArgData,
@@ -43,7 +44,7 @@ data EveData =
         fn_pos :: SourcePos,
         fn_body :: EveExpr,
         fn_env :: Env,
-        fn_fields :: Env
+        fn_fields :: Attributes
     }
 
 findPrototype :: Env -> EveData
