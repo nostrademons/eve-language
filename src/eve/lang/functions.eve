@@ -16,9 +16,11 @@ def make_class(superclass, methods):
     10
     Eve>>> cls.double(3)
     6
+    Eve>>> cls.proto
+    Int
 
     """
     {| *args | methods.init(*args) | { 
         proto: methods | { proto: superclass },
         im_receiver: None
-    }} | methods
+    }} | methods | { proto: superclass } 

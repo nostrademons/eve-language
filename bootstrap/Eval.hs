@@ -113,8 +113,8 @@ parseDef typeEnv (Def name argData doc typeDecl lines body, pos) =
         TFunc (map convertTypeDefs args) $ convertTypeDefs ret
 
 parseDef tEnv (Class name superDecl (doc, lines), pos) = 
-    funcall "extend" [classBody, (RecordLiteral $ [("proto", (Variable "Function", pos)), 
-        ("name", (Literal $ makeString name, pos)), ("doc", (Literal $ makeString doc, pos))], pos)] pos
+    funcall "extend" [classBody, (RecordLiteral $ 
+        [("name", (Literal $ makeString name, pos)), ("doc", (Literal $ makeString doc, pos))], pos)] pos
   where
     classBody = (Funcall (parseDef tEnv defBody) [], pos)
     maybeSuper = maybe "Function" id superDecl

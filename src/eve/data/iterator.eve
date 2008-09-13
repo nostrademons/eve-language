@@ -11,39 +11,6 @@ class Iterable:
     # calls on the Iterable, eg. Iterable.reduce = {| self, *args |
     # self.iter().reduce(*args) }
 
-class ProxyIterator(Iterable):
-    """
-    An iterator that proxies calls through to an underlying iterator.  Used as
-    a base class for many of the functions here.
-    """
-    def init(original): add_superclass(Iterator, { original: original.iter() })
-    def get(self): self.original.get()
-    def next(self): self | { original: self.original.next() }
-    def has_next(self): self.original.has_next()
-
-class chain(ProxyIterator):
-    def init(current, *rest): add_superclass(Iterator, { 
-        original: current.iter(),
-        rest: rest
-    })
-    def next(self):
-        if self.original.has_next() 
-            then self | { original: self.original.next() }
-            else self | { original: self.rest[0], rest: self.rest[1 : self.rest.len()] }
-    def has_next(self): self.original.has_next() or self.rest.len() > 0
-
-class repeat(Iterable):
-    def init(value): locals()
-    def get(self): self.value
-    def next(self): self
-    def has_next(self): True
-
-class iterate(Iterable):
-    def init(initial, f): { current: initial, f: ignore_self(f) }
-    def get(self): self.current
-    def next(self): self | { current: self.f(self.current) }
-    def has_next(self): self.f(self.current) != None
-
 class Iterator(Iterable):
     class cycle(ProxyIterator):
         def init(self): 
@@ -56,7 +23,7 @@ class Iterator(Iterable):
         def has_next(self): True
 
     class map(ProxyIterator):
-        def init(self, f): { original: original -> iter, f: ignore_self(f) }
+        def init(self, f): { original: self.iter(), f: ignore_self(f) }
         def get(self): self.f(super(self).get())
 
     class filter(ProxyIterator):
@@ -115,3 +82,51 @@ class Iterator(Iterable):
     def all(self, pred=Bool): self.search({| val | pred(val) == False }) == -1
     def min(self): self.reduce({| val, last | if val < last then val else last }, self.get())
     def max(self): self.reduce({| val, last | if val > last then val else last }, self.get())
+
+class ProxyIterator(Iterator):
+    """
+    An iterator that proxies calls through to an underlying iterator.  Used as
+    a base class for many of the functions here.
+    """
+    def init(original): { original: original.iter() }
+    def get(self): self.original.get()
+    def next(self): self | { original: self.original.next() }
+    def has_next(self): self.original.has_next()
+
+class chain(Iterator):
+    """
+    Produces an iterator that runs through each of its arguments in turn.
+    The arguments may be either sequences or iterators themselves.
+
+    Eve>>> chain([1,2]).get()
+    1
+    Eve>>> chain([1,2]).next().next().has_next()
+    False
+
+    """
+    def init(current, *rest): { 
+        current: current.iter(),
+        rest: rest
+    }
+    def get(self): self.current.get()
+    def next(self):
+        if self.current.has_next() 
+            then self | { current: self.current.next() }
+            else self | { 
+                current: self.rest[0].iter(), 
+                rest: self.rest[1 : self.rest.len()] 
+            }
+    def has_next(self): self.current.has_next() or self.rest.len() > 0
+
+class repeat(Iterator):
+    def init(value): locals()
+    def get(self): self.value
+    def next(self): self
+    def has_next(self): True
+
+class iterate(Iterator):
+    def init(initial, f): { current: initial, f: ignore_self(f) }
+    def get(self): self.current
+    def next(self): self | { current: self.f(self.current) }
+    def has_next(self): self.f(self.current) != None
+
