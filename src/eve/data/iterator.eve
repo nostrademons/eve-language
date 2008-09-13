@@ -14,7 +14,7 @@ class Iterable:
 class Iterator(Iterable):
     class cycle(ProxyIterator):
         def init(self): 
-            i = self -> iter
+            i = self.iter()
             { self: i, start: i }
         def next(self):
             if super(self).has_next(self) 
