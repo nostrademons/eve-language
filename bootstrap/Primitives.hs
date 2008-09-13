@@ -44,7 +44,7 @@ iterPrimitives = makeMethods [
   ("iter", iter),
   ("get", get),
   ("next", iterNext),
-  ("has_next", iterHasNext)]
+  ("is_valid", iterIsValid)]
 
 sequencePrimitives = makeMethods [
   ("add", concat'),
@@ -165,11 +165,11 @@ iterNext [SequenceIter val index fields] = return $ SequenceIter val (index + 1)
 iterNext [RecordIter val index fields] = return $ RecordIter val (index + 1) fields
 iterNext _ = typeError "Not an iterator."
 
-iterHasNextHelper xs index = return . makeBool $ index < length xs - 1
-iterHasNext [SequenceIter (String xs _) index _] = iterHasNextHelper xs index
-iterHasNext [SequenceIter (Tuple xs _) index _] = iterHasNextHelper xs index
-iterHasNext [RecordIter (Record xs) index _] = iterHasNextHelper xs index
-iterHasNext _ = typeError "Not an iterator."
+iterHasNextHelper xs index = return . makeBool $ index < length xs
+iterIsValid [SequenceIter (String xs _) index _] = iterHasNextHelper xs index
+iterIsValid [SequenceIter (Tuple xs _) index _] = iterHasNextHelper xs index
+iterIsValid [RecordIter (Record xs) index _] = iterHasNextHelper xs index
+iterIsValid _ = typeError "Not an iterator."
 
 concat' [String xs fields, String ys _] = return $ setAttributes (makeString (xs ++ ys)) fields
 concat' [Tuple xs fields, Tuple ys _] = return $ setAttributes (makeTuple (xs ++ ys)) fields

@@ -1,7 +1,7 @@
 typedef Iterable: {
     get: (Iterable -> Any),
     next: (Iterable -> Iterable),
-    has_next: (Iterable -> Bool)
+    is_valid: (Iterable -> Bool)
 }
 
 class Iterable:
@@ -21,10 +21,10 @@ class Iterator(Iterable):
             i = self.iter()
             { self: i, start: i }
         def next(self):
-            if super(self).has_next(self) 
+            if super(self).is_valid(self) 
                 then super(self).next(self) 
                 else self | { original: start }
-        def has_next(self): True
+        def is_valid(self): True
 
     class map(ProxyIterator):
         def init(self, f): { original: self.iter(), f: ignore_self(f) }
@@ -43,7 +43,7 @@ class Iterator(Iterable):
             original: self, 
             pred: ignore_receiver(pred)
         }
-        def has_next(self): super(self).has_next() and self.pred(self.next().get())
+        def is_valid(self): super(self).is_valid() and self.pred(self.next().get())
 
     class take(take_while):
         def init(self, num): { 
@@ -61,7 +61,7 @@ class Iterator(Iterable):
 
     class drop(ProxyIterator):
         def init(self, num):
-            if num > 0 and self.has_next()
+            if num > 0 and self.is_valid()
                 then init(self.next(), num - 1)
                 else { original: self }
 
@@ -69,14 +69,14 @@ class Iterator(Iterable):
         drop(self, start) -> take(?, end - start)
 
     def reduce(self, f, accum):
-        if self.has_next()
+        if self.is_valid()
             then self.next().reduce(f, f(self.get(), accum))
             else accum
 
     def search(self, pred, index=0): 
         cond:
             pred(self.get()): index
-            self.has_next(): self.next().search(pred, index + 1)
+            self.is_valid(): self.next().search(pred, index + 1)
             True: -1
 
     def len(self): self.reduce({| val, len | len + 1 }, 0)
@@ -95,7 +95,7 @@ class ProxyIterator(Iterator):
     def init(original): { original: original.iter() }
     def get(self): self.original.get()
     def next(self): self | { original: self.original.next() }
-    def has_next(self): self.original.has_next()
+    def is_valid(self): self.original.is_valid()
 
 class chain(Iterator):
     """
@@ -104,7 +104,7 @@ class chain(Iterator):
 
     Eve>>> chain([1,2]).get()
     1
-    Eve>>> chain([1,2]).next().next().has_next()
+    Eve>>> chain([1,2]).next().next().is_valid()
     False
 
     """
@@ -114,23 +114,23 @@ class chain(Iterator):
     }
     def get(self): self.current.get()
     def next(self):
-        if self.current.has_next() 
+        if self.current.is_valid() 
             then self | { current: self.current.next() }
             else self | { 
                 current: self.rest[0].iter(), 
                 rest: self.rest[1 : self.rest.len()] 
             }
-    def has_next(self): self.current.has_next() or self.rest.len() > 0
+    def is_valid(self): self.current.is_valid() or self.rest.len() > 0
 
 class repeat(Iterator):
     def init(value): locals()
     def get(self): self.value
     def next(self): self
-    def has_next(self): True
+    def is_valid(self): True
 
 class iterate(Iterator):
     def init(initial, f): { current: initial, f: ignore_self(f) }
     def get(self): self.current
     def next(self): self | { current: self.f(self.current) }
-    def has_next(self): self.f(self.current) != None
+    def is_valid(self): self.f(self.current) != None
 

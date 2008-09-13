@@ -273,14 +273,14 @@ eveMethodCall obj name args = getAttr name obj >>= flip apply (obj : args)
 
 iterableValues :: EveData -> EveM [EveData]
 iterableValues iter = do
-    val <- iterCall "get"
-    Bool hasNext _ <- iterCall "has_next"
+    Bool hasNext _ <- iterCall "is_valid"
     if hasNext then do
+        val <- iterCall "get"
         next <- iterCall "next"
         rest <- iterableValues next
         return $ val : rest
       else
-        return [val]
+        return []
   where iterCall name = eveMethodCall iter name []
 
 sequenceValues :: EveData -> EveM [EveData]

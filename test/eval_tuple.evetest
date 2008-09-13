@@ -10,7 +10,7 @@ Eve>>> [1,2,3,4].iter()[]
 1
 Eve>>> [1,2,3,4].iter().next().next().get()
 3
-Eve>>> [1,2,3].iter().next().next().next().has_next()
+Eve>>> [1,2,3].iter().next().next().next().is_valid()
 False
 Eve>>> [1,2,3].len()
 3
