@@ -8,9 +8,14 @@ makePrimitives primitives = zip names $ map makePrimitive (zip names values)
   where 
     (names, values) = unzip primitives
 
+makeMethods = map addMethodSelf . makePrimitives
+  where
+    addMethodSelf (var, Primitive name fn fields) = 
+        (var, Primitive name fn (("method_self", makeNone) : fields))
+
 -- Individual method lists for different types
 
-numberPrimitives = makePrimitives [
+numberPrimitives = makeMethods [
   ("pow", numericBinop ((^) . fromIntegral)),
   ("mul", numericBinop (*)),
   ("div", numericBinop div),
@@ -20,11 +25,11 @@ numberPrimitives = makePrimitives [
 
 -- TODO: Eq should be a standalone function instead of an instance method, so
 -- it works on plain records
-eqPrimitives = makePrimitives [
+eqPrimitives = makeMethods [
   ("eq", eqBinop (==)),
   ("ne", eqBinop (/=))]
 
-orderedPrimitives = makePrimitives [
+orderedPrimitives = makeMethods [
   ("lt", numBoolBinop (<)),
   ("gt", numBoolBinop (>)),
   ("ge", numBoolBinop (>=)),
@@ -35,13 +40,13 @@ boolPrimitives = makePrimitives [
   ("or_", boolBoolBinop (||)),
   ("not_", boolOp (not))]
 
-iterPrimitives = makePrimitives [
+iterPrimitives = makeMethods [
   ("iter", iter),
   ("get", get),
   ("next", iterNext),
   ("has_next", iterHasNext)]
 
-sequencePrimitives = makePrimitives [
+sequencePrimitives = makeMethods [
   ("add", concat'),
   ("mul", repeat'),
   ("iter", iter),

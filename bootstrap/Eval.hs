@@ -320,10 +320,10 @@ attrPrimitive [obj, field@(String name _)] = tryRecord `catchError` tryAttr
     tryRecord = getAttr name obj >>= bindReceiver
     tryAttr e | hasAttr "attr" obj = getAttr "attr" obj >>= flip apply [obj, field]
     tryAttr e = throwError e
-    bindReceiver = case lookup "im_receiver" $ attributes obj of
-        Nothing -> return
-        Just (Primitive "None" _ _) -> maybeMakeMethod obj
-        Just val -> maybeMakeMethod val
+    bindReceiver result = case lookup "method_self" $ attributes result of
+        Nothing -> return result
+        Just (Primitive "None" _ _) -> maybeMakeMethod obj result
+        Just val -> maybeMakeMethod val result
     wrappedFunction receiver fn pos env = Function (Args [] [] (Just "args")) True pos
         (Funcall (Variable "apply", pos) [(Literal fn, pos), (Funcall (Variable "add", pos) 
                 [(Literal $ makeTuple [receiver], pos), (Variable "args", pos)], pos)], pos) 

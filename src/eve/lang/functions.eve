@@ -21,6 +21,5 @@ def make_class(superclass, methods):
 
     """
     {| *args | methods.init(*args) | { 
-        proto: methods | { proto: superclass },
-        im_receiver: None
+        proto: methods | { proto: superclass }
     }} | methods | { proto: superclass } 
