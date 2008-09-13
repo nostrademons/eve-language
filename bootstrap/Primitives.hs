@@ -151,7 +151,7 @@ slice _ = typeError "slice requires a sequence, an integer start, and an integer
 allIterPrimitives = concat [eqPrimitives, iterPrimitives]
 makeIter constr val = do
     iterProto <- lookupEnv "Iterator" `catchError` (const $ return makeNone)
-    return $ constr val 0 $ [("proto", iterProto), ("im_receiver", makeNone)] ++ allIterPrimitives
+    return $ constr val 0 $ [("proto", iterProto)] ++ allIterPrimitives
 iter [val@(String _ _)] = makeIter SequenceIter val
 iter [val@(Tuple _ _)] = makeIter SequenceIter val
 iter [val@(Record fields)] = makeIter RecordIter $ Record $ recordFields fields
@@ -165,7 +165,7 @@ iterNext [SequenceIter val index fields] = return $ SequenceIter val (index + 1)
 iterNext [RecordIter val index fields] = return $ RecordIter val (index + 1) fields
 iterNext _ = typeError "Not an iterator."
 
-iterHasNextHelper xs index = return . makeBool $ index < length xs
+iterHasNextHelper xs index = return . makeBool $ index < length xs - 1
 iterHasNext [SequenceIter (String xs _) index _] = iterHasNextHelper xs index
 iterHasNext [SequenceIter (Tuple xs _) index _] = iterHasNextHelper xs index
 iterHasNext [RecordIter (Record xs) index _] = iterHasNextHelper xs index
