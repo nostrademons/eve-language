@@ -327,7 +327,8 @@ attrPrimitive [obj, field@(String name _)] = tryRecord `catchError` tryAttr
     wrappedFunction receiver fn pos env = Function (Args [] [] (Just "args")) True pos
         (Funcall (Variable "apply", pos) [(Literal fn, pos), (Funcall (Variable "add", pos) 
                 [(Literal $ makeTuple [receiver], pos), (Variable "args", pos)], pos)], pos) 
-        env [("proto", fn), ("method_self", receiver), ("method_func", fn)]
+        env [("proto", fn), ("method_self", receiver), 
+            ("method_func", setAttributes fn $ dropAttrs ["method_self"] fn)]
     maybeMakeMethod rcvr fn@(Primitive _ _ _) = 
         getEnv >>= return . wrappedFunction rcvr fn (Pos "<primitive>" 0 0 0)
     maybeMakeMethod _ fn@(Function (Args [] _ Nothing) _ _ _ _ _) = return fn
