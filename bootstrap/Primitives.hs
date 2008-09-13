@@ -63,7 +63,7 @@ strProto = makeTypeObj "Str" convertToString [eqPrimitives, orderedPrimitives,
     sequencePrimitives]
 symProto = makeTypeObj "Sym" convertToSymbol [eqPrimitives]
 tupleProto = makeTypeObj "Tuple" typeObject [eqPrimitives, sequencePrimitives]
-recordProto = makeTypeObj "Record" typeObject [eqPrimitives]
+recordProto = makeTypeObj "Record" typeObject [eqPrimitives, sequencePrimitives]
 primitiveProto = makeTypeObj "Primitive" typeObject [eqPrimitives]
 functionProto = makeTypeObj "Function" typeObject [eqPrimitives]
 makeNone = makeTypeObj "None" typeObject [eqPrimitives]

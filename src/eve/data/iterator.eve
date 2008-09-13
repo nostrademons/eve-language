@@ -13,6 +13,10 @@ class Iterable:
 
 class Iterator(Iterable):
     class cycle(ProxyIterator):
+        """
+        Cycles through the iterator elements, returning to the first one when
+        the iterator is exhausted.
+        """
         def init(self): 
             i = self.iter()
             { self: i, start: i }
