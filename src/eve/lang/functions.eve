@@ -11,8 +11,9 @@ def bind_methods(record):
     """
     i = record.iter()
     name, method = i.get()
-    [[name, method | { method_self: None }]] + if i.has_next() 
-        then bind_methods(i.next()) else []
+    if i.is_valid()
+        then [[i.get()[0], i.get()[1] | { method_self: None }]] + bind_methods(i.next()) 
+        else []
 
 def make_class(superclass, methods): 
     """
@@ -31,8 +32,7 @@ def make_class(superclass, methods):
     Int
 
     """
-    bound_methods = methods
-#    bound_methods = methods -> Record -> bind_methods -> Record
+    bound_methods = methods -> Record -> bind_methods -> Record
     {| *args | methods.init(*args) | { 
         proto: bound_methods | { proto: superclass }
     }} | methods | { proto: superclass } 

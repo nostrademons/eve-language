@@ -256,7 +256,7 @@ apply (Function argData isShown pos body env fields) args = do
                 ++ zip (filter (flip notElem $ fst $ unzip defaultsTaken) argNames) args
         numArgs -> throwEveError $ TypeError $ "Wrong number of arguments: expected at least " 
                 ++ show (numArgs - length defaults) ++ (if hasVarArgs then "" else ", at most " ++ show numArgs)
-                ++ ", found" ++ show args
+                ++ ", found " ++ show args
       where
         boundArgs = zip argNames args
         hasVarArgs = maybe False (const True) varargs
