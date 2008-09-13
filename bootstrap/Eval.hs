@@ -344,6 +344,7 @@ convertToTuple [x] = if hasAttr "iter" x
     else return $ makeTuple [x]
 convertToTuple xs = return $ makeTuple xs
 
+convertToRecord [Record fields] = return $ makeRecord fields
 convertToRecord [sequence] = sequenceValues sequence >>= mapM toFieldList >>= return . makeRecord
   where
     toFieldList (Tuple [String key _, val] _) = return (key, val)

@@ -28,3 +28,11 @@ Eve>>> obj2 = 5 | { proto: { proto: Int, f: {| x, y=2 | x - y }, g: {| self, *ar
 5
 Eve>>> Record([["foo", 2], ["bar", { field1: 3 }]])
 {'foo': 2, 'bar': {'field1': 3}}
+Eve>>> Record({ foo: 1, bar: 2}).len()
+2
+Eve>>> Record({ foo: 1, bar: 2}) + { baz: 3}
+{'foo': 1, 'bar': 2, 'baz': 3}
+Eve>>> Record({ foo: 1 })['foo']
+1
+Eve>>> Record({ foo: 1, bar: 2}).iter().get()
+['foo', 1]

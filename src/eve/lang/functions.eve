@@ -23,7 +23,6 @@ def make_class(superclass, methods):
     def bind_method(item):
         name, method = item
         [name, method | { method_self: None }]
-    bound_methods = methods.map(bind_method)
     {| *args | methods.init(*args) | { 
-        proto: bound_methods | { proto: superclass }
+        proto: methods | { proto: superclass }
     }} | methods | { proto: superclass } 

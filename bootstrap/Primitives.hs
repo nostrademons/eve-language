@@ -154,7 +154,7 @@ makeIter constr val = do
     return $ constr val 0 $ [("proto", iterProto), ("im_receiver", makeNone)] ++ allIterPrimitives
 iter [val@(String _ _)] = makeIter SequenceIter val
 iter [val@(Tuple _ _)] = makeIter SequenceIter val
-iter [val@(Record _)] = makeIter RecordIter val
+iter [val@(Record fields)] = makeIter RecordIter $ Record $ recordFields fields
 iter [val@(SequenceIter _ _ _)] = return val
 iter [val@(RecordIter _ _ _)] = return val
 iter val = typeError (show val ++ " is not iterable")
@@ -171,12 +171,14 @@ iterHasNext [SequenceIter (Tuple xs _) index _] = iterHasNextHelper xs index
 iterHasNext [RecordIter (Record xs) index _] = iterHasNextHelper xs index
 iterHasNext _ = typeError "Not an iterator."
 
-concat' [String xs _, String ys _] = return $ makeString (xs ++ ys)
-concat' [Tuple xs _, Tuple ys _] = return $ makeTuple (xs ++ ys)
+concat' [String xs fields, String ys _] = return $ setAttributes (makeString (xs ++ ys)) fields
+concat' [Tuple xs fields, Tuple ys _] = return $ setAttributes (makeTuple (xs ++ ys)) fields
+concat' [Record xs, Record ys] = return $ makeRecord (xs ++ ys)
 concat' _ = typeError "Concatenation needs a sequence"
 
 repeat' [String xs _, Int num _] = return . makeString . concat $ replicate num xs
 repeat' [Tuple xs _, Int num _] = return . makeTuple . concat $ replicate num xs
+repeat' [val@(Record _), Int num _] = return val
 repeat' _ = typeError "Repetition needs a sequence and an int"
 
 typeObject _ = typeError "Pure type objects cannot be applied."
