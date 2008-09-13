@@ -141,7 +141,7 @@ ReplLine : Expr                 { Expr $1 }
 MultiLineExpr   : 'cond' ':' EOL INDENT CondClauseList DEDENT   { (Cond (reverse $5), pos $1) }
 
 SequenceUnpack : VAR '=' Expr          { (Binding (Right $ extractVar $1) $3, pos $2) }
-               | VarList '=' Expr      { (Binding (Left $1) $3, pos $2) }
+               | VarList '=' Expr      { (Binding (Left $ reverse $1) $3, pos $2) }
 
 CondClause : Expr ':' Expr      { ($1, $3) }
 

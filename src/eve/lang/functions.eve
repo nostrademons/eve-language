@@ -11,7 +11,7 @@ def bind_methods(record):
     """
     i = record.iter()
     name, method = i.get()
-    [name, method | { method_self: None }] + if i.has_next() 
+    [[name, method | { method_self: None }]] + if i.has_next() 
         then bind_methods(i.next()) else []
 
 def make_class(superclass, methods): 

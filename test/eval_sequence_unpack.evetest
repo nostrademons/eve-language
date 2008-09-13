@@ -1,4 +1,4 @@
 Eve>>> import test.test_sequence_unpack
-{|  | apply({|b, a| add(a, b) with }, [2, 3]) }
+{|  | apply({|a, b| sub(a, b) with }, [7, 2]) }
 Eve>>> five()
 5
