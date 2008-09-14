@@ -13,6 +13,9 @@ makeMethods = map addMethodSelf . makePrimitives
     addMethodSelf (var, Primitive name fn fields) = 
         (var, Primitive name fn (("method_self", makeNone) : fields))
 
+-- TODO: figure out how to include the unbound methods on the contructor function, 
+-- but bound methods in the prototype.
+
 -- Individual method lists for different types
 
 numberPrimitives = makeMethods [
@@ -82,12 +85,12 @@ primitives = makePrimitives [
 -- Factories that bundle a basic data type up with the primitives associated
 -- with it
 
-makeInt val = Int val [("proto", intProto), ("im_receiver", makeNone)]
-makeBool val = Bool val [("proto", boolProto), ("im_receiver", makeNone)]
-makeString val = String val [("proto", strProto), ("im_receiver", makeNone)]
+makeInt val = Int val [("proto", intProto), ("method_receiver", makeNone)]
+makeBool val = Bool val [("proto", boolProto), ("method_receiver", makeNone)]
+makeString val = String val [("proto", strProto), ("method_receiver", makeNone)]
 makeSymbol val = Symbol val [("proto", symProto)]
-makeTuple val = Tuple val [("proto", tupleProto), ("im_receiver", makeNone)]
-makeRecord val = Record $ ("proto", recordProto) : val
+makeTuple val = Tuple val [("proto", tupleProto), ("method_receiver", makeNone)]
+makeRecord val = Record $ [("proto", recordProto), ("method_receiver", makeNone)] ++ val
 makePrimitive (name, fn) = Primitive name fn [("proto", primitiveProto)]
 makeFunction argData isShown pos body env = Function argData isShown pos body env [("proto", functionProto)]
 
@@ -151,7 +154,7 @@ slice _ = typeError "slice requires a sequence, an integer start, and an integer
 allIterPrimitives = concat [eqPrimitives, iterPrimitives]
 makeIter constr val = do
     iterProto <- lookupEnv "Iterator" `catchError` (const $ return makeNone)
-    return $ constr val 0 $ [("proto", iterProto)] ++ allIterPrimitives
+    return $ constr val 0 $ [("proto", iterProto), ("method_receiver", makeNone)] ++ allIterPrimitives
 iter [val@(String _ _)] = makeIter SequenceIter val
 iter [val@(Tuple _ _)] = makeIter SequenceIter val
 iter [val@(Record fields)] = makeIter RecordIter $ Record $ recordFields fields

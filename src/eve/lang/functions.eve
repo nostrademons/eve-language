@@ -32,7 +32,9 @@ def make_class(superclass, methods):
     Int
 
     """
-    bound_methods = methods -> Record -> bind_methods -> Record
+    bound_methods = methods
+#    bound_methods = methods -> Record -> bind_methods -> Record
     {| *args | methods.init(*args) | { 
-        proto: bound_methods | { proto: superclass }
+        proto: bound_methods | { proto: superclass },
+        method_receiver: None
     }} | methods | { proto: superclass } 

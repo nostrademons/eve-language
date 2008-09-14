@@ -320,7 +320,7 @@ attrPrimitive [obj, field@(String name _)] = tryRecord `catchError` tryAttr
     tryRecord = getAttr name obj >>= bindReceiver
     tryAttr e | hasAttr "attr" obj = getAttr "attr" obj >>= flip apply [obj, field]
     tryAttr e = throwError e
-    bindReceiver result = case lookup "method_self" $ attributes result of
+    bindReceiver result = case lookup "method_receiver" $ attributes obj of
         Nothing -> return result
         Just (Primitive "None" _ _) -> maybeMakeMethod obj result
         Just val -> maybeMakeMethod val result

@@ -87,7 +87,7 @@ dropAttrFields names = filter (\(key, val) -> key `notElem` names)
 dropAttrs names val = dropAttrFields names $ attributes val
 attrNames = fst . unzip . attributes
 
-recordFields fields = dropAttrFields ["proto"] fields
+recordFields fields = dropAttrFields ["proto", "method_receiver"] fields
 
 sortRecord = sortBy fieldCompare 
   where fieldCompare (x, _) (y, _) = compare x y
