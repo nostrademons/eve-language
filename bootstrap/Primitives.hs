@@ -18,7 +18,7 @@ makeMethods = map addMethodSelf . makePrimitives
 
 -- Individual method lists for different types
 
-numberPrimitives = makeMethods [
+numberPrimitives = makePrimitives [
   ("pow", numericBinop ((^) . fromIntegral)),
   ("mul", numericBinop (*)),
   ("div", numericBinop div),
@@ -28,11 +28,11 @@ numberPrimitives = makeMethods [
 
 -- TODO: Eq should be a standalone function instead of an instance method, so
 -- it works on plain records
-eqPrimitives = makeMethods [
+eqPrimitives = makePrimitives [
   ("eq", eqBinop (==)),
   ("ne", eqBinop (/=))]
 
-orderedPrimitives = makeMethods [
+orderedPrimitives = makePrimitives [
   ("lt", numBoolBinop (<)),
   ("gt", numBoolBinop (>)),
   ("ge", numBoolBinop (>=)),
@@ -43,13 +43,13 @@ boolPrimitives = makePrimitives [
   ("or_", boolBoolBinop (||)),
   ("not_", boolOp (not))]
 
-iterPrimitives = makeMethods [
+iterPrimitives = makePrimitives [
   ("iter", iter),
   ("get", get),
   ("next", iterNext),
   ("is_valid", iterIsValid)]
 
-sequencePrimitives = makeMethods [
+sequencePrimitives = makePrimitives [
   ("add", concat'),
   ("mul", repeat'),
   ("iter", iter),
@@ -66,7 +66,7 @@ strProto = makeTypeObj "Str" convertToString [eqPrimitives, orderedPrimitives,
     sequencePrimitives]
 symProto = makeTypeObj "Sym" convertToSymbol [eqPrimitives]
 tupleProto = makeTypeObj "Tuple" typeObject [eqPrimitives, sequencePrimitives]
-recordProto = makeTypeObj "Record" typeObject [eqPrimitives, sequencePrimitives]
+recordProto = makeTypeObj "Record" typeObject [eqPrimitives]
 primitiveProto = makeTypeObj "Primitive" typeObject [eqPrimitives]
 functionProto = makeTypeObj "Function" typeObject [eqPrimitives]
 makeNone = makeTypeObj "None" typeObject [eqPrimitives]
@@ -74,6 +74,7 @@ makeNone = makeTypeObj "None" typeObject [eqPrimitives]
 -- Global primitives.  Augmented in Eval by the primitives that need access to apply
 primitives = makePrimitives [
     ("dump", dump),
+    ("vars", vars),
     ("locals", locals)] ++ boolPrimitives ++ map bindPrimitive 
         -- "Record" and "Tuple" are added by the evaluator, since the require
         -- access to the iterator machinery.  They rely on the fact that
@@ -90,7 +91,7 @@ makeBool val = Bool val [("proto", boolProto), ("method_receiver", makeNone)]
 makeString val = String val [("proto", strProto), ("method_receiver", makeNone)]
 makeSymbol val = Symbol val [("proto", symProto)]
 makeTuple val = Tuple val [("proto", tupleProto), ("method_receiver", makeNone)]
-makeRecord val = Record $ [("proto", recordProto), ("method_receiver", makeNone)] ++ val
+makeRecord val = Record $ [("proto", recordProto)] ++ val
 makePrimitive (name, fn) = Primitive name fn [("proto", primitiveProto)]
 makeFunction argData isShown pos body env = Function argData isShown pos body env [("proto", functionProto)]
 
@@ -157,10 +158,11 @@ makeIter constr val = do
     return $ constr val 0 $ [("proto", iterProto), ("method_receiver", makeNone)] ++ allIterPrimitives
 iter [val@(String _ _)] = makeIter SequenceIter val
 iter [val@(Tuple _ _)] = makeIter SequenceIter val
-iter [val@(Record fields)] = makeIter RecordIter $ Record $ recordFields fields
 iter [val@(SequenceIter _ _ _)] = return val
 iter [val@(RecordIter _ _ _)] = return val
 iter val = typeError (show val ++ " is not iterable")
+
+vars [val@(Record fields)] = makeIter RecordIter $ Record $ recordFields fields
 
 -- TODO: these just expose a Haskell error if you overshoot the end of the
 -- sequence, instead of raising a nice EveError
