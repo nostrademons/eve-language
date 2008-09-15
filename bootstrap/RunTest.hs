@@ -74,6 +74,8 @@ extractDocstrings :: [EveFileLine] -> [(String, String)]
 extractDocstrings [] = []
 extractDocstrings ((Def name argData docstring _ _ _, pos):xs) = 
     (name ++ "(" ++ show argData ++ ")", docstring) : extractDocstrings xs
+extractDocstrings ((Class name _ (docstring, _), pos):xs) = 
+    (name, docstring) : extractDocstrings xs
 extractDocstrings (_:xs) = extractDocstrings xs
 
 extractTests :: [String] -> [(String, String)]

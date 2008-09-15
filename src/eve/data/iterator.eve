@@ -106,6 +106,10 @@ class chain(Iterator):
     1
     Eve>>> chain([1,2]).next().next().is_valid()
     False
+    Eve>>> chain([1,2],[3,4]).next().next().get()
+    3
+    Eve>>> Tuple(chain([1,2],[3,4]))
+    [1, 2, 3, 4]
 
     """
     def init(current, *rest): { 
@@ -114,13 +118,14 @@ class chain(Iterator):
     }
     def get(self): self.current.get()
     def next(self):
-        if self.current.is_valid() 
-            then self | { current: self.current.next() }
+        next = self.current.next()
+        if next.is_valid() or self.rest.len() == 0
+            then self | { current: next }
             else self | { 
                 current: self.rest[0].iter(), 
                 rest: self.rest[1 : self.rest.len()] 
             }
-    def is_valid(self): self.current.is_valid() or self.rest.len() > 0
+    def is_valid(self): self.current.is_valid()
 
 class repeat(Iterator):
     def init(value): locals()
