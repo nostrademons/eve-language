@@ -36,5 +36,5 @@ class Range(Iterator):
     def iter(self): self
     def get(self): self.start
     def next(self): self | { start: self.start + self.step }
-    def is_valid(self): self.start <= self.stop
+    def is_valid(self): self.start < self.stop
     def len(self): (self.stop - self.start) / self.step
