@@ -128,6 +128,16 @@ class chain(Iterator):
     def is_valid(self): self.current.is_valid()
 
 class repeat(Iterator):
+    """
+    Creates an iterator that repeats a single value over and over again.
+
+    Eve>>> repeat(5).get()
+    5
+    Eve>>> repeat(5).next().get()
+    5
+
+    """
+
     def init(value): locals()
     def get(self): self.value
     def next(self): self
