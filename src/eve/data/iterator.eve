@@ -144,8 +144,21 @@ class repeat(Iterator):
     def is_valid(self): True
 
 class iterate(Iterator):
-    def init(initial, f): { current: initial, f: ignore_self(f) }
+    """
+    Creates an iterator that generates its values by apply a function to an
+    initial seed and then successively applying that function to each new
+    value.  The function may return None to terminate the iteration.
+
+    Eve>>> iterate(0, ? + 1).get()
+    0
+    Eve>>> iterate(0, ? + 1).next().get()
+    1
+    Eve>>> iterate(0, ? + 1).next().next().get()
+    2
+
+    """
+    def init(initial, f): { current: initial, f: f | { method_self: None } }
     def get(self): self.current
     def next(self): self | { current: self.f(self.current) }
-    def is_valid(self): self.f(self.current) != None
+    def is_valid(self): self.current != None
 
