@@ -11,6 +11,16 @@ class Iterable:
     # calls on the Iterable, eg. Iterable.reduce = {| self, *args |
     # self.iter().reduce(*args) }
 
+class ProxyIterator(Iterator):
+    """
+    An iterator that proxies calls through to an underlying iterator.  Used as
+    a base class for many of the functions here.
+    """
+    def init(original): { original: original.iter() }
+    def get(self): self.original.get()
+    def next(self): self | { original: self.original.next() }
+    def is_valid(self): self.original.is_valid()
+
 class Iterator(Iterable):
     class cycle(ProxyIterator):
         """
@@ -19,10 +29,11 @@ class Iterator(Iterable):
         """
         def init(self): 
             i = self.iter()
-            { self: i, start: i }
+            { original: i, start: i }
         def next(self):
-            if super(self).is_valid(self) 
-                then super(self).next(self) 
+            next = super(self).next()
+            if next.is_valid()
+                then next
                 else self | { original: start }
         def is_valid(self): True
 
@@ -87,15 +98,6 @@ class Iterator(Iterable):
     def min(self): self.reduce({| val, last | if val < last then val else last }, self.get())
     def max(self): self.reduce({| val, last | if val > last then val else last }, self.get())
 
-class ProxyIterator(Iterator):
-    """
-    An iterator that proxies calls through to an underlying iterator.  Used as
-    a base class for many of the functions here.
-    """
-    def init(original): { original: original.iter() }
-    def get(self): self.original.get()
-    def next(self): self | { original: self.original.next() }
-    def is_valid(self): self.original.is_valid()
 
 class chain(Iterator):
     """
