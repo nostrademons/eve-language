@@ -4,6 +4,8 @@
 # Ignore Haskell intermediate files
 *.hi
 *.o
+# Ignore LLVM bytecode files
+*.bc
 # Ignore the executable and generated lexer/parser
 bootstrap/eve
 bootstrap/test
