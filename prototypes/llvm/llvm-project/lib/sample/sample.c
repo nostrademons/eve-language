@@ -10,9 +10,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-/* LLVM Header File
+/* LLVM Header File */
 #include "llvm/Support/DataTypes.h"
-*/
 
 /* Header file global to this project */
 #include "sample.h"
@@ -20,6 +19,7 @@
 int
 compute_sample (int a)
 {
+  printf("This is a test.");
   return a;
 }
 

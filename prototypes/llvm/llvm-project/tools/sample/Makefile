@@ -8,13 +8,13 @@ LEVEL=../..
 #
 # Give the name of the tool.
 #
-TOOLNAME=Sample
+TOOLNAME=Adder
 
 #
 # List libraries that we'll need
 # We use LIBS because sample is a dynamic library.
 #
-USEDLIBS = sample.a
+USEDLIBS = adder.a
 
 #
 # Include Makefile.common so we know what to do.
