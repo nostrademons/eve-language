@@ -23,7 +23,12 @@ bootstrap/Parser.hs
 
 # Ignore autoconf generated files
 configure.bak
+configure.out
 config.log
 config.status
-*/automa4te.cache
+autom4te.cache
+
+# Ignore LLVM output directories
+Debug
+Release
 
