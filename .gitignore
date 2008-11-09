@@ -1,11 +1,15 @@
-# Ignore vim swap files and backups
+# Ignore vim swap files and Emacs backups
 *.swp
+*.swo
 *~
+
 # Ignore Haskell intermediate files
 *.hi
 *.o
+
 # Ignore LLVM bytecode files
 *.bc
+
 # Ignore the executable and generated lexer/parser
 bootstrap/eve
 bootstrap/test
@@ -13,9 +17,13 @@ bootstrap/lex
 bootstrap/parse
 bootstrap/Lexer.hs
 bootstrap/Parser.hs
-# Ignore old svn directories that really should be removed from the
-# repository
-attic
-attic2
+
 # Ignore svn directories, in case we accidentally copy one over
 .svn
+
+# Ignore autoconf generated files
+configure.bak
+config.log
+config.status
+*/automa4te.cache
+
