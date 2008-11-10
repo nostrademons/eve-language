@@ -29,13 +29,21 @@ instance Show TokenType where
     show TokIndent = "INDENT"
     show TokDedent = "DEDENT"
 
-data Token = Tok {
+data Token = Token {
     tokVal :: TokenType 
     tokPos :: SourcePos 
 } deriving (Eq)
 
 instance HasPos Token where
-    pos (Tok _ p) = p
+    pos (Token _ p) = p
 
 instance Show Token where
-    show (Tok t _) = show t
+    show (Token t _) = show t
+
+data LexError = LexError {
+    lexErrorChar :: Char,
+    lexErrorPos :: SourcePos
+} deriving (Eq)
+
+instance Show LexError where
+    show (LexError c pos) = "Lexical error at " ++ show pos ++ "on character " ++ [c]
