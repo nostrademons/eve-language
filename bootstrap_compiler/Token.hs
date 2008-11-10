@@ -1,4 +1,4 @@
-module Token(Token(Tok), TokenType(..)) where
+module Token(Token(Tok), TokenType(..), LexError(LexError), ParseError(ParseError)) where
 import SourcePos
 
 data TokenType =
@@ -47,3 +47,9 @@ data LexError = LexError {
 
 instance Show LexError where
     show (LexError c pos) = "Lexical error at " ++ show pos ++ "on character " ++ [c]
+
+data ParseError = ParseError { parseErrorToken :: Token }
+
+instance Show ParseError where
+    show (ParseError (Token val pos)) =
+        "Parse error: unexpected token " ++ show val ++ " at " ++ show pos

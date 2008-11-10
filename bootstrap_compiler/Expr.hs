@@ -1,10 +1,15 @@
 module Expr(
     ArgExpr(ArgExpr), 
     Expr(Expr), 
+    untypedExpr,
+    typedExpr,
     ExprType(..), 
     FileLine(FileLine)
 ) where
 import SourcePos
+import Literal
+import Types
+import Utils
 
 data ArgExpr = ArgExpr {
     argExprNames :: [String],
@@ -20,17 +25,6 @@ instance Show ArgExpr where
         display arg = maybe arg (\val -> arg ++ "=" ++ show val) 
                         $ lookup arg defaults
 
-data Literal = 
-    Int { litInt :: Int }
-  | Bool { litBool :: Bool }
-  | String { litString :: String }
-  deriving (Eq)
-
-instance Show Literal where
-    show (Int i) = show i
-    show (Bool b) = show b
-    show (String s) = show s
-
 data ExprType = 
     Literal Literal
   | TupleLiteral [Expr]
@@ -42,12 +36,10 @@ data ExprType =
   | Letrec [(String, Expr)] Expr
   deriving (Eq)
 
-showPair (label, value) = "'" ++ label ++ "': " ++ show value
-
-instance Show ExprValue where
+instance Show ExprType where
     show (Literal val) = show val
-    show (TupleLiteral exprList) = "[" ++ join ", " (map show exprList) ++ "]"
-    show (RecordLiteral pairList) = "{" ++ join ", " (map showPair pairList) ++ "}"
+    show (TupleLiteral exprList) = showTuple exprList
+    show (RecordLiteral pairList) = showRecord pairList
     show (Variable val) = val
     show (Funcall name args) = show name ++ "(" ++ join ", " (map show args) ++ ")"
     show (Cond args) = "Cond: " ++ join ", " (map showClause args)
@@ -59,8 +51,14 @@ instance Show ExprValue where
 
 data Expr = Expr {
     exprVal :: ExprType,
-    exprPos :: SourcePos
-}
+    exprPos :: SourcePos,
+    exprType :: Maybe Type
+} deriving(Eq);
+
+untypedExpr val pos = Expr val pos Nothing
+typedExpr (Expr val pos Nothing) typeCheck = Expr val pos $ Just typeCheck
+typedExpr (Expr val pos (Just _)) typeCheck =
+    error $ "Attempting to add a type " ++ show typeCheck ++ " to typed expression " ++ show val
 
 instance HasPos Expr where pos = exprPos
 instance Show Expr where show = show . exprVal
@@ -74,10 +72,12 @@ data DefLineValue =
         def_vars :: [String],
         def_body :: Expr
     }
+  | TypeDef String Type
   | Def {
         def_name :: String,
         def_args :: ArgExpr,
         def_doc :: String,
+        def_type :: Maybe Type,
         def_defs :: [DefLine],
         def_body :: Expr
     }
