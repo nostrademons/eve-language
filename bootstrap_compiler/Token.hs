@@ -29,7 +29,10 @@ instance Show TokenType where
     show TokIndent = "INDENT"
     show TokDedent = "DEDENT"
 
-data Token = Tok TokenType SourcePos deriving (Eq)
+data Token = Tok {
+    tokVal :: TokenType 
+    tokPos :: SourcePos 
+} deriving (Eq)
 
 instance HasPos Token where
     pos (Tok _ p) = p

@@ -1,10 +1,10 @@
 module SourcePos(Pos(..), HasPos) where
 
 data SourcePos = Pos {
-    file :: String,
-    offset :: !Int,
-    line :: !Int,
-    col :: !Int
+    pos_file :: String,
+    pos_offset :: !Int,
+    pos_line :: !Int,
+    pos_col :: !Int
 } deriving (Eq)
 
 defaultPos = Pos "" 0 0 0
