@@ -18,6 +18,11 @@ bootstrap/parse
 bootstrap/Lexer.hs
 bootstrap/Parser.hs
 
+# Ditto in bootstrap_compiler
+bootstrap_compiler/eve
+bootstrap_compiler/Lexer.hs
+bootstrap_compiler/Parser.hs
+
 # Ignore svn directories, in case we accidentally copy one over
 .svn
 

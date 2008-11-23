@@ -1,4 +1,4 @@
-module SourcePos(Pos(..), HasPos) where
+module SourcePos(SourcePos(Pos), defaultPos, HasPos, pos) where
 
 data SourcePos = Pos {
     pos_file :: String,

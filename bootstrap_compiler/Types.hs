@@ -1,5 +1,6 @@
-module Types(Type(Type)) where
+module Types(Type(..)) where
 import Utils
+import Literal
 
 data Type =
     TPrim String
@@ -14,7 +15,7 @@ instance Show Type where
   show (TLiteral datum) = show datum
   show (TTuple fields) = showTuple fields
   show (TRecord fields) = showRecord fields
-  show (TFunc args ret) = showTuple args ++ " -> " ++ show ret
+  show (TFunc args ret) = "(" ++ join ", " (map show args) ++ " -> " ++ show ret ++ ")"
 
 instance Eq Type where
   TPrim name1 == TPrim name2 = name1 == name2

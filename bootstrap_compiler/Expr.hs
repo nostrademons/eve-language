@@ -1,42 +1,53 @@
 module Expr(
-    ArgExpr(ArgExpr), 
+    Arg(Arg),
+    ArgList(ArgList), 
     Expr(Expr), 
+    ExprValue(..), 
     untypedExpr,
     typedExpr,
-    ExprType(..), 
-    FileLine(FileLine)
+    FileLine(FileLine),
+    FileLineValue(..),
+    DefLine(DefLine),
+    DefLineValue(..),   
 ) where
 import SourcePos
 import Literal
 import Types
 import Utils
 
-data ArgExpr = ArgExpr {
-    argExprNames :: [String],
-    argExprDefaults :: [(String, Expr)],
-    argExprVarargs :: Maybe String
+data Arg = Arg {
+    argName :: String,
+    argDefault :: Maybe Expr,
+    argType :: Maybe Type
 } deriving (Eq)
 
-instance Show ArgExpr where
-    show (ArgExpr names defaults varargs) = 
-        join ", " $ map display names ++ displayVarargs
-      where
-        displayVarArgs = maybe [] (\name -> ["*" ++ name]) varargs 
-        display arg = maybe arg (\val -> arg ++ "=" ++ show val) 
-                        $ lookup arg defaults
+instance Show Arg where
+    show (Arg name argDefault argType) = name ++ showJust "=" argDefault ++ showJust " as " argType
+      where 
+        showJust text (Just val) = text ++ show val
+        showJust text Nothing = ""
 
-data ExprType = 
+data ArgList = ArgList {
+    argListNames :: [Arg],
+    argListVarargs :: Maybe String
+} deriving (Eq)
+
+instance Show ArgList where
+    show (ArgList names varargs) = join ", " $ map show names ++ displayVarargs
+      where displayVarargs = maybe [] (\name -> ["*" ++ name]) varargs 
+
+data ExprValue = 
     Literal Literal
   | TupleLiteral [Expr]
   | RecordLiteral [(String, Expr)]
   | Variable String
   | Cond [(Expr, Expr)]
   | Funcall Expr [Expr]
-  | Lambda ArgExpr Expr
+  | Lambda ArgList Expr
   | Letrec [(String, Expr)] Expr
   deriving (Eq)
 
-instance Show ExprType where
+instance Show ExprValue where
     show (Literal val) = show val
     show (TupleLiteral exprList) = showTuple exprList
     show (RecordLiteral pairList) = showRecord pairList
@@ -50,7 +61,7 @@ instance Show ExprType where
       where showClause (name, expr) = name ++ " = " ++ show expr
 
 data Expr = Expr {
-    exprVal :: ExprType,
+    exprVal :: ExprValue,
     exprPos :: SourcePos,
     exprType :: Maybe Type
 } deriving(Eq);
@@ -72,10 +83,10 @@ data DefLineValue =
         def_vars :: [String],
         def_body :: Expr
     }
-  | TypeDef String Type
+  | FinalExpr { defExpr :: Expr }
   | Def {
         def_name :: String,
-        def_args :: ArgExpr,
+        def_args :: ArgList,
         def_doc :: String,
         def_type :: Maybe Type,
         def_defs :: [DefLine],
@@ -83,14 +94,15 @@ data DefLineValue =
     }
   deriving (Eq)
 
-instance Show Binding where
+instance Show DefLineValue where
     show (Binding var expr) = var ++ " = " ++ show expr
     show (SequenceUnpack vars expr) = join ", " vars ++ " = " ++ show expr
-    show (Def name args doc defs body) | length defs == 0 =
-        concat ["def ", name, "(", show argData, "): ", body]
-    show (Def name args doc defs body) =
-        concat ["def ", name, "(", show argData, "):\n    "] 
-            ++ indent (concatMap show $ docString : defs) ++ indent (show body)
+    show (FinalExpr expr) = show expr
+    show (Def name args doc typeDecl defs body) | length defs == 0 =
+        concat ["def ", name, "(", show args, "): ", show body]
+    show (Def name args doc typeDecl defs body) =
+        concat ["def ", name, "(", show args, "):\n    "] 
+            ++ indent (concat $ docString : map show defs) 1 ++ indent (show body) 1
       where docString = if length doc == 0 then "" else doc ++ "\n"
 
 data DefLine = DefLine {
@@ -98,7 +110,7 @@ data DefLine = DefLine {
     defPos :: SourcePos
 } deriving (Eq)
 
-instance Show DefLine where show = show . defValue
+instance Show DefLine where show = show . defVal
 instance HasPos DefLine where pos = defPos
 
 data FileLineValue =
@@ -108,7 +120,7 @@ data FileLineValue =
   deriving (Eq)
 
 instance Show FileLineValue where
-    show (Export names) = "export " ++ join ", " bindings
+    show (Export names) = "export " ++ join ", " names
     show (Import path) = "import " ++ join "." path
     show (Definition defLine) = show defLine
 

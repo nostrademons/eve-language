@@ -1,7 +1,7 @@
-module Token(Token(Tok), TokenType(..), LexError(LexError), ParseError(ParseError)) where
+module Token(Token(Token), TokenValue(..), extractVar) where
 import SourcePos
 
-data TokenType =
+data TokenValue =
     TokInt Int
   | TokBool Bool
   | TokString String
@@ -15,7 +15,7 @@ data TokenType =
   | TokDedent
   deriving (Eq)
 
-instance Show TokenType where
+instance Show TokenValue where
     show (TokInt val) = show val
     show (TokBool True) = "true"
     show (TokBool False) = "false"
@@ -30,7 +30,7 @@ instance Show TokenType where
     show TokDedent = "DEDENT"
 
 data Token = Token {
-    tokVal :: TokenType 
+    tokVal :: TokenValue,
     tokPos :: SourcePos 
 } deriving (Eq)
 
@@ -40,16 +40,6 @@ instance HasPos Token where
 instance Show Token where
     show (Token t _) = show t
 
-data LexError = LexError {
-    lexErrorChar :: Char,
-    lexErrorPos :: SourcePos
-} deriving (Eq)
-
-instance Show LexError where
-    show (LexError c pos) = "Lexical error at " ++ show pos ++ "on character " ++ [c]
-
-data ParseError = ParseError { parseErrorToken :: Token }
-
-instance Show ParseError where
-    show (ParseError (Token val pos)) =
-        "Parse error: unexpected token " ++ show val ++ " at " ++ show pos
+extractVar :: Token -> String
+extractVar (Token (TokVar var) _) = var
+extractVar _ = error "Extract var called on something other than a TokVar"
