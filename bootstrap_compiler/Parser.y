@@ -1,5 +1,5 @@
 {
-module Parser(parseFile) where
+module Parser(parseFile, parseRepl) where
 import Control.Monad.Error hiding (join)
 
 import SourcePos
@@ -11,6 +11,7 @@ import Types
 }
 
 %name eveFile File
+%name eveRepl Expr
 %monad { Either EveError } 
 %tokentype { Token }
 
@@ -216,6 +217,9 @@ LabeledList : LabeledPair                   { [$1] }
 
 parseFile :: [Token] -> Either EveError [FileLine]
 parseFile input = eveFile input >>= return . reverse 
+
+parseRepl :: [Token] -> Either EveError Expr
+parseRepl input = eveRepl input
 
 funcall pos name args = untypedExpr (Funcall (untypedExpr (Variable name) pos) args) pos
 

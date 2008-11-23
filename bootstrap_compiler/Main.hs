@@ -6,10 +6,10 @@ import Control.Monad.Error
 import Lexer
 import Parser
 import Error
+import Repl
 
-main = do
-    [filename] <- getArgs
-    text <- openFile filename ReadMode >>= hGetContents
-    Right parsedText <- return $ (lexer filename text >>= parseFile >>= return . unlines . map show)
-                    `catchError` (return . show)
-    putStrLn parsedText
+parseLine input = putStrLn output
+  where
+    Right output = (lexer "stdin" input >>= parseRepl >>= return . show) `catchError` (return . show)
+
+main = runRepl "Eve" parseLine
