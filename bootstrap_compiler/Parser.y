@@ -166,12 +166,9 @@ Operand     : Literal                      { untypedExpr (Literal $1) defaultPos
 TypeDecl    : {- Empty -}       { Nothing }
             | 'as' TypeExpr     { Just $2 }
 
-TypeExpr    : VAR                               { TPrim (extractVar $1) }
-            | Literal                           { TLiteral $1 }
+TypeExpr    : VAR                               { TNamed (extractVar $1) }
             | '[' TypeList ']'                  { TTuple (reverse $2) }
-            | '{' LabeledTypeList '}'           { TRecord (reverse $2) }
             | '(' TypeList '->' TypeExpr ')'    { TFunc (reverse $2) $4 }
-            | '(' TypeAlternatives ')'          { TOr (reverse $2) }
 
 TypeList    : TypeExpr                  { [$1] }
             | TypeList ',' TypeExpr     { $3 : $1 }
