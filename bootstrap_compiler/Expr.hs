@@ -1,7 +1,7 @@
 module Expr(
     Arg(Arg),
     ArgList(ArgList), 
-    Expr(Expr), 
+    Expr(Expr), exprVal, exprPos, exprType, 
     ExprValue(..), 
     untypedExpr,
     typedExpr,
@@ -52,7 +52,7 @@ instance Show ExprValue where
     show (TupleLiteral exprList) = showTuple exprList
     show (RecordLiteral pairList) = showRecord pairList
     show (Variable val) = val
-    show (Funcall name args) = show name ++ "(" ++ join ", " (map show args) ++ ")"
+    show (Funcall fn args) = show fn ++ "(" ++ join ", " (map show args) ++ ")"
     show (Cond args) = "Cond: " ++ join ", " (map showClause args)
       where showClause (pred, expr) = show pred ++ "->" ++ show expr
     show (Lambda args body) = "{|" ++ show args ++ "| " ++ show body ++ "}"
