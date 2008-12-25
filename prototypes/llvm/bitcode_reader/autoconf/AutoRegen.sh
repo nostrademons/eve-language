@@ -10,9 +10,9 @@ if test $? -ne 0 ; then
   die "Your autoconf was not detected as being 2.5x"
 fi
 
-llvm_m4=/home/jonathan/software/llvm-2.3/autoconf/m4
-llvm_src_root=/home/jonathan/software/llvm-2.3/
-llvm_obj_root=/home/jonathan/software/llvm-2.3/
+llvm_m4=/home/jdtang/download/llvm-2.4/autoconf/m4
+llvm_src_root=/home/jdtang/download/llvm-2.4/
+llvm_obj_root=/home/jdtang/download/llvm-2.4/
 # Patch the LLVM_ROOT in configure.ac, if it needs it
 cp configure.ac configure.bak
 sed -e "s#^LLVM_SRC_ROOT=.*#LLVM_SRC_ROOT=\"$llvm_src_root\"#" \

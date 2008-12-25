@@ -9,7 +9,7 @@ EXECS = eve
 
 .PHONY: clean-gen clean check
 
-eve: Main.hs Utils.hs SourcePos.hs Token.hs Error.hs Literal.hs Expr.hs Types.hs $(GENERATED)
+eve: Main.hs Utils.hs SourcePos.hs Token.hs Error.hs Literal.hs Expr.hs Types.hs TypeCheck.hs $(GENERATED)
 	$(GHCMAKE) $< -o $@
 
 Lexer.hs: $(LEX_SPEC)

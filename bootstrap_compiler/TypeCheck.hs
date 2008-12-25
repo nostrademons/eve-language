@@ -96,22 +96,30 @@ typeCheckLiteral (LitBool _) = return tBool
 typeCheckLiteral (LitInt _) = return tInt
 typeCheckLiteral (LitString _) = return tString
 
-typeCheckExpr :: Assumptions -> Expr -> TypeM Expr
-typeCheckExpr tEnv expr@(Expr val pos Nothing) = 
-    liftM (Expr val pos . Just) $ typeCheckExprValue tEnv expr val
+typeCheckExpr :: Assumptions -> Expr -> TypeM Type
+typeCheckExpr tEnv expr@(Expr val pos Nothing) = typeCheckExprValue tEnv expr val
 typeCheckExpr tEnv expr@(Expr val pos (Just expected)) = do
     found <- typeCheckExprValue tEnv expr val
     if expected == found 
-        then return expr 
+        then return expected 
         else throwError $ TypeError expr $ UnificationMismatch expected found
 
 typeCheckExprValue :: Assumptions -> Expr -> ExprValue -> TypeM Type
 typeCheckExprValue tEnv _ (Literal lit) = typeCheckLiteral lit
-typeCheckExprValue tEnv _ (TupleLiteral exprs) = liftM TTuple $ mapM extractType exprs
-  where extractType expr = liftM (fromJust . exprType) $ typeCheckExpr tEnv expr
+typeCheckExprValue tEnv _ (TupleLiteral exprs) = liftM TTuple $ mapM (typeCheckExpr tEnv) exprs
 -- TODO: Need record predicates to typecheck records
 typeCheckExprValue tEnv expr (Variable var) = 
     maybe (throwError $ TypeError expr $ UnboundVar var) return $ lookup var tEnv
+typeCheckExprValue tEnv expr (Funcall fn args) = do
+    tFn <- typeCheckExpr tEnv fn
+    tArgs <- mapM (typeCheckExpr tEnv) args
+    tResult <- newTVar
+    unify expr (TFunc tArgs tResult) tFn
+    return tResult
 
-typeCheck :: Expr -> Either EveError Expr
-typeCheck expr = evalStateT (typeCheckExpr defaultAssumptions expr) $ TypeMState nullSubst 0
+typeCheck :: Expr -> Either EveError Type
+typeCheck expr = do
+    let typeM = typeCheckExpr defaultAssumptions expr 
+    let initialState = TypeMState nullSubst 0
+    (exprType, state) <- runStateT typeM initialState
+    return $ apply (typeSubst state) exprType

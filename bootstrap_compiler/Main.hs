@@ -13,7 +13,7 @@ import Repl
 
 parseLine input = putStrLn output
   where
-    Right output = (lexer "stdin" input >>= parseRepl >>= typeCheck >>= return . show . fromJust . exprType) 
+    Right output = (lexer "stdin" input >>= parseRepl >>= typeCheck >>= return . show)
                         `catchError` (return . show)
 
 main = runRepl "Eve" parseLine

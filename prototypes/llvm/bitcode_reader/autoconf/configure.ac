@@ -4,8 +4,8 @@ dnl **************************************************************************
 AC_INIT([[[Test Bitcode Reader]]],[[[0.01]]],[jonathan.d.tang@gmail.com])
 
 dnl Identify where LLVM source tree is
-LLVM_SRC_ROOT="/home/jonathan/software/llvm-2.3/"
-LLVM_OBJ_ROOT="/home/jonathan/software/llvm-2.3/"
+LLVM_SRC_ROOT="/home/jdtang/download/llvm-2.4/"
+LLVM_OBJ_ROOT="/home/jdtang/download/llvm-2.4/"
 dnl Tell autoconf that the auxilliary files are actually located in
 dnl the LLVM autoconf directory, not here.
 AC_CONFIG_AUX_DIR($LLVM_SRC_ROOT/autoconf)

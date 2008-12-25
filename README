@@ -4,6 +4,7 @@ This is prerelease software, hence the lack of documentation.  A large number of
 
 To build, you'll need the following software:
 - GHC (Glasgow Haskell Compiler)
+- The Monad Template Library (included in some GHC distributions, or apt-get install libghc6-mtl-dev)
 - Alex (Haskell lexer generator)
 - Happy (Haskell parser generator)
 - make
