@@ -22,7 +22,7 @@ merge s1 s2 = if agree then Just s else Nothing
 mgu :: Type -> Type -> Maybe Subst
 mgu (TAp l r) (TAp l' r') = do
     s1 <- mgu l l'
-    s2 <- mgu (apply s1 r) (appl s1 r')
+    s2 <- mgu (apply s1 r) (apply s1 r')
     Just (s2 @@ s1)
 mgu (TVar u) t = varBind u t
 mgu t (TVar t) = varBind u t
@@ -193,7 +193,7 @@ reduce :: [Tyvar] -> [Tyvar] -> [Pred] -> ([Pred], [Pred])
 reduce fs gs ps = (ds, rs')
   where
     (ds, rs) = split fs ps
-    rs' = useDefauls (fs ++ gs) rs
+    rs' = useDefaults (fs ++ gs) rs
 
 split :: [Tyvar] -> [Predd] -> ([Pred], [Pred])
 split fs = partition (all (`elem` fs) . typeVars)

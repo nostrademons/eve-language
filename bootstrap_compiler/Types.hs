@@ -29,6 +29,7 @@ instance Eq Type where
     TTuple x1 == TTuple x2 = eqTuple x1 x2
     TFunc args1 ret1 == TFunc args2 ret2 = ret1 == ret2 && eqTuple args1 args2
     _ == _ = False
+
 tBool = TNamed "Bool"
 tInt = TNamed "Int"
 tString = TNamed "String"
