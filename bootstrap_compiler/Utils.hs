@@ -22,7 +22,7 @@ replace oldSub newSub list = _replace list where
 indent text level = replace "\n" (concat $ replicate level "    ") text
 
 showPair (label, value) = "'" ++ label ++ "': " ++ show value
-showTuple valList = "[" ++ join ", " (map show valList) ++ "]"
+showTuple valList = "(" ++ join ", " (map show valList) ++ ")"
 showRecord valList = "{" ++ join ", " (map showPair valList) ++ "}"
 
 sortPairs :: (Ord a, Eq b) => [(a, b)] -> [(a, b)]
