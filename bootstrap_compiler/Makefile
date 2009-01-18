@@ -20,5 +20,5 @@ Parser.hs: $(PARSE_SPEC)
 
 clean-gen:
 	rm -f $(GENERATED)
-clean: clean-gen clean-bak
+clean: clean-gen
 	rm -f *~ *.hi *.o $(EXECS)

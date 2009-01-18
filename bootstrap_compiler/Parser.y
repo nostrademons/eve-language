@@ -51,7 +51,7 @@ DEDENT { Token (TokDedent) _ }
 'cond'{ Token (TokKeyword "cond") _ }
 'as'  { Token (TokOp "as") _ }
 'typedef'   { Token (TokKeyword "typedef") _ }
-','   { Token (TokKeyword ")") _ }
+','   { Token (TokKeyword ",") _ }
 '.'   { Token (TokOp ".") _ }
 '|'   { Token (TokOp "|") _ }
 '&'   { Token (TokOp "&") _ }
@@ -146,7 +146,11 @@ Expr : Operand             { $1 }
     up from them; errors never happen on literals anyway. -}
 Operand     : Literal                      { untypedExpr (Literal $1) defaultPos }
             | VAR                          { untypedExpr (Variable $ extractVar $1) $ pos $1 }
-            | '[' ExprList ']'             { untypedExpr (TupleLiteral (reverse $2)) $ pos $1 }
+{-
+            | '(' ')'                      { untypedExpr (TupleLiteral []) $ pos $1 }
+-}
+            | '(' Expr ',' ')'             { untypedExpr (TupleLiteral $ [$2]) $ pos $1 }
+            | '(' Expr ',' ExprList ')'    { untypedExpr (TupleLiteral $ $2 : reverse $4) $ pos $1 }
             | '{' LabeledList '}'          { untypedExpr (RecordLiteral (reverse $2)) $ pos $1 }
             | '(' Expr ')'                 { $2 }
             | Operand '[' ']'                   { funcall (pos $2) "get" [$1] }
@@ -167,11 +171,14 @@ TypeDecl    : {- Empty -}       { Nothing }
             | 'as' TypeExpr     { Just $2 }
 
 TypeExpr    : VAR                               { TNamed (extractVar $1) }
-            | '[' TypeList ']'                  { TTuple (reverse $2) }
-            | '(' TypeList '->' TypeExpr ')'    { TFunc (reverse $2) $4 }
+            | TypeTuple                         { TTuple $1 }
 
-TypeList    : TypeExpr                  { [$1] }
-            | TypeList ',' TypeExpr     { $3 : $1 }
+TypeList        : TypeExpr                  { [$1] }
+                | TypeList ',' TypeExpr     { $3 : $1 }
+
+TypeTuple   : '(' ')'                       { [] }
+            | '(' TypeExpr ',' ')'          { [$2] }
+            | '(' TypeExpr ',' TypeList ')'         { $2 : reverse $4 }
 
 TypeAlternatives    : TypeExpr                          { [$1] }
                     | TypeAlternatives 'or' TypeExpr    { $3 : $1 }
@@ -205,10 +212,10 @@ VarArgList  : ArgList                  { ArgList $1 Nothing }
             | '*' VAR                  { ArgList [] $ Just . extractVar $ $2 }
             | ArgList ',' '*' VAR      { ArgList $1 $ Just . extractVar $ $4 }
 
-ExprList    : Expr                     { [$1] }
-            | ExprList ',' Expr        { $3 : $1 }
-LabeledList : LabeledPair                   { [$1] }
-            | LabeledList ',' LabeledPair   { $3 : $1 }
+ExprList        : Expr                     { [$1] }
+                | ExprList ',' Expr        { $3 : $1 }
+LabeledList     : LabeledPair                   { [$1] }
+                | LabeledList ',' LabeledPair   { $3 : $1 }
 
 {
 
