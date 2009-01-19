@@ -173,6 +173,7 @@ TypeDecl    : {- Empty -}       { Nothing }
 TypeExpr    : VAR                               { TNamed (extractVar $1) }
             | TypeTuple                         { TTuple $1 }
             | TypeTuple '->' TypeExpr           { TFunc $1 $3 }
+            | TypeExpr '->' TypeExpr            { TFunc [$1] $3 }
 
 TypeList        : TypeExpr                  { [$1] }
                 | TypeList ',' TypeExpr     { $3 : $1 }
