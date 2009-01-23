@@ -170,10 +170,15 @@ Operand     : Literal                      { untypedExpr (Literal $1) defaultPos
 TypeDecl    : {- Empty -}       { Nothing }
             | 'as' TypeExpr     { Just $2 }
 
-TypeExpr    : VAR                               { TNamed (extractVar $1) }
-            | TypeTuple                         { TTuple $1 }
-            | TypeTuple '->' TypeExpr           { TFunc $1 $3 }
-            | TypeExpr '->' TypeExpr            { TFunc [$1] $3 }
+{- TODO: Need to rethink our type data structure, because we can have parameterized vars and not just parameterized named types. -}
+TypeExpr    : VAR                               { TCon $ Tycon (extractVar $1) 0 }
+            | VAR '<' TypeList '>'              
+                { TAp (TCon $ Tycon (extractVar $1) (length $3)) $ (reverse $3) }
+            | TypeTuple                         { tTuple $1 }
+            | TypeTuple '->' TypeExpr           { tFunc $1 $3 }
+            | TypeExpr '->' TypeExpr            { tFunc [$1] $3 }
+
+TypeVar     : VAR       { $1 }
 
 TypeList        : TypeExpr                  { [$1] }
                 | TypeList ',' TypeExpr     { $3 : $1 }

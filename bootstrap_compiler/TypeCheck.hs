@@ -16,15 +16,13 @@ class Types t where
     typeVars :: t -> [Tyvar]
 
 instance Types Type where
-    apply s (TNamed name) = TNamed name
     apply s (TVar var) = maybe (TVar var) id $ lookup var s
-    apply s (TTuple fields) = TTuple $ map (apply s) fields
-    apply s (TFunc args ret) = TFunc (map (apply s) args) $ apply s ret
+    apply s (TCon tc) = TCon tc
+    apply s (TAp t args) = TAp (apply s t) $ map (apply s) args
 
-    typeVars (TNamed _) = []
     typeVars (TVar var) = [var]
-    typeVars (TTuple fields) = nub $ concatMap typeVars fields
-    typeVars (TFunc args ret) = nub $ concatMap typeVars args ++ typeVars ret
+    typeVars (TCon tc) = []
+    typeVars (TAp t args) = nub $ concatMap typeVars (t : args)
 
 instance Types a => Types [a] where
     apply s = map (apply s)
@@ -52,14 +50,11 @@ unifyTypes :: [Type] -> [Type] -> Either UnificationError Subst
 unifyTypes t1 t2 = liftM (foldr composeSubsts nullSubst) $ sequence $ zipWith mgu t1 t2
 
 mgu :: Type -> Type -> Either UnificationError Subst
-mgu (TNamed t1) (TNamed t2) | t1 == t2 = return nullSubst
-mgu (TTuple t1) (TTuple t2) = unifyTypes t1 t2
-mgu (TFunc args1 ret1) (TFunc args2 ret2) = do
-    argSubst <- unifyTypes args1 args2
-    retSubst <- mgu ret1 ret2
-    return $ composeSubsts argSubst retSubst
+-- Todo: unify the parameters
 mgu (TVar var) t = varBind var t
 mgu t (TVar var) = varBind var t
+mgu (TCon tc1) (TCon tc2) | tc1 == tc2 = return nullSubst
+mgu (TAp t1 args1) (TAp t2 args2) = unifyTypes (t1 : args1) (t2 : args2)
 mgu t1 t2 = Left $ UnificationMismatch t1 t2
 
 varBind :: Tyvar -> Type -> Either UnificationError Subst
@@ -89,7 +84,7 @@ newTVar :: TypeM Type
 newTVar = do
     n <- liftM typeN get
     modify $ \state -> state { typeN = n + 1 }
-    return $ TVar $ Tyvar $ "t" ++ show n
+    return $ TVar $ Tyvar ("t" ++ show n) 0 -- TODO: kinds
 
 typeCheckLiteral :: Literal -> TypeM Type
 typeCheckLiteral (LitBool _) = return tBool
@@ -108,7 +103,7 @@ typeCheckExpr tEnv expr@(Expr val pos (Just expected)) = do
 
 typeCheckExprValue :: Assumptions -> Expr -> ExprValue -> TypeM Type
 typeCheckExprValue tEnv _ (Literal lit) = typeCheckLiteral lit
-typeCheckExprValue tEnv _ (TupleLiteral exprs) = liftM TTuple $ mapM (typeCheckExpr tEnv) exprs
+typeCheckExprValue tEnv _ (TupleLiteral exprs) = liftM tTuple $ mapM (typeCheckExpr tEnv) exprs
 -- TODO: Need record predicates to typecheck records
 typeCheckExprValue tEnv expr (Variable var) = 
     maybe (throwError $ TypeError expr $ UnboundVar var) return $ lookup var tEnv
@@ -116,7 +111,7 @@ typeCheckExprValue tEnv expr (Funcall fn args) = do
     tFn <- typeCheckExpr tEnv fn
     tArgs <- mapM (typeCheckExpr tEnv) args
     tResult <- newTVar
-    unify expr (TFunc tArgs tResult) tFn
+    unify expr (tFunc tArgs tResult) tFn
     return tResult
 
 typeCheck :: Expr -> Either EveError Type

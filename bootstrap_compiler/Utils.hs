@@ -1,6 +1,6 @@
 module Utils(join, strip, replace, indent, 
-            showPair, showTuple, showRecord, sortPairs, eqTuple, eqRecord) where
-import Data.List
+            showPair, showCommas, showTuple, showRecord, sortPairs, eqTuple, eqRecord) where
+import Data.List 
 
 join sep [] = ""
 join sep ws = foldr1 (\w s -> w ++ sep ++ s) ws
@@ -22,9 +22,10 @@ replace oldSub newSub list = _replace list where
 indent text level = replace "\n" (concat $ replicate level "    ") text
 
 showPair (label, value) = "'" ++ label ++ "': " ++ show value
+showCommas args = join ", " (map show args)
 showTuple valList = "(" ++ (if length valList == 1 
     then show (head valList) ++ "," 
-    else join ", " $ map show valList) ++ ")"
+    else showCommas valList) ++ ")"
 showRecord valList = "{" ++ join ", " (map showPair valList) ++ "}"
 
 sortPairs :: (Ord a, Eq b) => [(a, b)] -> [(a, b)]

@@ -1,44 +1,51 @@
-module Types(Tyvar(Tyvar), Type(..), UnificationError(..), 
-             Assumptions, defaultAssumptions, tBool, tInt, tString) where
+module Types(Tyvar(Tyvar), Tycon(Tycon), Type(..), UnificationError(..), 
+             Assumptions, defaultAssumptions, 
+             tBool, tInt, tString, tTuple, tFunc) where
 import Control.Monad.Error hiding (join)
 
 import Utils
 import SourcePos
 import Literal
 
-data Tyvar = Tyvar String deriving (Eq)
+type Kind = Int
+data Tyvar = Tyvar String Kind deriving (Eq)
+data Tycon = Tycon String Kind deriving (Eq)
 
-instance Show Tyvar where 
-    show (Tyvar name) = name
+instance Show Tyvar where show (Tyvar name _)= name
+instance Show Tycon where show (Tycon name _) = name
 
 data Type =
-    TNamed String
-  | TVar Tyvar
-  | TTuple [Type]
-  | TFunc [Type] Type
+    TVar Tyvar
+  | TCon Tycon
+  | TAp Type [Type]
 
 instance Show Type where
-    show (TNamed name) = name
     show (TVar tyvar) = show tyvar
-    show (TTuple fields) = showTuple fields
-    show (TFunc args ret) = "(" ++ join ", " (map show args) ++ " -> " ++ show ret ++ ")"
+    show (TCon tycon) = show tycon
+    show (TAp (TCon (Tycon "Func" _)) args) = 
+        "(" ++ showCommas (tail args) ++ " -> " ++ show (head args) ++ ")"
+    show (TAp (TCon (Tycon "Tuple" _)) args) = showTuple args
+    show (TAp t args) = show t ++ "<" ++ showCommas args ++ ">"
 
 instance Eq Type where
-    TNamed name1 == TNamed name2 = name1 == name2
-    TVar tyvar1 == TVar tyvar2 = tyvar1 == tyvar2
-    TTuple x1 == TTuple x2 = eqTuple x1 x2
-    TFunc args1 ret1 == TFunc args2 ret2 = ret1 == ret2 && eqTuple args1 args2
+    TVar t1 == TVar t2 = t1 == t2
+    TCon t1 == TCon t2 = t1 == t2
+    TAp t1 args1 == TAp t2 args2 = t1 == t2 && eqTuple args1 args2
     _ == _ = False
 
-tBool = TNamed "Bool"
-tInt = TNamed "Int"
-tString = TNamed "String"
+nullKind = 0
+tBool = TCon $ Tycon "Bool" nullKind
+tInt = TCon $ Tycon "Int" nullKind
+tString = TCon $ Tycon "String" nullKind
+tTuple components = TAp (TCon $ Tycon "Tuple" $ length components) components
+tFunc args ret = TAp (TCon $ Tycon "Func" $ length params) params
+  where params = ret : args
 
 type Assumptions = [(String, Type)]
 
-intBinop = TFunc [tInt, tInt] tInt
-intBoolBinop = TFunc [tInt, tInt] tBool
-boolBinop = TFunc [tBool, tBool] tBool
+intBinop = tFunc [tInt, tInt] tInt
+intBoolBinop = tFunc [tInt, tInt] tBool
+boolBinop = tFunc [tBool, tBool] tBool
 
 defaultAssumptions = [
     ("pow", intBinop),
