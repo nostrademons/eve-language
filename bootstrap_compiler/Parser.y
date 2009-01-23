@@ -50,6 +50,7 @@ DEDENT { Token (TokDedent) _ }
 'else'{ Token (TokOp "else") _ }
 'cond'{ Token (TokKeyword "cond") _ }
 'as'  { Token (TokOp "as") _ }
+'where'{ Token (TokOp "where") _ }
 'typedef'   { Token (TokKeyword "typedef") _ }
 ','   { Token (TokKeyword ",") _ }
 '.'   { Token (TokOp ".") _ }
@@ -168,15 +169,16 @@ Operand     : Literal                      { untypedExpr (Literal $1) defaultPos
             | Operand 'as' TypeExpr        { typedExpr $1 $3 }
 
 TypeDecl    : {- Empty -}       { Nothing }
-            | 'as' TypeExpr     { Just $2 }
+            | 'as' TypeScheme     { Just $2 }
 
-{- TODO: Need to rethink our type data structure, because we can have parameterized vars and not just parameterized named types. -}
-TypeExpr    : VAR                               { TCon $ Tycon (extractVar $1) 0 }
+TypeScheme  : TypeExpr          { $1 }
+
+TypeExpr    : VAR                       { TCon $ Tycon (extractVar $1) 0 }
             | VAR '<' TypeList '>'              
-                { TAp (TCon $ Tycon (extractVar $1) (length $3)) $ (reverse $3) }
-            | TypeTuple                         { tTuple $1 }
-            | TypeTuple '->' TypeExpr           { tFunc $1 $3 }
-            | TypeExpr '->' TypeExpr            { tFunc [$1] $3 }
+            { TAp (TCon $ Tycon (extractVar $1) (length $3)) $ (reverse $3) }
+            | TypeTuple                 { tTuple $1 }
+            | TypeTuple '->' TypeExpr   { tFunc $1 $3 }
+            | TypeExpr '->' TypeExpr    { tFunc [$1] $3 }
 
 TypeVar     : VAR       { $1 }
 

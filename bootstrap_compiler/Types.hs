@@ -41,6 +41,15 @@ tTuple components = TAp (TCon $ Tycon "Tuple" $ length components) components
 tFunc args ret = TAp (TCon $ Tycon "Func" $ length params) params
   where params = ret : args
 
+type Class = String
+
+data Constraint = 
+    IsIn Class Type 
+  | HasField (String, Type) Type
+
+data Scheme = 
+    Scheme [Constraint] Type
+
 type Assumptions = [(String, Type)]
 
 intBinop = tFunc [tInt, tInt] tInt
