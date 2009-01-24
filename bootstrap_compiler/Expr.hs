@@ -18,7 +18,7 @@ import Utils
 data Arg = Arg {
     argName :: String,
     argDefault :: Maybe Expr,
-    argType :: Maybe Type
+    argType :: Maybe Scheme
 } deriving (Eq)
 
 instance Show Arg where
@@ -63,7 +63,7 @@ instance Show ExprValue where
 data Expr = Expr {
     exprVal :: ExprValue,
     exprPos :: SourcePos,
-    exprType :: Maybe Type
+    exprType :: Maybe Scheme
 } deriving(Eq);
 
 untypedExpr val pos = Expr val pos Nothing
@@ -88,7 +88,7 @@ data DefLineValue =
         def_name :: String,
         def_args :: ArgList,
         def_doc :: String,
-        def_type :: Maybe Type,
+        def_type :: Maybe Scheme,
         def_defs :: [DefLine],
         def_body :: Expr
     }

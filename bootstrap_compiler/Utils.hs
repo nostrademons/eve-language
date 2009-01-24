@@ -21,7 +21,7 @@ replace oldSub newSub list = _replace list where
 
 indent text level = replace "\n" (concat $ replicate level "    ") text
 
-showPair (label, value) = "'" ++ label ++ "': " ++ show value
+showPair (label, value) = label ++ ": " ++ show value
 showCommas args = join ", " (map show args)
 showTuple valList = "(" ++ (if length valList == 1 
     then show (head valList) ++ "," 

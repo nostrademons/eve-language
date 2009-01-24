@@ -1,4 +1,5 @@
-module Types(Tyvar(Tyvar), Tycon(Tycon), Type(..), UnificationError(..), 
+module Types(Tyvar(Tyvar), Tycon(Tycon), Type(..), 
+             Constraint(..), Scheme(Scheme), UnificationError(..), 
              Assumptions, defaultAssumptions, 
              tBool, tInt, tString, tTuple, tFunc) where
 import Control.Monad.Error hiding (join)
@@ -46,9 +47,22 @@ type Class = String
 data Constraint = 
     IsIn Class Type 
   | HasField (String, Type) Type
+    deriving(Eq)
+
+instance Show Constraint where
+    show (IsIn cls t) = cls ++ "(" ++ show t ++ ")"
+    show (HasField field _) = showPair field
 
 data Scheme = 
     Scheme [Constraint] Type
+    deriving(Eq)
+
+instance Show Scheme where
+    show (Scheme constraints t) = show t ++ 
+        (if null constraintStrings then "" else " where " ++ showCommas constraintStrings)
+      where
+        constraintStrings :: [String]
+        constraintStrings = [] -- TODO
 
 type Assumptions = [(String, Type)]
 

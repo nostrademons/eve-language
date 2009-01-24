@@ -93,7 +93,7 @@ typeCheckLiteral (LitString _) = return tString
 
 typeCheckExpr :: Assumptions -> Expr -> TypeM Type
 typeCheckExpr tEnv expr@(Expr val pos Nothing) = typeCheckExprValue tEnv expr val
-typeCheckExpr tEnv expr@(Expr val pos (Just expected)) = do
+typeCheckExpr tEnv expr@(Expr val pos (Just (Scheme _ expected))) = do
     rawType <- typeCheckExprValue tEnv expr val
     state <- get
     let found = apply (typeSubst state) rawType

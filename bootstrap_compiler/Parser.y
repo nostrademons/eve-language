@@ -166,12 +166,23 @@ Operand     : Literal                      { untypedExpr (Literal $1) defaultPos
             | Operand '.' VAR                 { funcall (pos $2) "attr" 
                 [$1, untypedExpr (Literal . LitString . extractVar $ $3) $ pos $2] }
             | '{' '|' VarArgList '|' Expr '}' { untypedExpr (Lambda $3 $5) $ pos $1 }
-            | Operand 'as' TypeExpr        { typedExpr $1 $3 }
+            | Operand 'as' TypeScheme        { typedExpr $1 $3 }
 
 TypeDecl    : {- Empty -}       { Nothing }
             | 'as' TypeScheme     { Just $2 }
 
-TypeScheme  : TypeExpr          { $1 }
+TypeScheme  : TypeExpr                              { Scheme [] $1 }
+            | TypeExpr 'where' TypeConstraintList   { Scheme (reverse $3) $1 }
+
+TypeConstraint  
+    : VAR '(' VAR ')'       
+        { IsIn (extractVar $1) (TVar $ Tyvar (extractVar $3) 0) }
+
+TypeConstraintList
+    : TypeConstraint
+        { [$1] }
+    | TypeConstraintList ',' TypeConstraint
+        { $3 : $1 }
 
 TypeExpr    : VAR                       { TCon $ Tycon (extractVar $1) 0 }
             | VAR '<' TypeList '>'              
