@@ -1,7 +1,7 @@
 module Types(Tyvar(Tyvar), Tycon(Tycon), Type(..), 
              Constraint(..), Scheme(Scheme), UnificationError(..), 
              Assumptions, defaultAssumptions, 
-             tBool, tInt, tString, tTuple, tFunc) where
+             tBool, tInt, tString, tTuple, tFunc, tRecord) where
 import Control.Monad.Error hiding (join)
 
 import Utils
@@ -41,6 +41,11 @@ tString = TCon $ Tycon "String" nullKind
 tTuple components = TAp (TCon $ Tycon "Tuple" $ length components) components
 tFunc args ret = TAp (TCon $ Tycon "Func" $ length params) params
   where params = ret : args
+-- Might need to change this later to support record inferencing, but for now
+-- unzipping into a tuple is the simplest thing that could possibly work.
+tRecord :: [(String, Type)] -> Type
+tRecord components = TAp (TCon $ Tycon "Record" $ length components) 
+            . map snd . sortPairs $ components
 
 type Class = String
 

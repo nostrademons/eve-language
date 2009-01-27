@@ -279,6 +279,10 @@ TypeExpr
     { tFunc $1 $3 }
   | TypeExpr '->' TypeExpr    
     { tFunc [$1] $3 }
+  | '{' '}'
+    { tRecord [] }
+  | '{' LabeledTypeList '}'
+    { tRecord (reverse $2) }
 
 TypeVar     
   : VAR       
