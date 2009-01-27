@@ -209,10 +209,8 @@ Operand
     { untypedExpr (Literal $1) defaultPos }
   | VAR                          
     { untypedExpr (Variable $ extractVar $1) $ pos $1 }
-{-
   | '(' ')'                      
     { untypedExpr (TupleLiteral []) $ pos $1 }
--}
   | '(' Expr ',' ')'             
     { untypedExpr (TupleLiteral $ [$2]) $ pos $1 }
   | '(' Expr ',' ExprList ')'    
