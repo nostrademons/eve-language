@@ -11,7 +11,7 @@ import Types
 }
 
 %name eveFile File
-%name eveRepl Expr
+%name eveRepl FileLine
 %monad { Either EveError } 
 %tokentype { Token }
 
@@ -95,6 +95,10 @@ FileLine
     { FileLine (Import $ reverse $2) $ pos $1 }
   | 'export' VarList             
     { FileLine (Export $ reverse $2) $ pos $1 }
+  | 'typedef' VAR ':' TypeScheme
+    { FileLine (TypeDef (extractVar $2) $4) $ pos $1 }
+  | Expr
+    { FileLine (NakedExpr $1) $ pos $1 }
   | DefDecl                      
     { FileLine (Definition $1) $ pos $1 }
 
@@ -380,7 +384,7 @@ LabeledList
 parseFile :: [Token] -> Either EveError [FileLine]
 parseFile input = eveFile input >>= return . reverse 
 
-parseRepl :: [Token] -> Either EveError Expr
+parseRepl :: [Token] -> Either EveError FileLine
 parseRepl input = eveRepl input
 
 funcall pos name args = untypedExpr (Funcall (untypedExpr (Variable name) pos) args) pos

@@ -4,7 +4,7 @@ import IO
 import Maybe
 import Control.Monad.Error
 
-import Expr (exprType)
+import Expr (FileLineValue(..), exprType, fileLineVal)
 import Lexer
 import Parser
 import TypeCheck
@@ -13,7 +13,10 @@ import Repl
 
 parseLine input = putStrLn output
   where
-    Right output = (lexer "stdin" input >>= parseRepl >>= typeCheck >>= return . show)
+    Right output = (lexer "stdin" input >>= parseRepl >>=  printReplLine . fileLineVal)
                         `catchError` (return . show)
+
+printReplLine (NakedExpr expr) = liftM show $ typeCheck expr
+printReplLine other = return $ show other
 
 main = runRepl "Eve" parseLine

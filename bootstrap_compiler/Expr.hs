@@ -5,7 +5,7 @@ module Expr(
     ExprValue(..), 
     untypedExpr,
     typedExpr,
-    FileLine(FileLine),
+    FileLine(FileLine, fileLineVal),
     FileLineValue(..),
     DefLine(DefLine),
     DefLineValue(..),   
@@ -116,12 +116,16 @@ instance HasPos DefLine where pos = defPos
 data FileLineValue =
     Export [String]
   | Import [String]
+  | TypeDef String Scheme
+  | NakedExpr Expr
   | Definition DefLine
   deriving (Eq)
 
 instance Show FileLineValue where
     show (Export names) = "export " ++ join ", " names
     show (Import path) = "import " ++ join "." path
+    show (TypeDef name t) = "typedef " ++ name ++ ": " ++ show t
+    show (NakedExpr expr) = show expr
     show (Definition defLine) = show defLine
 
 data FileLine = FileLine {
