@@ -58,6 +58,7 @@ DEDENT { Token (TokDedent) _ }
 '&'   { Token (TokOp "&") _ }
 '~'   { Token (TokOp "~") _ }
 ':'   { Token (TokKeyword ":") _ }
+'<:'  { Token (TokOp "<:") _ }
 '@'   { Token (TokKeyword "@") _ }
 '('   { Token (TokDelim '(') _ }
 ')'   { Token (TokDelim ')') _ }
@@ -256,17 +257,19 @@ TypeScheme
   : TypeExpr                              
     { Scheme [] $1 }
   | TypeExpr 'where' TypeConstraintList   
-    { Scheme (reverse $3) $1 }
+    { Scheme $3 $1 }
 
 TypeConstraint  
   : VAR '(' VAR ')'       
-    { IsIn (extractVar $1) (TVar $ Tyvar (extractVar $3) 0) }
+    { [IsIn (TVar $ Tyvar (extractVar $3) 0) (extractVar $1)] }
+  | VAR '<:' TypeRecord
+    { map (HasField $ TVar $ Tyvar (extractVar $1) (length $3)) $3 }
 
 TypeConstraintList
   : TypeConstraint
-    { [$1] }
+    { $1 }
   | TypeConstraintList ',' TypeConstraint
-    { $3 : $1 }
+    { $3 ++ $1 }
 
 TypeExpr    
   : VAR                       
@@ -279,10 +282,8 @@ TypeExpr
     { tFunc $1 $3 }
   | TypeExpr '->' TypeExpr    
     { tFunc [$1] $3 }
-  | '{' '}'
-    { tRecord [] }
-  | '{' LabeledTypeList '}'
-    { tRecord (reverse $2) }
+  | TypeRecord
+    { tRecord $1 }
 
 TypeVar     
   : VAR       
@@ -301,6 +302,12 @@ TypeTuple
     { [$2] }
   | '(' TypeExpr ',' TypeList ')'         
     { $2 : reverse $4 }
+
+TypeRecord
+  : '{' '}'
+    { [] }
+  | '{' LabeledTypeList '}'
+    { reverse $2 }
 
 TypeAlternatives    
   : TypeExpr                          

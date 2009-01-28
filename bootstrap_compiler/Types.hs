@@ -50,13 +50,13 @@ tRecord components = TAp (TCon $ Tycon "Record" $ length components)
 type Class = String
 
 data Constraint = 
-    IsIn Class Type 
-  | HasField (String, Type) Type
+    IsIn Type Class
+  | HasField Type (String, Type)
     deriving(Eq)
 
 instance Show Constraint where
-    show (IsIn cls t) = cls ++ "(" ++ show t ++ ")"
-    show (HasField field _) = showPair field
+    show (IsIn t cls) = cls ++ "(" ++ show t ++ ")"
+    show (HasField _ field) = showPair field
 
 data Scheme = 
     Scheme [Constraint] Type
