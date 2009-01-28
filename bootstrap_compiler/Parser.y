@@ -51,6 +51,7 @@ DEDENT { Token (TokDedent) _ }
 'cond'{ Token (TokKeyword "cond") _ }
 'as'  { Token (TokOp "as") _ }
 'where'{ Token (TokOp "where") _ }
+'data'{ Token (TokKeyword "data") _ }
 'typedef'   { Token (TokKeyword "typedef") _ }
 ','   { Token (TokKeyword ",") _ }
 '.'   { Token (TokOp ".") _ }
@@ -98,6 +99,8 @@ FileLine
     { FileLine (Export $ reverse $2) $ pos $1 }
   | 'typedef' VAR ':' TypeScheme
     { FileLine (TypeDef (extractVar $2) $4) $ pos $1 }
+  | 'data' VAR TypeArgList ':' TypeAlternatives
+    { FileLine (DataDef (extractVar $2) (reverse $3) (reverse $5)) $ pos $1 }
   | Expr
     { FileLine (NakedExpr $1) $ pos $1 }
   | DefDecl                      
@@ -285,10 +288,6 @@ TypeExpr
   | TypeRecord
     { tRecord $1 }
 
-TypeVar     
-  : VAR       
-    { $1 }
-
 TypeList        
   : TypeExpr                  
     { [$1] }
@@ -309,10 +308,22 @@ TypeRecord
   | '{' LabeledTypeList '}'
     { reverse $2 }
 
+TypeArgList
+  : {- EMPTY -}
+    { [] }
+  | '<' VarList '>'
+    { $2 }
+
+TypeAlternative
+  : VAR
+    { (extractVar $1, Nothing) }
+  | VAR TypeExpr
+    { (extractVar $1, Just $2) }
+
 TypeAlternatives    
-  : TypeExpr                          
+  : TypeAlternative
     { [$1] }
-  | TypeAlternatives 'or' TypeExpr    
+  | TypeAlternatives 'or' TypeAlternative    
     { $3 : $1 }
 
 LabeledTypePair     
@@ -324,7 +335,6 @@ LabeledTypeList
     { [$1] }
   | LabeledTypeList ',' LabeledTypePair   
     { $3 : $1 }
-
 
 Literal     
   : INT                          

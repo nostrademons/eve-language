@@ -117,6 +117,7 @@ data FileLineValue =
     Export [String]
   | Import [String]
   | TypeDef String Scheme
+  | DataDef String [String] [(String, Maybe Type)]
   | NakedExpr Expr
   | Definition DefLine
   deriving (Eq)
@@ -125,6 +126,12 @@ instance Show FileLineValue where
     show (Export names) = "export " ++ join ", " names
     show (Import path) = "import " ++ join "." path
     show (TypeDef name t) = "typedef " ++ name ++ ": " ++ show t
+    show (DataDef name args types) = "data " ++ name ++ 
+        (if null args then "" else "<" ++ join ", " args ++ ">") 
+            ++ ": " ++ join " or " (map showConstr types)
+      where
+        showConstr (name, Nothing) = name
+        showConstr (name, Just t) = name ++ " " ++ show t
     show (NakedExpr expr) = show expr
     show (Definition defLine) = show defLine
 

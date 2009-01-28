@@ -135,14 +135,14 @@ There's some additional subtlety needed to handle argument defaults, described w
 
 Sometimes, you need a type that can take one of several alternative values.  The `data` statement gives you a means to do this:
 
-    data List<a>: Cons (a, List<a>) | Nil
-    data Tree<a>: Branch { left: Tree<a>, val: a, right: Tree<a> } | Leaf
-    data Color: Red | Green | Blue
-    data Maybe<a>: Just a | Nothing
+    data List<a>: Cons (a, List<a>) or Nil
+    data Tree<a>: Branch { left: Tree<a>, val: a, right: Tree<a> } or Leaf
+    data Color: Red or Green or Blue
+    data Maybe<a>: Just a or Nothing
 
 Each alternative consists of a capitalized tag (called a "constructor") and then some other type.  It's common to use a tuple or record for this, but you can define unions of any type, including type synonyms or variables.  You can also omit the contained type entirely; this is useful for enumerations, where you just want a bunch of symbols to denote unique values.
 
-Unlike with records or tuples, there's no such thing as a "naked" union type, combining values without a constructor tag.  This is because of the type inference algorithm.  If you had a type `data Maybe<a>: a | Nothing`, then when the inferencer encountered any expression, it wouldn't know whether it should be typed as an `a` (whatever type that may be) or as a `Maybe<a>`.  For the same reason, constructors for different data types within the same module cannot overlap.
+Unlike with records or tuples, there's no such thing as a "naked" union type, combining values without a constructor tag.  This is because of the type inference algorithm.  If you had a type `data Maybe<a>: a or Nothing`, then when the inferencer encountered any expression, it wouldn't know whether it should be typed as an `a` (whatever type that may be) or as a `Maybe<a>`.  For the same reason, constructors for different data types within the same module cannot overlap.
 
 Each constructor defines a function that takes the enclosed type, and returns a value of the full union type.  For example, to create values of the above types, you'd use:
 
