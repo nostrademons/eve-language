@@ -247,6 +247,9 @@ Operand
         [$1, untypedExpr (Literal . LitString . extractVar $ $3) $ pos $2] }
   | '{' '|' VarArgList '|' Expr '}' 
     { untypedExpr (Lambda $3 $5) $ pos $1 }
+  | '{' Expr '|' LabeledList '}'
+    { funcall (pos $2) "extend"
+        [$2, untypedExpr (RecordLiteral (reverse $4)) $ pos $1] }
   | Operand 'as' TypeScheme        
     { typedExpr $1 $3 }
 
@@ -344,21 +347,27 @@ Literal
   | STR                          
     { LitString $1 }
 
-Label       
-  : STR                      
-    { $1 }
-  | VAR                      
-    { extractVar $1 }
-
 DottedIdent 
   : VAR 
     { [extractVar $1] }
   | DottedIdent '.' VAR      
     { extractVar $3 : $1 }
 
+Label       
+  : STR                      
+    { $1 }
+  | VAR                      
+    { extractVar $1 }
+
 LabeledPair 
   : Label ':' Expr           
     { ($1, $3) }
+
+LabeledList     
+  : LabeledPair                   
+    { [$1] }
+  | LabeledList ',' LabeledPair   
+    { $3 : $1 }
 
 VarList     
   : VAR                      
@@ -392,12 +401,6 @@ ExprList
   : Expr                     
     { [$1] }
   | ExprList ',' Expr        
-    { $3 : $1 }
-
-LabeledList     
-  : LabeledPair                   
-    { [$1] }
-  | LabeledList ',' LabeledPair   
     { $3 : $1 }
 
 {
