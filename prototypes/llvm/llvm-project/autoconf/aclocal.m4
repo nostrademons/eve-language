@@ -11,28 +11,5 @@
 # even the implied warranty of MERCHANTABILITY or FITNESS FOR A
 # PARTICULAR PURPOSE.
 
-#
-# Configure a Makefile without clobbering it if it exists and is not out of
-# date.  This macro is unique to LLVM.
-#
-AC_DEFUN([AC_CONFIG_MAKEFILE],
-[AC_CONFIG_COMMANDS($1,
-  [${llvm_src}/autoconf/mkinstalldirs `dirname $1`
-   ${SHELL} ${llvm_src}/autoconf/install-sh -c ${srcdir}/$1 $1])
-])
-
-#
-# Provide the arguments and other processing needed for an LLVM project
-#
-AC_DEFUN([LLVM_CONFIG_PROJECT],
-  [AC_ARG_WITH([llvmsrc],
-    AS_HELP_STRING([--with-llvmsrc],[Location of LLVM Source Code]),
-    [llvm_src="$withval"],[llvm_src="]$1["])
-  AC_SUBST(LLVM_SRC,$llvm_src)
-  AC_ARG_WITH([llvmobj],
-    AS_HELP_STRING([--with-llvmobj],[Location of LLVM Object Code]),
-    [llvm_obj="$withval"],[llvm_obj="]$2["])
-  AC_SUBST(LLVM_OBJ,$llvm_obj)
-  AC_CONFIG_COMMANDS([setup],,[llvm_src="${LLVM_SRC}"])
-])
-
+m4_include([m4/config_makefile.m4])
+m4_include([m4/config_project.m4])
