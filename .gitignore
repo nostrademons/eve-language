@@ -23,17 +23,29 @@ bootstrap_compiler/eve
 bootstrap_compiler/Lexer.hs
 bootstrap_compiler/Parser.hs
 
+# Ignore prototype executables
+prototypes/autoconf/src/hello
+
 # Ignore svn directories, in case we accidentally copy one over
 .svn
 
-# Ignore autoconf generated files
+# Ignore autoconf and automake generated files
+configure
 configure.bak
 configure.out
 config.log
 config.status
+config.h.in
+depcomp
+install-sh
+missing
 autom4te.cache
+Makefile.in
+aclocal.m4
 
 # Ignore LLVM output directories
 Debug
 Release
 
+# Ignore Mac stuff
+.DS_Store
