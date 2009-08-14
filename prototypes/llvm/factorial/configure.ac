@@ -7,5 +7,5 @@ AC_CONFIG_FILES([
 	Makefile
 	src/Makefile
 ])
-AX_LLVM([core])
+AX_LLVM([core jit native])
 AC_OUTPUT
