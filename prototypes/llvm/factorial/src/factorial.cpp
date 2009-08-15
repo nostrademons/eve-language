@@ -1,14 +1,15 @@
 #include <llvm/BasicBlock.h>
 #include <llvm/CallingConv.h>
 #include <llvm/Constant.h>
+#include <llvm/Constants.h>
 #include <llvm/DerivedTypes.h>
 #include <llvm/Function.h>
 #include <llvm/Instruction.h>
+#include <llvm/Instructions.h>
 #include <llvm/Module.h>
 #include <llvm/ModuleProvider.h>
 #include <llvm/Analysis/Verifier.h>
 #include <llvm/ExecutionEngine/ExecutionEngine.h>
-#include <llvm/Support/IRBuilder.h>
 #include <stdio.h>
 
 using namespace llvm;
@@ -16,17 +17,36 @@ using namespace llvm;
 Module*
 makeLLVMModule() {
 	Module* mod = new Module("test");
-	Constant* c = mod->getOrInsertFunction("adder", IntegerType::get(32),
+	Constant* c = mod->getOrInsertFunction("factorial", IntegerType::get(32),
 		IntegerType::get(32), IntegerType::get(32), NULL);
-	Function* adder = cast<Function>(c);
-	adder->setCallingConv(CallingConv::C);
+	Function* factorial = cast<Function>(c);
+	factorial->setCallingConv(CallingConv::C);
 	
-	BasicBlock* block = BasicBlock::Create("entry", adder);
-	IRBuilder builder(block);
-	Function::arg_iterator args = adder->arg_begin();
+	BasicBlock* entry = BasicBlock::Create("entry", factorial);
+	BasicBlock* test = BasicBlock::Create("test", factorial);
+	BasicBlock* loop = BasicBlock::Create("loop", factorial);
+	BasicBlock* ret = BasicBlock::Create("ret", factorial);
+
+	Function::arg_iterator args = factorial->arg_begin();
 	Argument* x = args++;
-	Argument* y = args++;
-	builder.CreateRet(builder.CreateBinOp(Instruction::Add, x, y, "tmp"));
+	Value* one = ConstantInt::get(IntegerType::get(32), 1);
+	BranchInst::Create(test, entry);
+	
+	PHINode* accum = PHINode::Create(IntegerType::get(32), "accum", test);
+	PHINode* current = PHINode::Create(IntegerType::get(32), "current", test);
+	accum->addIncoming(one, entry);
+	current->addIncoming(x, entry);
+	Value* testSucceeded = new ICmpInst(ICmpInst::ICMP_SGT, current, one, "cond", test);
+	BranchInst::Create(loop, ret, testSucceeded, test);
+	
+	Value* nextAccum = BinaryOperator::CreateMul(accum, current, "nextAccum", loop);
+	Value* nextCurrent = BinaryOperator::CreateSub(current, one, "nextCurrent", loop);
+	accum->addIncoming(nextAccum, loop);
+	current->addIncoming(nextCurrent, loop);
+	BranchInst::Create(test, loop);
+	
+	ReturnInst::Create(accum, ret);
+
 	return mod;
 }
 
@@ -37,8 +57,9 @@ main (int argc, char const *argv[])
 	verifyModule(*mod, PrintMessageAction);
 
 	ExecutionEngine* jit = ExecutionEngine::create(mod);
-	Function* adder = mod->getFunction("adder");
-	int (*native_adder)(int, int) = (int (*)(int, int)) jit->getPointerToFunction(adder);
-	printf("Hello, %d!\n", native_adder(2, 3));
+	Function* factorial = mod->getFunction("factorial");
+	int (*native_factorial)(int) = (int (*)(int)) jit->getPointerToFunction(factorial);
+	int arg1 = argc > 1 ? atoi(argv[1]) : 1;
+	printf("Factorial(%d) = %d.\n", arg1, native_factorial(arg1));
 	return 0;
 }
