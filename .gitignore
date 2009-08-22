@@ -30,18 +30,6 @@ prototypes/autoconf/src/hello
 .svn
 
 # Ignore autoconf and automake generated files
-configure
-configure.bak
-configure.out
-config.log
-config.status
-config.h.in
-depcomp
-install-sh
-missing
-autom4te.cache
-Makefile.in
-aclocal.m4
 
 # Ignore LLVM output directories
 Debug
