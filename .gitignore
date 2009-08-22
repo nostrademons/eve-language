@@ -30,6 +30,12 @@ prototypes/autoconf/src/hello
 .svn
 
 # Ignore autoconf and automake generated files
+Makefile
+config.h
+config.log
+config.status
+.deps
+stamp-h1
 
 # Ignore LLVM output directories
 Debug
