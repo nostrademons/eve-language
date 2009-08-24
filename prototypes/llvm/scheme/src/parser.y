@@ -6,6 +6,7 @@
 %locations
 %defines "parser.tab.h"
 %define api.pure
+%output "parser.c"
 %lex-param { void* scanner }
 %parse-param { void* scanner }
 %token NUM
