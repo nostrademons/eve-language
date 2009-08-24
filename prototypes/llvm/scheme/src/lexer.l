@@ -4,17 +4,20 @@
 #include <stdlib.h>
 #include "parser.h"
 
-extern int yylval;
+#define YY_INPUT(buffer, result, max_size) \
+	result = yyget_extra(yyscanner)->read(buffer, max_size);
+
+#define YY_USER_ACTION yylloc->first_line = yylineno;
 %}
 
-%option noyywrap
+%option reentrant noyywrap bison-bridge bison-locations yylineno
 
 DIGIT 	[0-9]
 
 %%
 
 [ \t]+		{}
-{DIGIT}+	{ yylval = atoi(yytext); return NUM; }
+{DIGIT}+	{ *yylval = atoi(yytext); return NUM; }
 "+"			{ return PLUS; }
 "-"			{ return MINUS; }
 "*"			{ return TIMES; }
@@ -22,6 +25,7 @@ DIGIT 	[0-9]
 
 %%
 
-void yy_delete_current_buffer() {
-	yy_delete_buffer(YY_CURRENT_BUFFER);
+void yyerror(YYLTYPE* location, void* scanner, char const* message) {
+	// TODO: real error handling.
+	std::cout << message << "\n";
 }

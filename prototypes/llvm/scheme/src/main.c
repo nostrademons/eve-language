@@ -1,6 +1,6 @@
 #include <stdio.h>
-
-int calculate(char* input);
+#include <sstream>
+#include "parser.h"
 
 int main (int argc, char const *argv[])
 {	
@@ -8,6 +8,8 @@ int main (int argc, char const *argv[])
 		printf("usage: calculator \"2 + 2\"");
 		return -1;
 	}
-	printf("'%s' is %d.\n", argv[1], calculate(argv[1]));
+	std::stringstream input(argv[1]);
+	Parser parser;
+	printf("'%s' is %d.\n", argv[1], parser.parse(input));
 	return 0;
 }

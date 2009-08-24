@@ -33,7 +33,7 @@ POST_UNINSTALL = :
 bin_PROGRAMS = calculator$(EXEEXT)
 subdir = src
 DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in lexer.c \
-	parser.c parser.h
+	parser.c
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/autoconf/ax_llvm.m4 \
 	$(top_srcdir)/configure.ac
@@ -70,7 +70,7 @@ AUTOCONF = @AUTOCONF@
 AUTOHEADER = @AUTOHEADER@
 AUTOMAKE = @AUTOMAKE@
 AWK = @AWK@
-CC = @CC@
+CC = $(CXX)
 CCDEPMODE = @CCDEPMODE@
 CFLAGS = @CFLAGS@
 CPPFLAGS = @CPPFLAGS@
@@ -158,11 +158,8 @@ target_alias = @target_alias@
 top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
-BUILT_SOURCES = parser.h
-AM_YFLAGS = -d
-calculator_SOURCES = lexer.l parser.y main.c
-all: $(BUILT_SOURCES)
-	$(MAKE) $(AM_MAKEFLAGS) all-am
+calculator_SOURCES = sexp.h parser.h lexer.l parser.y main.c
+all: all-am
 
 .SUFFIXES:
 .SUFFIXES: .c .l .o .obj .y
@@ -218,11 +215,6 @@ uninstall-binPROGRAMS:
 
 clean-binPROGRAMS:
 	-test -z "$(bin_PROGRAMS)" || rm -f $(bin_PROGRAMS)
-parser.h: parser.c
-	@if test ! -f $@; then \
-	  rm -f parser.c; \
-	  $(MAKE) $(AM_MAKEFLAGS) parser.c; \
-	else :; fi
 calculator$(EXEEXT): $(calculator_OBJECTS) $(calculator_DEPENDENCIES) 
 	@rm -f calculator$(EXEEXT)
 	$(LINK) $(calculator_OBJECTS) $(calculator_LDADD) $(LIBS)
@@ -332,15 +324,13 @@ distdir: $(DISTFILES)
 	  fi; \
 	done
 check-am: all-am
-check: $(BUILT_SOURCES)
-	$(MAKE) $(AM_MAKEFLAGS) check-am
+check: check-am
 all-am: Makefile $(PROGRAMS)
 installdirs:
 	for dir in "$(DESTDIR)$(bindir)"; do \
 	  test -z "$$dir" || $(MKDIR_P) "$$dir"; \
 	done
-install: $(BUILT_SOURCES)
-	$(MAKE) $(AM_MAKEFLAGS) install-am
+install: install-am
 install-exec: install-exec-am
 install-data: install-data-am
 uninstall: uninstall-am
@@ -366,8 +356,6 @@ maintainer-clean-generic:
 	@echo "it deletes files that may require special tools to rebuild."
 	-rm -f lexer.c
 	-rm -f parser.c
-	-rm -f parser.h
-	-test -z "$(BUILT_SOURCES)" || rm -f $(BUILT_SOURCES)
 clean: clean-am
 
 clean-am: clean-binPROGRAMS clean-generic mostlyclean-am
@@ -440,6 +428,9 @@ uninstall-am: uninstall-binPROGRAMS
 	mostlyclean-generic pdf pdf-am ps ps-am tags uninstall \
 	uninstall-am uninstall-binPROGRAMS
 
+
+parser.c parser.tab.h: parser.y
+	@YACC@ -d $<
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.
 .NOEXPORT:

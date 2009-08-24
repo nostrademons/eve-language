@@ -1,4 +1,6 @@
-BUILT_SOURCES = parser.h
-AM_YFLAGS = -d
 bin_PROGRAMS = calculator
-calculator_SOURCES = lexer.l parser.y main.c
+CC = $(CXX)
+calculator_SOURCES = sexp.h parser.h lexer.l parser.y main.c
+
+parser.c parser.tab.h: parser.y
+	@YACC@ -d $<

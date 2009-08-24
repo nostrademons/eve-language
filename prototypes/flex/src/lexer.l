@@ -7,6 +7,8 @@
 extern int yylval;
 %}
 
+%option header-file="lexer.h"
+%option c++
 %option noyywrap
 
 DIGIT 	[0-9]
