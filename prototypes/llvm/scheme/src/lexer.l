@@ -22,6 +22,8 @@ DIGIT 	[0-9]
 "-"			{ return MINUS; }
 "*"			{ return TIMES; }
 "/"			{ return DIVIDE; }
+"("			{ return LPAREN; }
+")"			{ return RPAREN; }
 
 %%
 

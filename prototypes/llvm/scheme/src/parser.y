@@ -10,6 +10,8 @@
 %lex-param { void* scanner }
 %parse-param { void* scanner }
 %token NUM
+%token LPAREN
+%token RPAREN
 %left PLUS MINUS
 %left TIMES DIVIDE
 
@@ -21,7 +23,8 @@ exp :	  NUM
 		| exp PLUS exp		{ $$ = $1 + $3; }
 		| exp MINUS exp		{ $$ = $1 - $3; }
 		| exp TIMES exp		{ $$ = $1 * $3; }
-		| exp DIVIDE exp	{ $$ = $1 / $3; };
+		| exp DIVIDE exp	{ $$ = $1 / $3; }
+		| LPAREN exp RPAREN { $$ = $2; 		}
 		
 %%
 
