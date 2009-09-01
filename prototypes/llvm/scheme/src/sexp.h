@@ -11,7 +11,7 @@ struct Cons {
 
 struct SExp {
 	enum SExpType {
-		BOOL_TYPE, INT_TYPE, DOUBLE_TYPE, STRING_TYPE, CONS_TYPE
+		BOOL_TYPE, INT_TYPE, DOUBLE_TYPE, STRING_TYPE, SYMBOL_TYPE, CONS_TYPE
 	} type;
 	union {
 		bool b;

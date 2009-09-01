@@ -17,7 +17,7 @@ DIGIT 	[0-9]
 %%
 
 [ \t]+		{}
-{DIGIT}+	{ *yylval = atoi(yytext); return NUM; }
+{DIGIT}+	{ yylval->num = atoi(yytext); return NUM; }
 "+"			{ return PLUS; }
 "-"			{ return MINUS; }
 "*"			{ return TIMES; }

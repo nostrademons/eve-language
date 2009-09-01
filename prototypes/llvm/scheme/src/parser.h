@@ -3,12 +3,19 @@
 
 #include <stdlib.h>
 #include <iostream>
+#include <vector>
 #include <memory>
-#include "sexp.h"
+#include "expr.h"
 
 class Parser;
 
-#define YYSTYPE int
+typedef union {
+  int num;
+  Expr* expr;
+  Args* exprList;
+  Funcall::OpType op;
+} YYSTYPE;
+
 #define YY_EXTRA_TYPE Parser*
 
 #include "parser.tab.h"
@@ -25,7 +32,7 @@ class Parser {
 	
 	void* _scanner;
 	std::istream* _input;
-	YYSTYPE _result;
+	Expr* _result;
 	
 	int read(char* buffer, int max_size) {
 		int num_read = _input->readsome(buffer, max_size);
@@ -54,7 +61,7 @@ class Parser {
 			std::cerr << "Parse error.\n";
 			exit(1);
 		}
-		return _result;
+		return _result->eval();
 	}
 };
 

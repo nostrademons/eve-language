@@ -9,22 +9,29 @@
 %output "parser.c"
 %lex-param { void* scanner }
 %parse-param { void* scanner }
-%token NUM
+%token <num> NUM
 %token LPAREN
 %token RPAREN
 %left PLUS MINUS
 %left TIMES DIVIDE
+%type <expr> expr
+%type <exprList> exprList
+%type <op> op
 
 %%
 
-program: exp				{ yyget_extra(scanner)->_result = $1; }
+program: expr				{ yyget_extra(scanner)->_result = $1; }
 
-exp :	  NUM
-		| exp PLUS exp		{ $$ = $1 + $3; }
-		| exp MINUS exp		{ $$ = $1 - $3; }
-		| exp TIMES exp		{ $$ = $1 * $3; }
-		| exp DIVIDE exp	{ $$ = $1 / $3; }
-		| LPAREN exp RPAREN { $$ = $2; 		}
+expr :	  NUM						{ $$ = new Literal($1); }
+		| LPAREN op exprList RPAREN { $$ = new Funcall($2, $3); }
 		
+exprList: /* empty */		{ $$ = new Args(); }
+		| exprList expr		{ $1->push_back($2); }
+		
+op :	  PLUS				{ $$ = Funcall::OpPlus; }
+		| MINUS				{ $$ = Funcall::OpMinus; }
+		| TIMES				{ $$ = Funcall::OpTimes; }
+		| DIVIDE			{ $$ = Funcall::OpDivide; }
+
 %%
 
