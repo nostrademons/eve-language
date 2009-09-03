@@ -1,6 +1,8 @@
 #ifndef LITERAL_H
 #define LITERAL_H
 
+#include <llvm/Value.h>
+
 #include "expr.h"
 
 class Literal : public Expr {
@@ -9,6 +11,7 @@ class Literal : public Expr {
     Literal(int value);
     ~Literal();
     virtual int eval();
+    virtual llvm::Value* compile();
     virtual std::string pprint();
 };
 

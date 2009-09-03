@@ -4,6 +4,8 @@
 #include <string>
 #include <vector>
 
+#include <llvm/Value.h>
+
 #include "expr.h"
 
 typedef std::vector<Expr*> Args;
@@ -18,6 +20,7 @@ class Funcall : public Expr {
     Funcall(OpType op, Args* args);
     virtual ~Funcall();
     virtual int eval();
+    virtual llvm::Value* compile();
     virtual std::string pprint();
 };
 

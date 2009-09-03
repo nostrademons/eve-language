@@ -2,6 +2,10 @@
 
 #include <sstream>
 
+#include <llvm/Value.h>
+
+using namespace llvm;
+
 Funcall::Funcall(OpType op, Args* args) : _op(op), _args(args) {}
 Funcall::~Funcall() {
   for(Args::iterator iter = _args->begin(); iter != _args->end(); ++iter) {
@@ -34,6 +38,10 @@ int Funcall::eval() {
     }
     return initial;
 	}
+}
+
+Value* Funcall::compile() {
+  return NULL;
 }
 
 std::string Funcall::pprint() {
