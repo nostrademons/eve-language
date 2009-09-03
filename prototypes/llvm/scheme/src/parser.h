@@ -5,7 +5,10 @@
 #include <iostream>
 #include <vector>
 #include <memory>
+
 #include "expr.h"
+#include "literal.h"
+#include "funcall.h"
 
 class Parser;
 
