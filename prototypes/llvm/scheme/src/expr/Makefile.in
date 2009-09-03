@@ -45,7 +45,8 @@ AR = ar
 ARFLAGS = cru
 libschemeexpr_a_AR = $(AR) $(ARFLAGS)
 libschemeexpr_a_LIBADD =
-am_libschemeexpr_a_OBJECTS = funcall.$(OBJEXT) literal.$(OBJEXT)
+am_libschemeexpr_a_OBJECTS = libschemeexpr_a-funcall.$(OBJEXT) \
+	libschemeexpr_a-literal.$(OBJEXT)
 libschemeexpr_a_OBJECTS = $(am_libschemeexpr_a_OBJECTS)
 DEFAULT_INCLUDES = -I. -I$(top_builddir)@am__isrc@
 depcomp = $(SHELL) $(top_srcdir)/autoconf/depcomp
@@ -162,6 +163,7 @@ top_srcdir = @top_srcdir@
 noinst_LIBRARIES = libschemeexpr.a
 AM_DEFAULT_SOURCE_EXT = .cpp
 libschemeexpr_a_SOURCES = expr.h funcall.h funcall.cpp literal.h literal.cpp
+libschemeexpr_a_CPPFLAGS = $(LLVM_CPPFLAGS) $(AM_CPPFLAGS)
 all: all-am
 
 .SUFFIXES:
@@ -209,8 +211,8 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/funcall.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/literal.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libschemeexpr_a-funcall.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libschemeexpr_a-literal.Po@am__quote@
 
 .cpp.o:
 @am__fastdepCXX_TRUE@	$(CXXCOMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<
@@ -225,6 +227,34 @@ distclean-compile:
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='$<' object='$@' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(CXXCOMPILE) -c -o $@ `$(CYGPATH_W) '$<'`
+
+libschemeexpr_a-funcall.o: funcall.cpp
+@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libschemeexpr_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT libschemeexpr_a-funcall.o -MD -MP -MF $(DEPDIR)/libschemeexpr_a-funcall.Tpo -c -o libschemeexpr_a-funcall.o `test -f 'funcall.cpp' || echo '$(srcdir)/'`funcall.cpp
+@am__fastdepCXX_TRUE@	mv -f $(DEPDIR)/libschemeexpr_a-funcall.Tpo $(DEPDIR)/libschemeexpr_a-funcall.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='funcall.cpp' object='libschemeexpr_a-funcall.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libschemeexpr_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o libschemeexpr_a-funcall.o `test -f 'funcall.cpp' || echo '$(srcdir)/'`funcall.cpp
+
+libschemeexpr_a-funcall.obj: funcall.cpp
+@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libschemeexpr_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT libschemeexpr_a-funcall.obj -MD -MP -MF $(DEPDIR)/libschemeexpr_a-funcall.Tpo -c -o libschemeexpr_a-funcall.obj `if test -f 'funcall.cpp'; then $(CYGPATH_W) 'funcall.cpp'; else $(CYGPATH_W) '$(srcdir)/funcall.cpp'; fi`
+@am__fastdepCXX_TRUE@	mv -f $(DEPDIR)/libschemeexpr_a-funcall.Tpo $(DEPDIR)/libschemeexpr_a-funcall.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='funcall.cpp' object='libschemeexpr_a-funcall.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libschemeexpr_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o libschemeexpr_a-funcall.obj `if test -f 'funcall.cpp'; then $(CYGPATH_W) 'funcall.cpp'; else $(CYGPATH_W) '$(srcdir)/funcall.cpp'; fi`
+
+libschemeexpr_a-literal.o: literal.cpp
+@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libschemeexpr_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT libschemeexpr_a-literal.o -MD -MP -MF $(DEPDIR)/libschemeexpr_a-literal.Tpo -c -o libschemeexpr_a-literal.o `test -f 'literal.cpp' || echo '$(srcdir)/'`literal.cpp
+@am__fastdepCXX_TRUE@	mv -f $(DEPDIR)/libschemeexpr_a-literal.Tpo $(DEPDIR)/libschemeexpr_a-literal.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='literal.cpp' object='libschemeexpr_a-literal.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libschemeexpr_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o libschemeexpr_a-literal.o `test -f 'literal.cpp' || echo '$(srcdir)/'`literal.cpp
+
+libschemeexpr_a-literal.obj: literal.cpp
+@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libschemeexpr_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT libschemeexpr_a-literal.obj -MD -MP -MF $(DEPDIR)/libschemeexpr_a-literal.Tpo -c -o libschemeexpr_a-literal.obj `if test -f 'literal.cpp'; then $(CYGPATH_W) 'literal.cpp'; else $(CYGPATH_W) '$(srcdir)/literal.cpp'; fi`
+@am__fastdepCXX_TRUE@	mv -f $(DEPDIR)/libschemeexpr_a-literal.Tpo $(DEPDIR)/libschemeexpr_a-literal.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='literal.cpp' object='libschemeexpr_a-literal.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libschemeexpr_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o libschemeexpr_a-literal.obj `if test -f 'literal.cpp'; then $(CYGPATH_W) 'literal.cpp'; else $(CYGPATH_W) '$(srcdir)/literal.cpp'; fi`
 
 ID: $(HEADERS) $(SOURCES) $(LISP) $(TAGS_FILES)
 	list='$(SOURCES) $(HEADERS) $(LISP) $(TAGS_FILES)'; \

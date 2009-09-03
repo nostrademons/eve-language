@@ -45,10 +45,12 @@ CONFIG_CLEAN_FILES =
 am__installdirs = "$(DESTDIR)$(bindir)"
 binPROGRAMS_INSTALL = $(INSTALL_PROGRAM)
 PROGRAMS = $(bin_PROGRAMS)
-am_calculator_OBJECTS = lexer.$(OBJEXT) parser.$(OBJEXT) \
-	main.$(OBJEXT)
+am_calculator_OBJECTS = calculator-lexer.$(OBJEXT) \
+	calculator-parser.$(OBJEXT) calculator-main.$(OBJEXT)
 calculator_OBJECTS = $(am_calculator_OBJECTS)
 calculator_DEPENDENCIES = expr/libschemeexpr.a
+calculator_LINK = $(CCLD) $(AM_CFLAGS) $(CFLAGS) $(calculator_LDFLAGS) \
+	$(LDFLAGS) -o $@
 DEFAULT_INCLUDES = -I. -I$(top_builddir)@am__isrc@
 depcomp = $(SHELL) $(top_srcdir)/autoconf/depcomp
 am__depfiles_maybe = depfiles
@@ -173,6 +175,8 @@ SUBDIRS = expr
 AM_DEFAULT_SOURCE_EXT = .cpp
 calculator_SOURCES = sexp.h parser.h lexer.l parser.y main.c
 calculator_LDADD = expr/libschemeexpr.a
+calculator_CPPFLAGS = $(LLVM_CPPFLAGS) $(AM_CPPFLAGS)
+calculator_LDFLAGS = $(LLVM_LDFLAGS) $(AM_LDFLAGS)
 all: all-recursive
 
 .SUFFIXES:
@@ -231,7 +235,7 @@ clean-binPROGRAMS:
 	-test -z "$(bin_PROGRAMS)" || rm -f $(bin_PROGRAMS)
 calculator$(EXEEXT): $(calculator_OBJECTS) $(calculator_DEPENDENCIES) 
 	@rm -f calculator$(EXEEXT)
-	$(LINK) $(calculator_OBJECTS) $(calculator_LDADD) $(LIBS)
+	$(calculator_LINK) $(calculator_OBJECTS) $(calculator_LDADD) $(LIBS)
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
@@ -239,9 +243,9 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lexer.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/main.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/parser.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/calculator-lexer.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/calculator-main.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/calculator-parser.Po@am__quote@
 
 .c.o:
 @am__fastdepCC_TRUE@	$(COMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<
@@ -256,6 +260,48 @@ distclean-compile:
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='$<' object='$@' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(COMPILE) -c `$(CYGPATH_W) '$<'`
+
+calculator-lexer.o: lexer.c
+@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(calculator_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT calculator-lexer.o -MD -MP -MF $(DEPDIR)/calculator-lexer.Tpo -c -o calculator-lexer.o `test -f 'lexer.c' || echo '$(srcdir)/'`lexer.c
+@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/calculator-lexer.Tpo $(DEPDIR)/calculator-lexer.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='lexer.c' object='calculator-lexer.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(calculator_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o calculator-lexer.o `test -f 'lexer.c' || echo '$(srcdir)/'`lexer.c
+
+calculator-lexer.obj: lexer.c
+@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(calculator_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT calculator-lexer.obj -MD -MP -MF $(DEPDIR)/calculator-lexer.Tpo -c -o calculator-lexer.obj `if test -f 'lexer.c'; then $(CYGPATH_W) 'lexer.c'; else $(CYGPATH_W) '$(srcdir)/lexer.c'; fi`
+@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/calculator-lexer.Tpo $(DEPDIR)/calculator-lexer.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='lexer.c' object='calculator-lexer.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(calculator_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o calculator-lexer.obj `if test -f 'lexer.c'; then $(CYGPATH_W) 'lexer.c'; else $(CYGPATH_W) '$(srcdir)/lexer.c'; fi`
+
+calculator-parser.o: parser.c
+@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(calculator_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT calculator-parser.o -MD -MP -MF $(DEPDIR)/calculator-parser.Tpo -c -o calculator-parser.o `test -f 'parser.c' || echo '$(srcdir)/'`parser.c
+@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/calculator-parser.Tpo $(DEPDIR)/calculator-parser.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='parser.c' object='calculator-parser.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(calculator_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o calculator-parser.o `test -f 'parser.c' || echo '$(srcdir)/'`parser.c
+
+calculator-parser.obj: parser.c
+@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(calculator_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT calculator-parser.obj -MD -MP -MF $(DEPDIR)/calculator-parser.Tpo -c -o calculator-parser.obj `if test -f 'parser.c'; then $(CYGPATH_W) 'parser.c'; else $(CYGPATH_W) '$(srcdir)/parser.c'; fi`
+@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/calculator-parser.Tpo $(DEPDIR)/calculator-parser.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='parser.c' object='calculator-parser.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(calculator_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o calculator-parser.obj `if test -f 'parser.c'; then $(CYGPATH_W) 'parser.c'; else $(CYGPATH_W) '$(srcdir)/parser.c'; fi`
+
+calculator-main.o: main.c
+@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(calculator_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT calculator-main.o -MD -MP -MF $(DEPDIR)/calculator-main.Tpo -c -o calculator-main.o `test -f 'main.c' || echo '$(srcdir)/'`main.c
+@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/calculator-main.Tpo $(DEPDIR)/calculator-main.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='main.c' object='calculator-main.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(calculator_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o calculator-main.o `test -f 'main.c' || echo '$(srcdir)/'`main.c
+
+calculator-main.obj: main.c
+@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(calculator_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT calculator-main.obj -MD -MP -MF $(DEPDIR)/calculator-main.Tpo -c -o calculator-main.obj `if test -f 'main.c'; then $(CYGPATH_W) 'main.c'; else $(CYGPATH_W) '$(srcdir)/main.c'; fi`
+@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/calculator-main.Tpo $(DEPDIR)/calculator-main.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='main.c' object='calculator-main.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(calculator_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o calculator-main.obj `if test -f 'main.c'; then $(CYGPATH_W) 'main.c'; else $(CYGPATH_W) '$(srcdir)/main.c'; fi`
 
 .l.c:
 	$(am__skiplex) $(SHELL) $(YLWRAP) $< $(LEX_OUTPUT_ROOT).c $@ -- $(LEXCOMPILE)
