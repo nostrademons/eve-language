@@ -6,9 +6,9 @@
 #include <vector>
 #include <memory>
 
-#include "expr.h"
-#include "literal.h"
-#include "funcall.h"
+#include "expr/expr.h"
+#include "expr/literal.h"
+#include "expr/funcall.h"
 
 class Parser;
 
