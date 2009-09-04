@@ -15,7 +15,7 @@ int Literal::eval() {
   return _value;
 }
 
-Value* Literal::compile(Module& module, IRBuilder& builder) {
+Value* Literal::compile(Module* module, IRBuilder* builder) {
   return ConstantInt::get(IntegerType::get(32), _value);
 }
 

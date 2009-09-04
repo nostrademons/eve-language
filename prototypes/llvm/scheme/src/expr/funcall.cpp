@@ -38,7 +38,7 @@ int Funcall::eval() {
 	}
 }
 
-Value* Funcall::compile(Module& module, IRBuilder& builder) {
+Value* Funcall::compile(Module* module, IRBuilder* builder) {
   return NULL;
 }
 

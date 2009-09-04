@@ -15,7 +15,7 @@ class Literal : public Expr {
     Literal(int value);
     ~Literal();
     virtual int eval();
-    virtual llvm::Value* compile(llvm::Module& module, llvm::IRBuilder& builder);
+    virtual llvm::Value* compile(llvm::Module* module, llvm::IRBuilder* builder);
     virtual std::string pprint();
 };
 
