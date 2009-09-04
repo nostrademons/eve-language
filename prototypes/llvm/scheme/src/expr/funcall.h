@@ -4,9 +4,13 @@
 #include <string>
 #include <vector>
 
-#include <llvm/Value.h>
-
 #include "expr.h"
+
+namespace llvm {
+  class IRBuilder;
+  class Module;
+  class Value;
+}
 
 typedef std::vector<Expr*> Args;
 
@@ -20,7 +24,7 @@ class Funcall : public Expr {
     Funcall(OpType op, Args* args);
     virtual ~Funcall();
     virtual int eval();
-    virtual llvm::Value* compile();
+    virtual llvm::Value* compile(llvm::Module& module, llvm::IRBuilder& builder);
     virtual std::string pprint();
 };
 

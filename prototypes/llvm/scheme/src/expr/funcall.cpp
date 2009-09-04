@@ -2,8 +2,6 @@
 
 #include <sstream>
 
-#include <llvm/Value.h>
-
 using namespace llvm;
 
 Funcall::Funcall(OpType op, Args* args) : _op(op), _args(args) {}
@@ -40,7 +38,7 @@ int Funcall::eval() {
 	}
 }
 
-Value* Funcall::compile() {
+Value* Funcall::compile(Module& module, IRBuilder& builder) {
   return NULL;
 }
 

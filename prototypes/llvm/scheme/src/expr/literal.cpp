@@ -5,11 +5,8 @@
 
 #include <llvm/Constants.h>
 #include <llvm/DerivedTypes.h>
-#include <llvm/Value.h>
 
-using llvm::Value;
-using llvm::ConstantInt;
-using llvm::IntegerType;
+using namespace llvm;
 
 Literal::Literal(int value) : _value(value) {}
 Literal::~Literal() {}
@@ -18,7 +15,7 @@ int Literal::eval() {
   return _value;
 }
 
-Value* Literal::compile() {
+Value* Literal::compile(Module& module, IRBuilder& builder) {
   return ConstantInt::get(IntegerType::get(32), _value);
 }
 
