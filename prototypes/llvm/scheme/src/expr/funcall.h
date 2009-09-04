@@ -1,6 +1,7 @@
 #ifndef FUNCALL_H
 #define FUNCALL_H
 
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -24,7 +25,8 @@ class Funcall : public Expr {
     Funcall(OpType op, Args* args);
     virtual ~Funcall();
     virtual int eval();
-    virtual llvm::Value* compile(llvm::Module& module, llvm::IRBuilder& builder);
+    virtual std::auto_ptr<llvm::Value>
+        compile(llvm::Module& module, llvm::IRBuilder& builder);
     virtual std::string pprint();
 };
 

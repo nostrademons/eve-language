@@ -3,6 +3,7 @@
 #include <sstream>
 
 using namespace llvm;
+using namespace std;
 
 Funcall::Funcall(OpType op, Args* args) : _op(op), _args(args) {}
 Funcall::~Funcall() {
@@ -38,12 +39,12 @@ int Funcall::eval() {
 	}
 }
 
-Value* Funcall::compile(Module& module, IRBuilder& builder) {
-  return NULL;
+auto_ptr<Value> Funcall::compile(Module& module, IRBuilder& builder) {
+  return auto_ptr<Value>(NULL);
 }
 
-std::string Funcall::pprint() {
-  std::stringstream stream;
+string Funcall::pprint() {
+  stringstream stream;
   stream << '(';
   switch(_op) {
     case OpPlus: stream << '+'; break;

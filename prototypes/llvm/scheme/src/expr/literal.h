@@ -1,6 +1,9 @@
 #ifndef LITERAL_H
 #define LITERAL_H
 
+#include <memory>
+#include <string>
+
 #include "expr.h"
 
 namespace llvm {
@@ -15,7 +18,8 @@ class Literal : public Expr {
     Literal(int value);
     ~Literal();
     virtual int eval();
-    virtual llvm::Value* compile(llvm::Module& module, llvm::IRBuilder& builder);
+    virtual std::auto_ptr<llvm::Value>
+        compile(llvm::Module& module, llvm::IRBuilder& builder);
     virtual std::string pprint();
 };
 

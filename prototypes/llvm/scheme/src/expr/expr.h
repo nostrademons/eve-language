@@ -1,6 +1,7 @@
 #ifndef EXPR_H
 #define EXPR_H
 
+#include <memory>
 #include <string>
 #include <sstream>
 #include <vector>
@@ -16,7 +17,8 @@ class Expr {
     Expr() {}
 	  virtual ~Expr() {}
 	  virtual int eval() = 0;
-    virtual llvm::Value* compile(llvm::Module& module, llvm::IRBuilder& builder) = 0;
+    virtual std::auto_ptr<llvm::Value>
+        compile(llvm::Module& module, llvm::IRBuilder& builder) = 0;
 	  virtual std::string pprint() = 0;
 };
 
