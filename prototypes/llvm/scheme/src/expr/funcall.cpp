@@ -2,6 +2,8 @@
 
 #include <sstream>
 
+#include <llvm/Support/IRBuilder.h>
+
 using namespace llvm;
 
 Funcall::Funcall(OpType op, Args* args) : _op(op), _args(args) {}
@@ -39,7 +41,25 @@ int Funcall::eval() {
 }
 
 Value* Funcall::compile(Module* module, IRBuilder* builder) {
-  return NULL;
+  Value* current = (*_args)[0]->compile(module, builder);
+  for (Args::iterator i = ++_args->begin(), e = _args->end(); i != e; ++i) {
+    Value* next = (*i)->compile(module, builder);
+    switch(_op) {
+      case OpPlus:
+      current = builder->CreateAdd(current, next);
+      break;
+      case OpMinus:
+      current = builder->CreateSub(current, next);
+      break;
+      case OpTimes:
+      current = builder->CreateMul(current, next);
+      break;
+      case OpDivide:
+      current = builder->CreateUDiv(current, next);
+      break;
+    }
+  }
+  return current;
 }
 
 std::string Funcall::pprint() {
