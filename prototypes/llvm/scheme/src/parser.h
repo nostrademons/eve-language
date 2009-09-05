@@ -57,14 +57,14 @@ class Parser {
 	friend int yyparse(void* scanner);
 	friend int yy_get_next_buffer(void* scanner);
 
-	int parse(std::istream& input) {
+	Expr* parse(std::istream& input) {
 		_input = &input;
 		if (yyparse(_scanner)) {
 			// TODO: real error handling
 			std::cerr << "Parse error.\n";
 			exit(1);
 		}
-		return _result->eval();
+		return _result;
 	}
 };
 
