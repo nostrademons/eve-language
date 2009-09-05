@@ -12,7 +12,7 @@ namespace llvm {
 class Literal : public Expr {
 	  int _value;
   public:
-    Literal(int value);
+    Literal(const Location& location, int value);
     ~Literal();
     virtual int eval();
     virtual llvm::Value* compile(llvm::Module* module, llvm::IRBuilder* builder);

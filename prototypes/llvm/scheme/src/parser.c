@@ -1387,14 +1387,14 @@ yyreduce:
 
 /* Line 1455 of yacc.c  */
 #line 25 "parser.y"
-    { (yyval.expr) = new Literal((yyvsp[(1) - (1)].num)); }
+    { (yyval.expr) = new Literal((yyloc), (yyvsp[(1) - (1)].num)); }
     break;
 
   case 4:
 
 /* Line 1455 of yacc.c  */
 #line 26 "parser.y"
-    { (yyval.expr) = new Funcall((yyvsp[(2) - (4)].op), (yyvsp[(3) - (4)].exprList)); }
+    { (yyval.expr) = new Funcall((yyloc), (yyvsp[(2) - (4)].op), (yyvsp[(3) - (4)].exprList)); }
     break;
 
   case 5:

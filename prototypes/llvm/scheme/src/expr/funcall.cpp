@@ -6,7 +6,8 @@
 
 using namespace llvm;
 
-Funcall::Funcall(OpType op, Args* args) : _op(op), _args(args) {}
+Funcall::Funcall(const Location& location, OpType op, Args* args) 
+    : Expr(location), _op(op), _args(args) {}
 Funcall::~Funcall() {
   for(Args::iterator iter = _args->begin(); iter != _args->end(); ++iter) {
     delete *iter;

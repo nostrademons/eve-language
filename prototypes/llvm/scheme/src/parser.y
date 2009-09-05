@@ -22,8 +22,8 @@
 
 program: expr				{ yyget_extra(scanner)->_result = $1; }
 
-expr :	  NUM						{ $$ = new Literal($1); }
-		| LPAREN op exprList RPAREN { $$ = new Funcall($2, $3); }
+expr :	  NUM						{ $$ = new Literal(@$, $1); }
+		| LPAREN op exprList RPAREN { $$ = new Funcall(@$, $2, $3); }
 		
 exprList: /* empty */		{ $$ = new Args(); }
 		| exprList expr		{ $1->push_back($2); }

@@ -8,7 +8,7 @@
 
 using namespace llvm;
 
-Literal::Literal(int value) : _value(value) {}
+Literal::Literal(const Location& location, int value) : Expr(location), _value(value) {}
 Literal::~Literal() {}
 
 int Literal::eval() {

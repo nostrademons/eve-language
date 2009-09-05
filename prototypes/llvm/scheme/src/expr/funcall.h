@@ -21,7 +21,7 @@ class Funcall : public Expr {
 	  Args* _args;
 	  OpType _op;
   public:
-    Funcall(OpType op, Args* args);
+    Funcall(const Location& location, OpType op, Args* args);
     virtual ~Funcall();
     virtual int eval();
     virtual llvm::Value* compile(llvm::Module* module, llvm::IRBuilder* builder);
