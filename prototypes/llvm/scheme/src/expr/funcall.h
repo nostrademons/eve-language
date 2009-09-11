@@ -15,13 +15,11 @@ namespace llvm {
 typedef std::vector<Expr*> Args;
 
 class Funcall : public Expr {
-  public:
-    typedef enum { OpPlus, OpMinus, OpTimes, OpDivide } OpType;
   private:
-	  Args* _args;
-	  OpType _op;
+    std::string op_;
+	  Args* args_;
   public:
-    Funcall(const Location& location, OpType op, Args* args);
+    Funcall(const Location& location, const char* op, Args* args);
     virtual ~Funcall();
     virtual int eval();
     virtual llvm::Value* compile(llvm::Module* module, llvm::IRBuilder* builder);

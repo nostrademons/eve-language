@@ -40,22 +40,16 @@
       know about them.  */
    enum yytokentype {
      NUM = 258,
-     LPAREN = 259,
-     RPAREN = 260,
-     MINUS = 261,
-     PLUS = 262,
-     DIVIDE = 263,
-     TIMES = 264
+     SYM = 259,
+     LPAREN = 260,
+     RPAREN = 261
    };
 #endif
 /* Tokens.  */
 #define NUM 258
-#define LPAREN 259
-#define RPAREN 260
-#define MINUS 261
-#define PLUS 262
-#define DIVIDE 263
-#define TIMES 264
+#define SYM 259
+#define LPAREN 260
+#define RPAREN 261
 
 
 

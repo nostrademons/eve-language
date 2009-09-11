@@ -14,9 +14,9 @@ class Parser;
 
 typedef union {
   int num;
+  char* sym;
   Expr* expr;
   Args* exprList;
-  Funcall::OpType op;
 } YYSTYPE;
 
 #define YY_EXTRA_TYPE Parser*

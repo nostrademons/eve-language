@@ -10,24 +10,22 @@
 #define YY_USER_ACTION yylloc->first_line = yylineno;
 %}
 
+%array
 %option reentrant noyywrap bison-bridge bison-locations yylineno
 
-DIGIT 	[0-9]
+WORD    [[:alnum:]+\-*/<>!=]
 
 %%
 
-[ \t]+		{}
-{DIGIT}+	{ yylval->num = atoi(yytext); return NUM; }
-"+"			{ return PLUS; }
-"-"			{ return MINUS; }
-"*"			{ return TIMES; }
-"/"			{ return DIVIDE; }
-"("			{ return LPAREN; }
-")"			{ return RPAREN; }
+[ \t]+				{}
+[[:digit:]]+		{ yylval->num = atoi(yytext); return NUM; }
+[[:alnum:]+\-*/]+	{ yylval->sym = strdup(yytext); return SYM; }
+"("					{ return LPAREN; }
+")"					{ return RPAREN; }
 
 %%
 
 void yyerror(YYLTYPE* location, void* scanner, char const* message) {
 	// TODO: real error handling.
-	std::cout << message << "\n";
+	std::cout << message << " at \n";
 }
