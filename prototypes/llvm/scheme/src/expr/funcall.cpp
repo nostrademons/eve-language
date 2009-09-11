@@ -24,24 +24,15 @@ protected:
     primitives[name] = this;
   }
 public:
-  virtual int eval(Args* args) = 0;
   virtual Value* compile(Module* module, IRBuilder* builder, Args* args) = 0;
   virtual const string& pprint() { return name_; }
 };
 
 class Binop : public Primitive {
 private:
-  virtual int evalPair(int x, int y) = 0;
   virtual Value* compilePair(IRBuilder* builder, Value* x, Value* y) = 0;
 public:
   Binop(const string& name) : Primitive(name) {}
-  virtual int eval(Args* args) {
-    int current = (*args)[0]->eval();
-    for(Args::iterator iter = ++args->begin(); iter != args->end(); ++iter) {
-      current = evalPair(current, (*iter)->eval());
-    }
-    return current;
-  }
   virtual Value* compile(Module* module, IRBuilder* builder, Args* args) {
     Value* current = (*args)[0]->compile(module, builder);
     for (Args::iterator i = ++args->begin(), e = args->end(); i != e; ++i) {
@@ -55,7 +46,6 @@ public:
 class Add : public Binop {
 public:
   Add() : Binop("+") {}
-  virtual int evalPair(int x, int y) { return x + y; }
   virtual Value* compilePair(IRBuilder* builder, Value* x, Value* y) {
     return builder->CreateAdd(x, y);
   }
@@ -65,7 +55,6 @@ static const Add kAdd;
 class Sub : public Binop {
 public:
   Sub() : Binop("-") {}
-  virtual int evalPair(int x, int y) { return x - y; }
   virtual Value* compilePair(IRBuilder* builder, Value* x, Value* y) {
     return builder->CreateSub(x, y);
   }
@@ -75,7 +64,6 @@ static const Sub kSub;
 class Mul : public Binop {
 public:
   Mul() : Binop("*") {}
-  virtual int evalPair(int x, int y) { return x * y; }
   virtual Value* compilePair(IRBuilder* builder, Value* x, Value* y) {
     return builder->CreateMul(x, y);
   }
@@ -85,7 +73,6 @@ static const Mul kMul;
 class Div : public Binop {
 public:
   Div() : Binop("/") {}
-  virtual int evalPair(int x, int y) { return x / y; }
   virtual Value* compilePair(IRBuilder* builder, Value* x, Value* y) {
     return builder->CreateUDiv(x, y);
   }
@@ -99,16 +86,6 @@ Funcall::~Funcall() {
     delete *iter;
   }
   delete args_;
-}
-
-int Funcall::eval() {
-  Primitive* maybePrimitive = primitives[op_];
-  if (maybePrimitive) {
-    return maybePrimitive->eval(args_);
-  } else {
-    // TODO: user-defined functions.
-    assert(false);
-  }
 }
 
 Value* Funcall::compile(Module* module, IRBuilder* builder) {

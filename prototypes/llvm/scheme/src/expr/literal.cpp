@@ -11,10 +11,6 @@ using namespace llvm;
 Literal::Literal(const Location& location, int value) : Expr(location), _value(value) {}
 Literal::~Literal() {}
 
-int Literal::eval() {
-  return _value;
-}
-
 Value* Literal::compile(Module* module, IRBuilder* builder) {
   return ConstantInt::get(IntegerType::get(32), _value);
 }

@@ -14,7 +14,6 @@ class Literal : public Expr {
   public:
     Literal(const Location& location, int value);
     ~Literal();
-    virtual int eval();
     virtual llvm::Value* compile(llvm::Module* module, llvm::IRBuilder* builder);
     virtual std::string pprint();
 };

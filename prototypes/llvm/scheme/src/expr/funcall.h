@@ -21,7 +21,6 @@ class Funcall : public Expr {
   public:
     Funcall(const Location& location, const char* op, Args* args);
     virtual ~Funcall();
-    virtual int eval();
     virtual llvm::Value* compile(llvm::Module* module, llvm::IRBuilder* builder);
     virtual std::string pprint();
 };

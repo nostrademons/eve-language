@@ -21,7 +21,6 @@ class Expr {
  public:
   Expr(const Location& location) : location_(location) {}
   virtual ~Expr() {}
-  virtual int eval() = 0;
   virtual llvm::Value* compile(llvm::Module* module, llvm::IRBuilder* builder) = 0;
   virtual std::string pprint() = 0;
 };
