@@ -20,7 +20,7 @@
 
 program: expr				{ yyget_extra(scanner)->_result = $1; }
 
-expr :	  NUM						 { $$ = new Literal(@$, $1); }
+expr :	  NUM						 { $$ = new IntLiteral(@$, $1); }
 		| LPAREN SYM exprList RPAREN { $$ = new Funcall(@$, $2, $3); free($2); }
 		
 exprList: /* empty */		{ $$ = new Args(); }

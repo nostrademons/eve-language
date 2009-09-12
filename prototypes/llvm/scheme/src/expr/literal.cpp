@@ -8,14 +8,14 @@
 
 using namespace llvm;
 
-Literal::Literal(const Location& location, int value) : Expr(location), _value(value) {}
-Literal::~Literal() {}
+IntLiteral::IntLiteral(const Location& location, int value) : Expr(location), _value(value) {}
+IntLiteral::~IntLiteral() {}
 
-Value* Literal::compile(Module* module, IRBuilder* builder) {
+Value* IntLiteral::compile(Module* module, IRBuilder* builder) {
   return ConstantInt::get(IntegerType::get(32), _value);
 }
 
-std::string Literal::pprint() {
+std::string IntLiteral::pprint() {
   std::stringstream stream;
   stream << _value;
   return stream.str();

@@ -1370,7 +1370,7 @@ yyreduce:
 
 /* Line 1455 of yacc.c  */
 #line 23 "parser.y"
-    { (yyval.expr) = new Literal((yyloc), (yyvsp[(1) - (1)].num)); }
+    { (yyval.expr) = new IntLiteral((yyloc), (yyvsp[(1) - (1)].num)); }
     break;
 
   case 4:
