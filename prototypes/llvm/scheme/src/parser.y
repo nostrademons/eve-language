@@ -11,6 +11,8 @@
 %parse-param { void* scanner }
 %token <num> NUM
 %token <sym> SYM
+%token TRUE
+%token FALSE
 %token LPAREN
 %token RPAREN
 %type <expr> expr
@@ -21,6 +23,8 @@
 program: expr				{ yyget_extra(scanner)->_result = $1; }
 
 expr :	  NUM						 { $$ = new IntLiteral(@$, $1); }
+		| TRUE						 { $$ = new BoolLiteral(@$, true); }
+		| FALSE						 { $$ = new BoolLiteral(@$, false); }
 		| LPAREN SYM exprList RPAREN { $$ = new Funcall(@$, $2, $3); free($2); }
 		
 exprList: /* empty */		{ $$ = new Args(); }

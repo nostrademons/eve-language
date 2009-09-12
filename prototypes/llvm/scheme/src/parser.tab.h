@@ -41,15 +41,19 @@
    enum yytokentype {
      NUM = 258,
      SYM = 259,
-     LPAREN = 260,
-     RPAREN = 261
+     TRUE = 260,
+     FALSE = 261,
+     LPAREN = 262,
+     RPAREN = 263
    };
 #endif
 /* Tokens.  */
 #define NUM 258
 #define SYM 259
-#define LPAREN 260
-#define RPAREN 261
+#define TRUE 260
+#define FALSE 261
+#define LPAREN 262
+#define RPAREN 263
 
 
 

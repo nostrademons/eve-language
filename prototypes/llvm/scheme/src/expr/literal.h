@@ -9,11 +9,20 @@ namespace llvm {
   class Value;
 }
 
+class BoolLiteral : public Expr {
+  bool value_;
+public:
+  BoolLiteral(const Location& location, bool value);
+  virtual ~BoolLiteral();
+  virtual llvm::Value* compile(llvm::Module* module, llvm::IRBuilder* builder);
+  virtual std::string pprint();
+};
+
 class IntLiteral : public Expr {
-	  int _value;
+	  int value_;
   public:
     IntLiteral(const Location& location, int value);
-    ~IntLiteral();
+    virtual ~IntLiteral();
     virtual llvm::Value* compile(llvm::Module* module, llvm::IRBuilder* builder);
     virtual std::string pprint();
 };

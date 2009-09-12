@@ -17,11 +17,13 @@ WORD    [[:alnum:]+\-*/<>!=]
 
 %%
 
+"True"				{ return TRUE; }
+"False"				{ return FALSE; }
+"("					{ return LPAREN; }
+")"					{ return RPAREN; }
 [ \t]+				{}
 [[:digit:]]+		{ yylval->num = atoi(yytext); return NUM; }
 [[:alnum:]+\-*/]+	{ yylval->sym = strdup(yytext); return SYM; }
-"("					{ return LPAREN; }
-")"					{ return RPAREN; }
 
 %%
 
