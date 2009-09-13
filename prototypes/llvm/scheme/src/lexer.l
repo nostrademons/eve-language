@@ -7,7 +7,11 @@
 #define YY_INPUT(buffer, result, max_size) \
 	result = yyget_extra(yyscanner)->read(buffer, max_size);
 
-#define YY_USER_ACTION yylloc->first_line = yylineno;
+#define YY_USER_ACTION do { \
+	yylloc->first_line = yylineno; \
+	yylloc->first_column = yycolumn; \
+	yycolumn += yyleng; \
+  } while(0);
 %}
 
 %array
@@ -29,5 +33,6 @@ WORD    [[:alnum:]+\-*/<>!=]
 
 void yyerror(YYLTYPE* location, void* scanner, char const* message) {
 	// TODO: real error handling.
-	std::cout << message << " at \n";
+	std::cout << message << " at " << location->first_line 
+				<< "." << location->first_column << "\n";
 }

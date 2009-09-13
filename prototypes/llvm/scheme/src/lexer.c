@@ -473,8 +473,12 @@ static yyconst flex_int32_t yy_rule_can_match_eol[9] =
 #define YY_INPUT(buffer, result, max_size) \
 	result = yyget_extra(yyscanner)->read(buffer, max_size);
 
-#define YY_USER_ACTION yylloc->first_line = yylineno;
-#line 478 "lexer.c"
+#define YY_USER_ACTION do { \
+	yylloc->first_line = yylineno; \
+	yylloc->first_column = yycolumn; \
+	yycolumn += yyleng; \
+  } while(0);
+#line 482 "lexer.c"
 
 #define INITIAL 0
 
@@ -716,10 +720,10 @@ YY_DECL
 	register int yy_act;
     struct yyguts_t * yyg = (struct yyguts_t*)yyscanner;
 
-#line 18 "lexer.l"
+#line 22 "lexer.l"
 
 
-#line 723 "lexer.c"
+#line 727 "lexer.c"
 
     yylval = yylval_param;
 
@@ -820,45 +824,45 @@ do_action:	/* This label is used only to access EOF actions. */
 
 case 1:
 YY_RULE_SETUP
-#line 20 "lexer.l"
+#line 24 "lexer.l"
 { return TRUE; }
 	YY_BREAK
 case 2:
 YY_RULE_SETUP
-#line 21 "lexer.l"
+#line 25 "lexer.l"
 { return FALSE; }
 	YY_BREAK
 case 3:
 YY_RULE_SETUP
-#line 22 "lexer.l"
+#line 26 "lexer.l"
 { return LPAREN; }
 	YY_BREAK
 case 4:
 YY_RULE_SETUP
-#line 23 "lexer.l"
+#line 27 "lexer.l"
 { return RPAREN; }
 	YY_BREAK
 case 5:
 YY_RULE_SETUP
-#line 24 "lexer.l"
+#line 28 "lexer.l"
 {}
 	YY_BREAK
 case 6:
 YY_RULE_SETUP
-#line 25 "lexer.l"
+#line 29 "lexer.l"
 { yylval->num = atoi(yytext); return NUM; }
 	YY_BREAK
 case 7:
 YY_RULE_SETUP
-#line 26 "lexer.l"
+#line 30 "lexer.l"
 { yylval->sym = strdup(yytext); return SYM; }
 	YY_BREAK
 case 8:
 YY_RULE_SETUP
-#line 28 "lexer.l"
+#line 32 "lexer.l"
 ECHO;
 	YY_BREAK
-#line 862 "lexer.c"
+#line 866 "lexer.c"
 case YY_STATE_EOF(INITIAL):
 	yyterminate();
 
@@ -2052,11 +2056,12 @@ void yyfree (void * ptr , yyscan_t yyscanner)
 
 #define YYTABLES_NAME "yytables"
 
-#line 28 "lexer.l"
+#line 32 "lexer.l"
 
 
 
 void yyerror(YYLTYPE* location, void* scanner, char const* message) {
 	// TODO: real error handling.
-	std::cout << message << " at \n";
+	std::cout << message << " at " << location->first_line 
+				<< "." << location->first_column << "\n";
 }
