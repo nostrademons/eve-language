@@ -5,15 +5,13 @@
 #include <sstream>
 #include <vector>
 
-#include "../parser.tab.h"
+#include "../location.h"
 
 namespace llvm {
   class IRBuilder;
   class Module;
   class Value;
 }
-
-typedef YYLTYPE Location;
 
 class Expr {
  private:

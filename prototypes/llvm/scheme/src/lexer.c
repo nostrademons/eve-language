@@ -471,11 +471,11 @@ static yyconst flex_int32_t yy_rule_can_match_eol[9] =
 #include "parser.h"
 
 #define YY_INPUT(buffer, result, max_size) \
-	result = yyget_extra(yyscanner)->read(buffer, max_size);
+	result = yyget_extra(yyscanner)->Read(buffer, max_size);
 
 #define YY_USER_ACTION do { \
-	yylloc->first_line = yylineno; \
-	yylloc->first_column = yycolumn; \
+	yylloc->Advance(yyget_extra(yyscanner)->GetFile(), yylineno, \
+					yycolumn, yycolumn + yyleng); \
 	yycolumn += yyleng; \
   } while(0);
 #line 482 "lexer.c"
@@ -2062,6 +2062,5 @@ void yyfree (void * ptr , yyscan_t yyscanner)
 
 void yyerror(YYLTYPE* location, void* scanner, char const* message) {
 	// TODO: real error handling.
-	std::cout << message << " at " << location->first_line 
-				<< "." << location->first_column << "\n";
+	std::cout << message << " at " << location->ToString() << "\n";
 }

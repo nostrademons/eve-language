@@ -6,6 +6,7 @@
 #include <vector>
 #include <memory>
 
+#include "location.h"
 #include "expr/expr.h"
 #include "expr/literal.h"
 #include "expr/funcall.h"
@@ -18,6 +19,17 @@ typedef union {
   Expr* expr;
   Args* exprList;
 } YYSTYPE;
+
+typedef Location YYLTYPE;
+#define YYLTYPE_IS_DECLARED 1
+
+#define YYLLOC_DEFAULT(current, rhs, n) do { \
+  if (n) { \
+    (current).MergeFrom(YYRHSLOC(rhs, 1), YYRHSLOC(rhs, n)); \
+  } else { \
+    (current).SetAfter(YYRHSLOC(rhs, 0)); \
+  } \
+} while(0);
 
 #define YY_EXTRA_TYPE Parser*
 
@@ -32,12 +44,13 @@ int yyparse(void* scanner);
 void yyerror(YYLTYPE* location, void* scanner, char const* message);
 
 class Parser {
-	
+ private:
 	void* _scanner;
+  const char* file_;
 	std::istream* _input;
 	Expr* _result;
 	
-	int read(char* buffer, int max_size) {
+	int Read(char* buffer, int max_size) {
 		int num_read = _input->readsome(buffer, max_size);
 		if (_input->eof()) {
 			return 0;	// Technically YY_NULL, but that's defined in lexer.cpp
@@ -46,7 +59,7 @@ class Parser {
 		}
 	}
 	
-  public:
+ public:
 	explicit Parser() : _input(NULL), _result(NULL) {
 		yylex_init(&_scanner);
 		yyset_extra(this, _scanner);
@@ -57,8 +70,13 @@ class Parser {
 	friend int yyparse(void* scanner);
 	friend int yy_get_next_buffer(void* scanner);
 
-	Expr* parse(std::istream& input) {
+  const char* GetFile() {
+    return file_;
+  }
+  
+	Expr* parse(std::string filename, std::istream& input) {
 		_input = &input;
+    file_ = filename.c_str();
 		if (yyparse(_scanner)) {
 			// TODO: real error handling
 			std::cerr << "Parse error.\n";

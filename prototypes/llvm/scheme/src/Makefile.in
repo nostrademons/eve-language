@@ -45,12 +45,13 @@ CONFIG_CLEAN_FILES =
 am__installdirs = "$(DESTDIR)$(bindir)"
 binPROGRAMS_INSTALL = $(INSTALL_PROGRAM)
 PROGRAMS = $(bin_PROGRAMS)
-am_calculator_OBJECTS = calculator-lexer.$(OBJEXT) \
-	calculator-parser.$(OBJEXT) calculator-main.$(OBJEXT)
+am_calculator_OBJECTS = calculator-location.$(OBJEXT) \
+	calculator-lexer.$(OBJEXT) calculator-parser.$(OBJEXT) \
+	calculator-main.$(OBJEXT)
 calculator_OBJECTS = $(am_calculator_OBJECTS)
 calculator_DEPENDENCIES = expr/libschemeexpr.a
-calculator_LINK = $(CCLD) $(AM_CFLAGS) $(CFLAGS) $(calculator_LDFLAGS) \
-	$(LDFLAGS) -o $@
+calculator_LINK = $(CXXLD) $(AM_CXXFLAGS) $(CXXFLAGS) \
+	$(calculator_LDFLAGS) $(LDFLAGS) -o $@
 DEFAULT_INCLUDES = -I. -I$(top_builddir)@am__isrc@
 depcomp = $(SHELL) $(top_srcdir)/autoconf/depcomp
 am__depfiles_maybe = depfiles
@@ -58,6 +59,11 @@ COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
 CCLD = $(CC)
 LINK = $(CCLD) $(AM_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
+CXXCOMPILE = $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) \
+	$(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS)
+CXXLD = $(CXX)
+CXXLINK = $(CXXLD) $(AM_CXXFLAGS) $(CXXFLAGS) $(AM_LDFLAGS) $(LDFLAGS) \
+	-o $@
 LEXCOMPILE = $(LEX) $(LFLAGS) $(AM_LFLAGS)
 YLWRAP = $(top_srcdir)/autoconf/ylwrap
 YACCCOMPILE = $(YACC) $(YFLAGS) $(AM_YFLAGS)
@@ -173,14 +179,14 @@ top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 SUBDIRS = expr
 AM_DEFAULT_SOURCE_EXT = .cpp
-calculator_SOURCES = sexp.h parser.h lexer.l parser.y main.c
+calculator_SOURCES = location.h location.cpp parser.h lexer.l parser.y main.c
 calculator_LDADD = expr/libschemeexpr.a
 calculator_CPPFLAGS = $(LLVM_CPPFLAGS) $(AM_CPPFLAGS)
 calculator_LDFLAGS = $(LLVM_LDFLAGS) $(AM_LDFLAGS)
 all: all-recursive
 
 .SUFFIXES:
-.SUFFIXES: .c .l .o .obj .y
+.SUFFIXES: .c .cpp .l .o .obj .y
 $(srcdir)/Makefile.in:  $(srcdir)/Makefile.am  $(am__configure_deps)
 	@for dep in $?; do \
 	  case '$(am__configure_deps)' in \
@@ -244,6 +250,7 @@ distclean-compile:
 	-rm -f *.tab.c
 
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/calculator-lexer.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/calculator-location.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/calculator-main.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/calculator-parser.Po@am__quote@
 
@@ -302,6 +309,34 @@ calculator-main.obj: main.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='main.c' object='calculator-main.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(calculator_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o calculator-main.obj `if test -f 'main.c'; then $(CYGPATH_W) 'main.c'; else $(CYGPATH_W) '$(srcdir)/main.c'; fi`
+
+.cpp.o:
+@am__fastdepCXX_TRUE@	$(CXXCOMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<
+@am__fastdepCXX_TRUE@	mv -f $(DEPDIR)/$*.Tpo $(DEPDIR)/$*.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='$<' object='$@' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXXCOMPILE) -c -o $@ $<
+
+.cpp.obj:
+@am__fastdepCXX_TRUE@	$(CXXCOMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ `$(CYGPATH_W) '$<'`
+@am__fastdepCXX_TRUE@	mv -f $(DEPDIR)/$*.Tpo $(DEPDIR)/$*.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='$<' object='$@' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXXCOMPILE) -c -o $@ `$(CYGPATH_W) '$<'`
+
+calculator-location.o: location.cpp
+@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(calculator_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT calculator-location.o -MD -MP -MF $(DEPDIR)/calculator-location.Tpo -c -o calculator-location.o `test -f 'location.cpp' || echo '$(srcdir)/'`location.cpp
+@am__fastdepCXX_TRUE@	mv -f $(DEPDIR)/calculator-location.Tpo $(DEPDIR)/calculator-location.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='location.cpp' object='calculator-location.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(calculator_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o calculator-location.o `test -f 'location.cpp' || echo '$(srcdir)/'`location.cpp
+
+calculator-location.obj: location.cpp
+@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(calculator_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT calculator-location.obj -MD -MP -MF $(DEPDIR)/calculator-location.Tpo -c -o calculator-location.obj `if test -f 'location.cpp'; then $(CYGPATH_W) 'location.cpp'; else $(CYGPATH_W) '$(srcdir)/location.cpp'; fi`
+@am__fastdepCXX_TRUE@	mv -f $(DEPDIR)/calculator-location.Tpo $(DEPDIR)/calculator-location.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='location.cpp' object='calculator-location.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(calculator_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o calculator-location.obj `if test -f 'location.cpp'; then $(CYGPATH_W) 'location.cpp'; else $(CYGPATH_W) '$(srcdir)/location.cpp'; fi`
 
 .l.c:
 	$(am__skiplex) $(SHELL) $(YLWRAP) $< $(LEX_OUTPUT_ROOT).c $@ -- $(LEXCOMPILE)
