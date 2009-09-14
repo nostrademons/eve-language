@@ -27,7 +27,7 @@ int main (int argc, char const *argv[])
 	}
 	stringstream input(argv[1]);
 	Parser parser;
-  auto_ptr<Expr> expr(parser.parse("args", input));
+  auto_ptr<Expr> expr(parser.Parse("args", input));
   auto_ptr<Module> module(new Module("calculator"));
   Constant* c = module->getOrInsertFunction("calculator", IntegerType::get(32), NULL);
   Function* f = cast<Function>(c);

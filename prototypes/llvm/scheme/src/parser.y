@@ -1,5 +1,6 @@
 %{
 #include <stdio.h>
+#include <iostream>
 #include "parser.h"
 %}
 
@@ -20,7 +21,7 @@
 
 %%
 
-program: expr				{ yyget_extra(scanner)->_result = $1; }
+program: expr				{ yyget_extra(scanner)->result_ = $1; }
 
 expr :	  NUM						 { $$ = new IntLiteral(@$, $1); }
 		| TRUE						 { $$ = new BoolLiteral(@$, true); }
@@ -31,4 +32,3 @@ exprList: /* empty */		{ $$ = new Args(); }
 		| exprList expr		{ $1->push_back($2); }
 		
 %%
-

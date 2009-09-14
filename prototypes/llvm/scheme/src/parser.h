@@ -45,14 +45,14 @@ void yyerror(YYLTYPE* location, void* scanner, char const* message);
 
 class Parser {
  private:
-	void* _scanner;
+	void* scanner_;
   const char* file_;
-	std::istream* _input;
-	Expr* _result;
+	std::istream* input_;
+	Expr* result_;
 	
 	int Read(char* buffer, int max_size) {
-		int num_read = _input->readsome(buffer, max_size);
-		if (_input->eof()) {
+		int num_read = input_->readsome(buffer, max_size);
+		if (input_->eof()) {
 			return 0;	// Technically YY_NULL, but that's defined in lexer.cpp
 		} else {
 			return num_read;
@@ -60,12 +60,12 @@ class Parser {
 	}
 	
  public:
-	explicit Parser() : _input(NULL), _result(NULL) {
-		yylex_init(&_scanner);
-		yyset_extra(this, _scanner);
+	explicit Parser() : input_(NULL), result_(NULL) {
+		yylex_init(&scanner_);
+		yyset_extra(this, scanner_);
 	}
 	~Parser() {
-		yylex_destroy(_scanner);
+		yylex_destroy(scanner_);
 	}
 	friend int yyparse(void* scanner);
 	friend int yy_get_next_buffer(void* scanner);
@@ -74,15 +74,15 @@ class Parser {
     return file_;
   }
   
-	Expr* parse(std::string filename, std::istream& input) {
-		_input = &input;
+	Expr* Parse(std::string filename, std::istream& input) {
+		input_ = &input;
     file_ = filename.c_str();
-		if (yyparse(_scanner)) {
+		if (yyparse(scanner_)) {
 			// TODO: real error handling
 			std::cerr << "Parse error.\n";
 			exit(1);
 		}
-		return _result;
+		return result_;
 	}
 };
 

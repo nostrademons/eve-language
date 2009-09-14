@@ -71,11 +71,12 @@
 #line 1 "parser.y"
 
 #include <stdio.h>
+#include <iostream>
 #include "parser.h"
 
 
 /* Line 189 of yacc.c  */
-#line 79 "parser.c"
+#line 80 "parser.c"
 
 /* Enabling traces.  */
 #ifndef YYDEBUG
@@ -145,7 +146,7 @@ typedef struct YYLTYPE
 
 
 /* Line 264 of yacc.c  */
-#line 149 "parser.c"
+#line 150 "parser.c"
 
 #ifdef short
 # undef short
@@ -430,7 +431,7 @@ static const yytype_int8 yyrhs[] =
 /* YYRLINE[YYN] -- source line where rule number YYN was defined.  */
 static const yytype_uint8 yyrline[] =
 {
-       0,    23,    23,    25,    26,    27,    28,    30,    31
+       0,    24,    24,    26,    27,    28,    29,    31,    32
 };
 #endif
 
@@ -1371,56 +1372,56 @@ yyreduce:
         case 2:
 
 /* Line 1455 of yacc.c  */
-#line 23 "parser.y"
-    { yyget_extra(scanner)->_result = (yyvsp[(1) - (1)].expr); }
+#line 24 "parser.y"
+    { yyget_extra(scanner)->result_ = (yyvsp[(1) - (1)].expr); }
     break;
 
   case 3:
 
 /* Line 1455 of yacc.c  */
-#line 25 "parser.y"
+#line 26 "parser.y"
     { (yyval.expr) = new IntLiteral((yyloc), (yyvsp[(1) - (1)].num)); }
     break;
 
   case 4:
 
 /* Line 1455 of yacc.c  */
-#line 26 "parser.y"
+#line 27 "parser.y"
     { (yyval.expr) = new BoolLiteral((yyloc), true); }
     break;
 
   case 5:
 
 /* Line 1455 of yacc.c  */
-#line 27 "parser.y"
+#line 28 "parser.y"
     { (yyval.expr) = new BoolLiteral((yyloc), false); }
     break;
 
   case 6:
 
 /* Line 1455 of yacc.c  */
-#line 28 "parser.y"
+#line 29 "parser.y"
     { (yyval.expr) = new Funcall((yyloc), (yyvsp[(2) - (4)].sym), (yyvsp[(3) - (4)].exprList)); free((yyvsp[(2) - (4)].sym)); }
     break;
 
   case 7:
 
 /* Line 1455 of yacc.c  */
-#line 30 "parser.y"
+#line 31 "parser.y"
     { (yyval.exprList) = new Args(); }
     break;
 
   case 8:
 
 /* Line 1455 of yacc.c  */
-#line 31 "parser.y"
+#line 32 "parser.y"
     { (yyvsp[(1) - (2)].exprList)->push_back((yyvsp[(2) - (2)].expr)); }
     break;
 
 
 
 /* Line 1455 of yacc.c  */
-#line 1424 "parser.c"
+#line 1425 "parser.c"
       default: break;
     }
   YY_SYMBOL_PRINT ("-> $$ =", yyr1[yyn], &yyval, &yyloc);
@@ -1639,7 +1640,6 @@ yyreturn:
 
 
 /* Line 1675 of yacc.c  */
-#line 33 "parser.y"
-
+#line 34 "parser.y"
 
 
