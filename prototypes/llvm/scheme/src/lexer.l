@@ -5,17 +5,19 @@
 #include "parser.h"
 
 #define YY_INPUT(buffer, result, max_size) \
-	result = yyget_extra(yyscanner)->Read(buffer, max_size);
+	result = eve_yyget_extra(yyscanner)->Read(buffer, max_size);
 
 #define YY_USER_ACTION do { \
-	yylloc->Advance(yyget_extra(yyscanner)->GetFile(), yylineno, \
-					yycolumn, yycolumn + yyleng); \
+	yylloc->Advance(eve_yyget_extra(yyscanner)->GetFile(), yylineno, \
+					    yycolumn, yycolumn + yyleng); \
 	yycolumn += yyleng; \
   } while(0);
 %}
 
 %array
-%option reentrant noyywrap bison-bridge bison-locations yylineno
+%option reentrant noyywrap yylineno
+%option bison-bridge bison-locations
+%option outfile="lex.yy.c" prefix="eve_yy"
 
 WORD    [[:alnum:]+\-*/<>!=]
 
@@ -31,7 +33,7 @@ WORD    [[:alnum:]+\-*/<>!=]
 
 %%
 
-void yyerror(YYLTYPE* location, void* scanner, char const* message) {
+void eve_yyerror(YYLTYPE* location, void* scanner, char const* message) {
 	// TODO: real error handling.
 	std::cout << message << " at " << location->ToString() << "\n";
 }

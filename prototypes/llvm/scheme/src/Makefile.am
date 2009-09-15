@@ -8,4 +8,4 @@ calculator_CPPFLAGS = $(LLVM_CPPFLAGS) $(AM_CPPFLAGS)
 calculator_LDFLAGS = $(LLVM_LDFLAGS) $(AM_LDFLAGS)
 
 parser.c parser.tab.h: parser.y
-	@YACC@ -d $<
+	@YACC@ -d -p eve_yy $<

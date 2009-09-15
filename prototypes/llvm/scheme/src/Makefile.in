@@ -629,7 +629,7 @@ uninstall-am: uninstall-binPROGRAMS
 
 
 parser.c parser.tab.h: parser.y
-	@YACC@ -d $<
+	@YACC@ -d -p eve_yy $<
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.
 .NOEXPORT:

@@ -37,14 +37,14 @@ typedef Location YYLTYPE;
 
 #include "parser.tab.h"
 
-int yylex(YYSTYPE* token, YYLTYPE* location, void* scanner);
-int yylex_init(void** scanner);
-int yylex_destroy(void* scanner);
-YY_EXTRA_TYPE yyget_extra(void* scanner);
-void yyset_extra(YY_EXTRA_TYPE extra, void* scanner);
-int yyparse(void* scanner);
-void yyerror(YYLTYPE* location, void* scanner, char const* message);
-int yy_get_next_buffer(void* scanner);
+int eve_yylex(YYSTYPE* token, YYLTYPE* location, void* scanner);
+int eve_yylex_init(void** scanner);
+int eve_yylex_destroy(void* scanner);
+YY_EXTRA_TYPE eve_yyget_extra(void* scanner);
+void eve_yyset_extra(YY_EXTRA_TYPE extra, void* scanner);
+int eve_yyparse(void* scanner);
+void eve_yyerror(YYLTYPE* location, void* scanner, char const* message);
+int eve_yy_get_next_buffer(void* scanner);
 
 namespace eve {
 
@@ -67,14 +67,14 @@ class Parser {
 	
  public:
 	explicit Parser() : input_(NULL), result_(NULL) {
-		yylex_init(&scanner_);
-		yyset_extra(this, scanner_);
+		eve_yylex_init(&scanner_);
+		eve_yyset_extra(this, scanner_);
 	}
 	~Parser() {
-		yylex_destroy(scanner_);
+		eve_yylex_destroy(scanner_);
 	}
-	friend int ::yyparse(void* scanner);
-	friend int ::yy_get_next_buffer(void* scanner);
+	friend int ::eve_yyparse(void* scanner);
+	friend int ::eve_yy_get_next_buffer(void* scanner);
 
   const char* GetFile() {
     return file_;
@@ -83,7 +83,7 @@ class Parser {
 	eve::expr::Expr* Parse(std::string filename, std::istream& input) {
 		input_ = &input;
     file_ = filename.c_str();
-		if (yyparse(scanner_)) {
+		if (eve_yyparse(scanner_)) {
 			// TODO: real error handling
 			std::cerr << "Parse error.\n";
 			exit(1);

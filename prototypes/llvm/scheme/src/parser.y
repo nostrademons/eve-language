@@ -21,7 +21,7 @@
 
 %%
 
-program: expr				{ yyget_extra(scanner)->result_ = $1; }
+program: expr				{ eve_yyget_extra(scanner)->result_ = $1; }
 
 expr :	  NUM						 { $$ = new eve::expr::IntLiteral(@$, $1); }
 		| TRUE						 { $$ = new eve::expr::BoolLiteral(@$, true); }

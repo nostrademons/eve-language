@@ -63,7 +63,15 @@
 /* Using locations.  */
 #define YYLSP_NEEDED 1
 
-
+/* Substitute the variable and function names.  */
+#define yyparse         eve_yyparse
+#define yylex           eve_yylex
+#define yyerror         eve_yyerror
+#define yylval          eve_yylval
+#define yychar          eve_yychar
+#define yydebug         eve_yydebug
+#define yynerrs         eve_yynerrs
+#define yylloc          eve_yylloc
 
 /* Copy the first part of user declarations.  */
 
@@ -76,7 +84,7 @@
 
 
 /* Line 189 of yacc.c  */
-#line 80 "parser.c"
+#line 88 "parser.c"
 
 /* Enabling traces.  */
 #ifndef YYDEBUG
@@ -146,7 +154,7 @@ typedef struct YYLTYPE
 
 
 /* Line 264 of yacc.c  */
-#line 150 "parser.c"
+#line 158 "parser.c"
 
 #ifdef short
 # undef short
@@ -1373,7 +1381,7 @@ yyreduce:
 
 /* Line 1455 of yacc.c  */
 #line 24 "parser.y"
-    { yyget_extra(scanner)->result_ = (yyvsp[(1) - (1)].expr); }
+    { eve_yyget_extra(scanner)->result_ = (yyvsp[(1) - (1)].expr); }
     break;
 
   case 3:
@@ -1421,7 +1429,7 @@ yyreduce:
 
 
 /* Line 1455 of yacc.c  */
-#line 1425 "parser.c"
+#line 1433 "parser.c"
       default: break;
     }
   YY_SYMBOL_PRINT ("-> $$ =", yyr1[yyn], &yyval, &yyloc);

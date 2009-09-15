@@ -28,7 +28,7 @@ int main (int argc, char const *argv[])
   std::auto_ptr<llvm::Module> module(new llvm::Module("calculator"));
   llvm::Constant* c = module->getOrInsertFunction(
       "calculator", llvm::IntegerType::get(32), NULL);
-  llvm::Function* f = llvm::cast<llvm::Function>(c);
+  llvm::Function* f = llvm::  cast<llvm::Function>(c);
   f->setCallingConv(llvm::CallingConv::C);
   
   llvm::IRBuilder builder(llvm::BasicBlock::Create("entry", f));
