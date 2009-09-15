@@ -16,28 +16,26 @@ namespace llvm {
   class Constant;
 }
 
-using namespace llvm;
-using namespace std;
-
 int main (int argc, char const *argv[])
 {	
 	if(argc <= 1) {
 		printf("usage: calculator \"2 + 2\"");
 		return -1;
 	}
-	stringstream input(argv[1]);
-	Parser parser;
-  auto_ptr<Expr> expr(parser.Parse("args", input));
-  auto_ptr<Module> module(new Module("calculator"));
-  Constant* c = module->getOrInsertFunction("calculator", IntegerType::get(32), NULL);
-  Function* f = cast<Function>(c);
-  f->setCallingConv(CallingConv::C);
+	std::stringstream input(argv[1]);
+	eve::Parser parser;
+  std::auto_ptr<eve::expr::Expr> expr(parser.Parse("args", input));
+  std::auto_ptr<llvm::Module> module(new llvm::Module("calculator"));
+  llvm::Constant* c = module->getOrInsertFunction(
+      "calculator", llvm::IntegerType::get(32), NULL);
+  llvm::Function* f = llvm::cast<llvm::Function>(c);
+  f->setCallingConv(llvm::CallingConv::C);
   
-  IRBuilder builder(BasicBlock::Create("entry", f));
+  llvm::IRBuilder builder(llvm::BasicBlock::Create("entry", f));
   builder.CreateRet(expr->compile(module.get(), &builder));
   
   verifyFunction(*f);
-  ExecutionEngine* jit = ExecutionEngine::create(module.get());
+  llvm::ExecutionEngine* jit = llvm::ExecutionEngine::create(module.get());
       
   int (*calculate)() = (int (*)()) jit->getPointerToFunction(f);
 	printf("'%s' is %d.\n", argv[1], calculate());

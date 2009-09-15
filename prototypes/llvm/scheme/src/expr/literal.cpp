@@ -6,6 +6,9 @@
 #include <llvm/Constants.h>
 #include <llvm/DerivedTypes.h>
 
+namespace eve {
+namespace expr {
+
 using llvm::ConstantInt;
 using llvm::IntegerType;
 using llvm::IRBuilder;
@@ -36,3 +39,6 @@ std::string IntLiteral::pprint() {
   stream << value_;
   return stream.str();
 }
+
+} // namespace expr
+} // namespace eve

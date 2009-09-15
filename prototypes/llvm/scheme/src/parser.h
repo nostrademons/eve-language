@@ -11,13 +11,15 @@
 #include "expr/literal.h"
 #include "expr/funcall.h"
 
-class Parser;
+namespace eve {
+  class Parser;
+}
 
 typedef union {
   int num;
   char* sym;
-  Expr* expr;
-  Args* exprList;
+  eve::expr::Expr* expr;
+  eve::expr::Args* exprList;
 } YYSTYPE;
 
 typedef Location YYLTYPE;
@@ -31,7 +33,7 @@ typedef Location YYLTYPE;
   } \
 } while(0);
 
-#define YY_EXTRA_TYPE Parser*
+#define YY_EXTRA_TYPE eve::Parser*
 
 #include "parser.tab.h"
 
@@ -42,14 +44,18 @@ YY_EXTRA_TYPE yyget_extra(void* scanner);
 void yyset_extra(YY_EXTRA_TYPE extra, void* scanner);
 int yyparse(void* scanner);
 void yyerror(YYLTYPE* location, void* scanner, char const* message);
+int yy_get_next_buffer(void* scanner);
+
+namespace eve {
 
 class Parser {
  private:
 	void* scanner_;
   const char* file_;
 	std::istream* input_;
-	Expr* result_;
+	eve::expr::Expr* result_;
 	
+ public:
 	int Read(char* buffer, int max_size) {
 		int num_read = input_->readsome(buffer, max_size);
 		if (input_->eof()) {
@@ -67,14 +73,14 @@ class Parser {
 	~Parser() {
 		yylex_destroy(scanner_);
 	}
-	friend int yyparse(void* scanner);
-	friend int yy_get_next_buffer(void* scanner);
+	friend int ::yyparse(void* scanner);
+	friend int ::yy_get_next_buffer(void* scanner);
 
   const char* GetFile() {
     return file_;
   }
   
-	Expr* Parse(std::string filename, std::istream& input) {
+	eve::expr::Expr* Parse(std::string filename, std::istream& input) {
 		input_ = &input;
     file_ = filename.c_str();
 		if (yyparse(scanner_)) {
@@ -85,5 +91,7 @@ class Parser {
 		return result_;
 	}
 };
+
+} // namespace eve
 
 #endif

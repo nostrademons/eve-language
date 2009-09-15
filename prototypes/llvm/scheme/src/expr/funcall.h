@@ -12,6 +12,9 @@ namespace llvm {
   class Value;
 }
 
+namespace eve {
+namespace expr {
+
 typedef std::vector<Expr*> Args;
 
 class Funcall : public Expr {
@@ -24,5 +27,8 @@ class Funcall : public Expr {
     virtual llvm::Value* compile(llvm::Module* module, llvm::IRBuilder* builder);
     virtual std::string pprint();
 };
+
+} // namespace expr
+} // namespace eve
 
 #endif

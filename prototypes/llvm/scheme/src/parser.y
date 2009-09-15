@@ -23,12 +23,12 @@
 
 program: expr				{ yyget_extra(scanner)->result_ = $1; }
 
-expr :	  NUM						 { $$ = new IntLiteral(@$, $1); }
-		| TRUE						 { $$ = new BoolLiteral(@$, true); }
-		| FALSE						 { $$ = new BoolLiteral(@$, false); }
-		| LPAREN SYM exprList RPAREN { $$ = new Funcall(@$, $2, $3); free($2); }
+expr :	  NUM						 { $$ = new eve::expr::IntLiteral(@$, $1); }
+		| TRUE						 { $$ = new eve::expr::BoolLiteral(@$, true); }
+		| FALSE						 { $$ = new eve::expr::BoolLiteral(@$, false); }
+		| LPAREN SYM exprList RPAREN { $$ = new eve::expr::Funcall(@$, $2, $3); free($2); }
 		
-exprList: /* empty */		{ $$ = new Args(); }
+exprList: /* empty */		{ $$ = new eve::expr::Args(); }
 		| exprList expr		{ $1->push_back($2); }
 		
 %%

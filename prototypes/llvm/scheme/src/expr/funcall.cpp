@@ -8,6 +8,9 @@
 
 #include <llvm/Support/IRBuilder.h>
 
+namespace eve {
+namespace expr {
+
 using llvm::IRBuilder;
 using llvm::Module;
 using llvm::Value;
@@ -106,3 +109,6 @@ string Funcall::pprint() {
   }
   return stream.str();
 }
+
+} // namespace expr
+} // namespace eve

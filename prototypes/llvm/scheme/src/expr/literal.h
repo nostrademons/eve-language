@@ -9,6 +9,9 @@ namespace llvm {
   class Value;
 }
 
+namespace eve {
+namespace expr {
+
 class BoolLiteral : public Expr {
   bool value_;
 public:
@@ -26,5 +29,8 @@ class IntLiteral : public Expr {
     virtual llvm::Value* compile(llvm::Module* module, llvm::IRBuilder* builder);
     virtual std::string pprint();
 };
+
+} // namespace expr
+} // namespace eve
 
 #endif

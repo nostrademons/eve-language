@@ -1380,35 +1380,35 @@ yyreduce:
 
 /* Line 1455 of yacc.c  */
 #line 26 "parser.y"
-    { (yyval.expr) = new IntLiteral((yyloc), (yyvsp[(1) - (1)].num)); }
+    { (yyval.expr) = new eve::expr::IntLiteral((yyloc), (yyvsp[(1) - (1)].num)); }
     break;
 
   case 4:
 
 /* Line 1455 of yacc.c  */
 #line 27 "parser.y"
-    { (yyval.expr) = new BoolLiteral((yyloc), true); }
+    { (yyval.expr) = new eve::expr::BoolLiteral((yyloc), true); }
     break;
 
   case 5:
 
 /* Line 1455 of yacc.c  */
 #line 28 "parser.y"
-    { (yyval.expr) = new BoolLiteral((yyloc), false); }
+    { (yyval.expr) = new eve::expr::BoolLiteral((yyloc), false); }
     break;
 
   case 6:
 
 /* Line 1455 of yacc.c  */
 #line 29 "parser.y"
-    { (yyval.expr) = new Funcall((yyloc), (yyvsp[(2) - (4)].sym), (yyvsp[(3) - (4)].exprList)); free((yyvsp[(2) - (4)].sym)); }
+    { (yyval.expr) = new eve::expr::Funcall((yyloc), (yyvsp[(2) - (4)].sym), (yyvsp[(3) - (4)].exprList)); free((yyvsp[(2) - (4)].sym)); }
     break;
 
   case 7:
 
 /* Line 1455 of yacc.c  */
 #line 31 "parser.y"
-    { (yyval.exprList) = new Args(); }
+    { (yyval.exprList) = new eve::expr::Args(); }
     break;
 
   case 8:

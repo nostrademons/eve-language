@@ -13,6 +13,9 @@ namespace llvm {
   class Value;
 }
 
+namespace eve {
+namespace expr {
+
 class Expr {
  private:
   Location location_;
@@ -22,5 +25,8 @@ class Expr {
   virtual llvm::Value* compile(llvm::Module* module, llvm::IRBuilder* builder) = 0;
   virtual std::string pprint() = 0;
 };
+
+} // namespace expr
+} // namespace eve
 
 #endif
