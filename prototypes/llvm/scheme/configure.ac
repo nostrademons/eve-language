@@ -11,6 +11,7 @@ AC_CONFIG_FILES([
 	Makefile
 	src/Makefile
 	src/expr/Makefile
+	src/types/Makefile
 ])
 AX_LLVM([core jit native])
 AC_OUTPUT
