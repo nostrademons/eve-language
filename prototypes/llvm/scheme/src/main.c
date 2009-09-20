@@ -12,6 +12,8 @@
 #include <llvm/ExecutionEngine/ExecutionEngine.h>
 #include <llvm/Support/IRBuilder.h>
 
+#include "types/type_env.h"
+
 namespace llvm {
   class Constant;
 }
@@ -25,6 +27,10 @@ int main (int argc, char const *argv[])
 	std::stringstream input(argv[1]);
 	eve::Parser parser;
   std::auto_ptr<eve::expr::Expr> expr(parser.Parse("args", input));
+  
+  eve::types::TypeEnv typeEnv;
+  eve::types::Type* type = expr->TypeCheck(&typeEnv);
+  
   std::auto_ptr<llvm::Module> module(new llvm::Module("calculator"));
   llvm::Constant* c = module->getOrInsertFunction(
       "calculator", llvm::IntegerType::get(32), NULL);
@@ -39,5 +45,6 @@ int main (int argc, char const *argv[])
       
   int (*calculate)() = (int (*)()) jit->getPointerToFunction(f);
 	printf("'%s' is %d.\n", argv[1], calculate());
+  delete type;
 	return 0;
 }
