@@ -10,7 +10,7 @@ class Bool : public Type {
 
 };
 
-extern Bool kBool;
+Bool* CreateBool();
   
 } // namespace types
 } // namespace eve

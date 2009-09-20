@@ -10,7 +10,7 @@ class Int : public Type {
   
 };
 
-extern Int kInt;
+Int* CreateInt();
 
 } // namespace types
 } // namespace eve

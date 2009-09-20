@@ -13,22 +13,28 @@ namespace llvm {
 }
 
 namespace eve {
-namespace expr {
+  namespace types {
+    class Type;
+    class TypeEnv;
+  }
 
-typedef std::vector<Expr*> Args;
+  namespace expr {
 
-class Funcall : public Expr {
-  private:
-    std::string op_;
-	  Args* args_;
-  public:
-    Funcall(const Location& location, const char* op, Args* args);
-    virtual ~Funcall();
-    virtual llvm::Value* compile(llvm::Module* module, llvm::IRBuilder* builder);
-    virtual std::string pprint();
-};
+  typedef std::vector<Expr*> Args;
 
-} // namespace expr
+    class Funcall : public Expr {
+      private:
+        std::string op_;
+    	  Args* args_;
+      public:
+        Funcall(const Location& location, const char* op, Args* args);
+        virtual ~Funcall();
+        virtual eve::types::Type* TypeCheck(eve::types::TypeEnv* env);
+        virtual llvm::Value* compile(llvm::Module* module, llvm::IRBuilder* builder);
+        virtual std::string pprint();
+    };
+
+  } // namespace expr
 } // namespace eve
 
 #endif

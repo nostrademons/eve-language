@@ -14,19 +14,25 @@ namespace llvm {
 }
 
 namespace eve {
-namespace expr {
+  namespace types {
+    class Type;
+    class TypeEnv;
+  }
 
-class Expr {
- private:
-  Location location_;
- public:
-  Expr(const Location& location) : location_(location) {}
-  virtual ~Expr() {}
-  virtual llvm::Value* compile(llvm::Module* module, llvm::IRBuilder* builder) = 0;
-  virtual std::string pprint() = 0;
-};
+  namespace expr {
 
-} // namespace expr
+    class Expr {
+     private:
+      Location location_;
+     public:
+      Expr(const Location& location) : location_(location) {}
+      virtual ~Expr() {}
+      virtual eve::types::Type* TypeCheck(eve::types::TypeEnv* env) = 0;
+      virtual llvm::Value* compile(llvm::Module* module, llvm::IRBuilder* builder) = 0;
+      virtual std::string pprint() = 0;
+    };
+
+  }
 } // namespace eve
 
 #endif

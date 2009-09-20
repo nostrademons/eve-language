@@ -8,9 +8,20 @@
 
 #include <llvm/Support/IRBuilder.h>
 
+#include "../types/bool.h"
+#include "../types/int.h"
+
 namespace eve {
+namespace types {
+  class Type;
+  class TypeEnv;
+}
+
 namespace expr {
 
+using eve::types::Int;
+using eve::types::Type;
+using eve::types::TypeEnv;
 using llvm::IRBuilder;
 using llvm::Module;
 using llvm::Value;
@@ -89,6 +100,11 @@ Funcall::~Funcall() {
     delete *iter;
   }
   delete args_;
+}
+
+Type* Funcall::TypeCheck(TypeEnv* env) {
+  // TODO: Should depend on the particular primitive invoked.
+  return eve::types::CreateInt();
 }
 
 Value* Funcall::compile(Module* module, IRBuilder* builder) {
