@@ -3,11 +3,6 @@
 
 #include "type.h"
 
-namespace llvm {
-class Type;
-class Value;
-} // namespace llvm
-
 namespace eve {
 namespace types {
 

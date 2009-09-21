@@ -1,20 +1,20 @@
-#include "types.h"
+#include "type.h"
 
 #include <llvm/DerivedTypes.h>
 
 namespace eve {
 namespace types {
   
-virtual const llvm::Type* Type::GetRepresentationType() const {
+const llvm::Type* Type::GetRepresentationType() const {
   return llvm::IntegerType::get(32);
 }
 
-virtual llvm::Value* Type::GenerateTaggingCode(
+llvm::Value* Type::GenerateTaggingCode(
     llvm::IRBuilder* builder, llvm::Value* untagged) const {
   return untagged;
 }
 
-virtual llvm::Value* Type::GenerateUntaggingCode(
+llvm::Value* Type::GenerateUntaggingCode(
     llvm::IRBuilder* builder, llvm::Value* tagged) const {
   return tagged;
 }

@@ -45,7 +45,9 @@ AR = ar
 ARFLAGS = cru
 libschemetypes_a_AR = $(AR) $(ARFLAGS)
 libschemetypes_a_LIBADD =
-am_libschemetypes_a_OBJECTS = libschemetypes_a-bool.$(OBJEXT) \
+am_libschemetypes_a_OBJECTS = libschemetypes_a-type.$(OBJEXT) \
+	libschemetypes_a-bool.$(OBJEXT) \
+	libschemetypes_a-function.$(OBJEXT) \
 	libschemetypes_a-int.$(OBJEXT)
 libschemetypes_a_OBJECTS = $(am_libschemetypes_a_OBJECTS)
 DEFAULT_INCLUDES = -I. -I$(top_builddir)@am__isrc@
@@ -162,7 +164,7 @@ top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 noinst_LIBRARIES = libschemetypes.a
 AM_DEFAULT_SOURCE_EXT = .cpp
-libschemetypes_a_SOURCES = type.h type_env.h bool.h bool.cpp int.h int.cpp
+libschemetypes_a_SOURCES = type.h type.cpp type_env.h bool.h bool.cpp function.h function.cpp int.h int.cpp
 libschemetypes_a_CPPFLAGS = $(LLVM_CPPFLAGS) $(AM_CPPFLAGS)
 all: all-am
 
@@ -212,7 +214,9 @@ distclean-compile:
 	-rm -f *.tab.c
 
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libschemetypes_a-bool.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libschemetypes_a-function.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libschemetypes_a-int.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libschemetypes_a-type.Po@am__quote@
 
 .cpp.o:
 @am__fastdepCXX_TRUE@	$(CXXCOMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<
@@ -228,6 +232,20 @@ distclean-compile:
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(CXXCOMPILE) -c -o $@ `$(CYGPATH_W) '$<'`
 
+libschemetypes_a-type.o: type.cpp
+@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libschemetypes_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT libschemetypes_a-type.o -MD -MP -MF $(DEPDIR)/libschemetypes_a-type.Tpo -c -o libschemetypes_a-type.o `test -f 'type.cpp' || echo '$(srcdir)/'`type.cpp
+@am__fastdepCXX_TRUE@	mv -f $(DEPDIR)/libschemetypes_a-type.Tpo $(DEPDIR)/libschemetypes_a-type.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='type.cpp' object='libschemetypes_a-type.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libschemetypes_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o libschemetypes_a-type.o `test -f 'type.cpp' || echo '$(srcdir)/'`type.cpp
+
+libschemetypes_a-type.obj: type.cpp
+@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libschemetypes_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT libschemetypes_a-type.obj -MD -MP -MF $(DEPDIR)/libschemetypes_a-type.Tpo -c -o libschemetypes_a-type.obj `if test -f 'type.cpp'; then $(CYGPATH_W) 'type.cpp'; else $(CYGPATH_W) '$(srcdir)/type.cpp'; fi`
+@am__fastdepCXX_TRUE@	mv -f $(DEPDIR)/libschemetypes_a-type.Tpo $(DEPDIR)/libschemetypes_a-type.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='type.cpp' object='libschemetypes_a-type.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libschemetypes_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o libschemetypes_a-type.obj `if test -f 'type.cpp'; then $(CYGPATH_W) 'type.cpp'; else $(CYGPATH_W) '$(srcdir)/type.cpp'; fi`
+
 libschemetypes_a-bool.o: bool.cpp
 @am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libschemetypes_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT libschemetypes_a-bool.o -MD -MP -MF $(DEPDIR)/libschemetypes_a-bool.Tpo -c -o libschemetypes_a-bool.o `test -f 'bool.cpp' || echo '$(srcdir)/'`bool.cpp
 @am__fastdepCXX_TRUE@	mv -f $(DEPDIR)/libschemetypes_a-bool.Tpo $(DEPDIR)/libschemetypes_a-bool.Po
@@ -241,6 +259,20 @@ libschemetypes_a-bool.obj: bool.cpp
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='bool.cpp' object='libschemetypes_a-bool.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libschemetypes_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o libschemetypes_a-bool.obj `if test -f 'bool.cpp'; then $(CYGPATH_W) 'bool.cpp'; else $(CYGPATH_W) '$(srcdir)/bool.cpp'; fi`
+
+libschemetypes_a-function.o: function.cpp
+@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libschemetypes_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT libschemetypes_a-function.o -MD -MP -MF $(DEPDIR)/libschemetypes_a-function.Tpo -c -o libschemetypes_a-function.o `test -f 'function.cpp' || echo '$(srcdir)/'`function.cpp
+@am__fastdepCXX_TRUE@	mv -f $(DEPDIR)/libschemetypes_a-function.Tpo $(DEPDIR)/libschemetypes_a-function.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='function.cpp' object='libschemetypes_a-function.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libschemetypes_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o libschemetypes_a-function.o `test -f 'function.cpp' || echo '$(srcdir)/'`function.cpp
+
+libschemetypes_a-function.obj: function.cpp
+@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libschemetypes_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT libschemetypes_a-function.obj -MD -MP -MF $(DEPDIR)/libschemetypes_a-function.Tpo -c -o libschemetypes_a-function.obj `if test -f 'function.cpp'; then $(CYGPATH_W) 'function.cpp'; else $(CYGPATH_W) '$(srcdir)/function.cpp'; fi`
+@am__fastdepCXX_TRUE@	mv -f $(DEPDIR)/libschemetypes_a-function.Tpo $(DEPDIR)/libschemetypes_a-function.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='function.cpp' object='libschemetypes_a-function.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libschemetypes_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o libschemetypes_a-function.obj `if test -f 'function.cpp'; then $(CYGPATH_W) 'function.cpp'; else $(CYGPATH_W) '$(srcdir)/function.cpp'; fi`
 
 libschemetypes_a-int.o: int.cpp
 @am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libschemetypes_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT libschemetypes_a-int.o -MD -MP -MF $(DEPDIR)/libschemetypes_a-int.Tpo -c -o libschemetypes_a-int.o `test -f 'int.cpp' || echo '$(srcdir)/'`int.cpp
