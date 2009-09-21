@@ -7,10 +7,16 @@ namespace eve {
 namespace types {
 
 class Int : public Type {
-  
+ public:
+  int Untag(int tagged) { return tagged >> 1; }
+   
+  virtual const llvm::Type* GetRepresentationType() const;
+  virtual llvm::Value* GenerateTaggingCode(
+      llvm::IRBuilder* builder, llvm::Value* untagged) const;
+  virtual llvm::Value* GenerateUntaggingCode(
+      llvm::IRBuilder* builder, llvm::Value* tagged) const;
+  virtual void Print(const char* original_text, TaggedValue result) const;
 };
-
-Int* CreateInt();
 
 } // namespace types
 } // namespace eve

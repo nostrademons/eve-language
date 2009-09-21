@@ -8,11 +8,11 @@
 
 #include "../types/bool.h"
 #include "../types/int.h"
+#include "../types/type_env.h"
 
 namespace eve {
 namespace types {
   class Type;
-  class TypeEnv;
 }
   
 namespace expr {
@@ -30,15 +30,15 @@ using llvm::Value;
 BoolLiteral::BoolLiteral(const Location& location, bool value) : Expr(location), value_(value) {}
 BoolLiteral::~BoolLiteral() {}
 
-Type* BoolLiteral::TypeCheck(TypeEnv* env) {
-  return eve::types::CreateBool();
+const Type& BoolLiteral::TypeCheck(TypeEnv* env) const {
+  return env->GetBool();
 }
 
-Value* BoolLiteral::compile(Module* module, IRBuilder* builder) {
+Value* BoolLiteral::compile(Module* module, IRBuilder* builder) const {
   return value_ ? ConstantInt::getTrue() : ConstantInt::getFalse();
 }
 
-std::string BoolLiteral::pprint() {
+std::string BoolLiteral::pprint() const {
   return value_ ? "True" : "False";
 }
 
@@ -46,15 +46,15 @@ std::string BoolLiteral::pprint() {
 IntLiteral::IntLiteral(const Location& location, int value) : Expr(location), value_(value) {}
 IntLiteral::~IntLiteral() {}
 
-Type* IntLiteral::TypeCheck(TypeEnv* env) {
-  return eve::types::CreateInt();
+const Type& IntLiteral::TypeCheck(TypeEnv* env) const {
+  return env->GetInt();
 }
 
-Value* IntLiteral::compile(Module* module, IRBuilder* builder) {
+Value* IntLiteral::compile(Module* module, IRBuilder* builder) const {
   return ConstantInt::get(IntegerType::get(32), value_);
 }
 
-std::string IntLiteral::pprint() {
+std::string IntLiteral::pprint() const {
   std::stringstream stream;
   stream << value_;
   return stream.str();

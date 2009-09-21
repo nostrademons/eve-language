@@ -10,11 +10,11 @@
 
 #include "../types/bool.h"
 #include "../types/int.h"
+#include "../types/type_env.h"
 
 namespace eve {
 namespace types {
   class Type;
-  class TypeEnv;
 }
 
 namespace expr {
@@ -102,12 +102,12 @@ Funcall::~Funcall() {
   delete args_;
 }
 
-Type* Funcall::TypeCheck(TypeEnv* env) {
+const Type& Funcall::TypeCheck(TypeEnv* env) const {
   // TODO: Should depend on the particular primitive invoked.
-  return eve::types::CreateInt();
+  return env->GetInt();
 }
 
-Value* Funcall::compile(Module* module, IRBuilder* builder) {
+Value* Funcall::compile(Module* module, IRBuilder* builder) const {
   Primitive* maybePrimitive = primitives[op_];
   if (maybePrimitive) {
     return maybePrimitive->compile(module, builder, args_);
@@ -117,7 +117,7 @@ Value* Funcall::compile(Module* module, IRBuilder* builder) {
   }
 }
 
-string Funcall::pprint() {
+string Funcall::pprint() const {
   std::stringstream stream;
   stream << '(' << op_;
   for(Args::iterator iter = args_->begin(); iter != args_->end(); ++iter) {

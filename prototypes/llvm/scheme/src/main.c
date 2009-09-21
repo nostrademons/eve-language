@@ -12,6 +12,7 @@
 #include <llvm/ExecutionEngine/ExecutionEngine.h>
 #include <llvm/Support/IRBuilder.h>
 
+#include "types/type.h"
 #include "types/type_env.h"
 
 namespace llvm {
@@ -29,7 +30,7 @@ int main (int argc, char const *argv[])
   std::auto_ptr<eve::expr::Expr> expr(parser.Parse("args", input));
   
   eve::types::TypeEnv typeEnv;
-  eve::types::Type* type = expr->TypeCheck(&typeEnv);
+  const eve::types::Type& type = expr->TypeCheck(&typeEnv);
   
   std::auto_ptr<llvm::Module> module(new llvm::Module("calculator"));
   llvm::Constant* c = module->getOrInsertFunction(
@@ -38,13 +39,15 @@ int main (int argc, char const *argv[])
   f->setCallingConv(llvm::CallingConv::C);
   
   llvm::IRBuilder builder(llvm::BasicBlock::Create("entry", f));
-  builder.CreateRet(expr->compile(module.get(), &builder));
+  llvm::Value* untaggedResult = expr->compile(module.get(), &builder);
+  builder.CreateRet(type.GenerateTaggingCode(&builder, untaggedResult));
   
   verifyFunction(*f);
   llvm::ExecutionEngine* jit = llvm::ExecutionEngine::create(module.get());
       
-  int (*calculate)() = (int (*)()) jit->getPointerToFunction(f);
-	printf("'%s' is %d.\n", argv[1], calculate());
-  delete type;
+  eve::types::TaggedValue (*calculate)() = 
+    (eve::types::TaggedValue (*)()) jit->getPointerToFunction(f);
+  eve::types::TaggedValue result = calculate();
+  type.Print(argv[1], result);
 	return 0;
 }

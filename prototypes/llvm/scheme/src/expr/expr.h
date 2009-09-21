@@ -27,9 +27,9 @@ namespace eve {
      public:
       Expr(const Location& location) : location_(location) {}
       virtual ~Expr() {}
-      virtual eve::types::Type* TypeCheck(eve::types::TypeEnv* env) = 0;
-      virtual llvm::Value* compile(llvm::Module* module, llvm::IRBuilder* builder) = 0;
-      virtual std::string pprint() = 0;
+      virtual const eve::types::Type& TypeCheck(eve::types::TypeEnv* env) const = 0;
+      virtual llvm::Value* compile(llvm::Module* module, llvm::IRBuilder* builder) const = 0;
+      virtual std::string pprint() const = 0;
     };
 
   }
