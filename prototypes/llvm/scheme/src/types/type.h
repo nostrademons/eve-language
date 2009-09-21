@@ -15,11 +15,11 @@ typedef int TaggedValue;
 
 class Type {
  public:
-  virtual const llvm::Type* GetRepresentationType() const = 0;
+  virtual const llvm::Type* GetRepresentationType() const;
   virtual llvm::Value* GenerateTaggingCode(
-      llvm::IRBuilder* builder, llvm::Value* untagged) const = 0;
+      llvm::IRBuilder* builder, llvm::Value* untagged) const;
   virtual llvm::Value* GenerateUntaggingCode(
-      llvm::IRBuilder* builder, llvm::Value* tagged) const = 0;
+      llvm::IRBuilder* builder, llvm::Value* tagged) const;
   // TODO: Temporary; going away when str() is implemented.
   virtual void Print(const char* original_text, TaggedValue result) const = 0;
 };
