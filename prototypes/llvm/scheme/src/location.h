@@ -3,6 +3,8 @@
 
 #include <string>
 
+namespace eve {
+
 class Location {
  private:
   const char* file_;
@@ -32,4 +34,5 @@ class Location {
   std::string ToString() const;
 };
 
+} // namespace eve
 #endif

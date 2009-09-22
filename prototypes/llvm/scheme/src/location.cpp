@@ -3,6 +3,8 @@
 #include <sstream>
 #include <string>
 
+namespace eve {
+
 using std::stringstream;
 using std::string;
 
@@ -40,3 +42,5 @@ string Location::ToString() const {
       << last_line_ << "." << last_column_;
   return stream.str();
 }
+
+} // namespace eve

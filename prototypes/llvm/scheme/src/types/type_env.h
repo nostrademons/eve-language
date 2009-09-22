@@ -1,19 +1,26 @@
 #ifndef EVE_TYPES_TYPE_ENV_H
 #define EVE_TYPES_TYPE_ENV_H
 
+#include <iostream>
 #include <map>
+#include <string>
 #include <vector>
 
 #include "bool.h"
 #include "function.h"
 #include "int.h"
 
+#include "../location.h"
+
 namespace eve {
-namespace types { 
+namespace types {
+
+using eve::Location;
 
 class Type;
 typedef std::pair<FunctionArgs, Type*> FunctionKey;
 typedef std::map<FunctionKey, Function> FunctionMap;
+typedef std::vector<std::string> ErrorList;
 
 // Dummy class for now; will replace it with something later.
 class TypeEnv {
@@ -21,6 +28,8 @@ class TypeEnv {
   Bool bool_;
   Int int_;
   FunctionMap functions_;
+  
+  ErrorList errors_;
   
  public:
   const Bool* GetBool() const { return &bool_; }
@@ -33,6 +42,16 @@ class TypeEnv {
           std::pair<FunctionKey, Function>(key, Function(arg_types, return_type))).first;
     }
     return &found->second;
+  }
+  
+  void AddError(const Location& location, const std::string& error) {
+    errors_.push_back(error + " @" + location.ToString());
+  }
+  void PrintErrors() const {
+    for (ErrorList::const_iterator i = errors_.begin(), e = errors_.end();
+         i != e; ++i) {
+      std::cout << *i << "\n";
+    }
   }
 };
 

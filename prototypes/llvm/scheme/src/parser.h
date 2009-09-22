@@ -22,7 +22,7 @@ typedef union {
   eve::expr::Args* exprList;
 } YYSTYPE;
 
-typedef Location YYLTYPE;
+typedef eve::Location YYLTYPE;
 #define YYLTYPE_IS_DECLARED 1
 
 #define YYLLOC_DEFAULT(current, rhs, n) do { \
