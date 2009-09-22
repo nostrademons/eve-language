@@ -54,7 +54,7 @@ public:
   virtual const Function* GetType(TypeEnv* env) const {
     FunctionArgs args;
     args.push_back(env->GetInt());
-    args.push_back(env->GetBool());
+    args.push_back(env->GetInt());
     return env->GetFunction(args, env->GetInt());
   }
   virtual Value* compile(Module* module, IRBuilder* builder, Args* args) const {

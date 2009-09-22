@@ -31,6 +31,10 @@ int main (int argc, char const *argv[])
   
   eve::types::TypeEnv typeEnv;
   const eve::types::Type* type = expr->TypeCheck(&typeEnv);
+  if (!type) {
+    typeEnv.PrintErrors();
+    return 1;
+  }
   
   std::auto_ptr<llvm::Module> module(new llvm::Module("calculator"));
   llvm::Constant* c = module->getOrInsertFunction(
