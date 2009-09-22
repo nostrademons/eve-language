@@ -30,7 +30,7 @@ int main (int argc, char const *argv[])
   std::auto_ptr<eve::expr::Expr> expr(parser.Parse("args", input));
   
   eve::types::TypeEnv typeEnv;
-  const eve::types::Type& type = expr->TypeCheck(&typeEnv);
+  const eve::types::Type* type = expr->TypeCheck(&typeEnv);
   
   std::auto_ptr<llvm::Module> module(new llvm::Module("calculator"));
   llvm::Constant* c = module->getOrInsertFunction(
@@ -40,7 +40,7 @@ int main (int argc, char const *argv[])
   
   llvm::IRBuilder builder(llvm::BasicBlock::Create("entry", f));
   llvm::Value* untaggedResult = expr->compile(module.get(), &builder);
-  builder.CreateRet(type.GenerateTaggingCode(&builder, untaggedResult));
+  builder.CreateRet(type->GenerateTaggingCode(&builder, untaggedResult));
   
   verifyFunction(*f);
   llvm::ExecutionEngine* jit = llvm::ExecutionEngine::create(module.get());
@@ -48,6 +48,6 @@ int main (int argc, char const *argv[])
   eve::types::TaggedValue (*calculate)() = 
     (eve::types::TaggedValue (*)()) jit->getPointerToFunction(f);
   eve::types::TaggedValue result = calculate();
-  type.Print(argv[1], result);
+  type->Print(argv[1], result);
 	return 0;
 }

@@ -102,7 +102,7 @@ Funcall::~Funcall() {
   delete args_;
 }
 
-const Type& Funcall::TypeCheck(TypeEnv* env) const {
+const Type* Funcall::TypeCheck(TypeEnv* env) const {
   // TODO: Should depend on the particular primitive invoked.
   return env->GetInt();
 }

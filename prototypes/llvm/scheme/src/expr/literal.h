@@ -22,7 +22,7 @@ namespace eve {
     public:
       BoolLiteral(const Location& location, bool value);
       virtual ~BoolLiteral();
-      virtual const eve::types::Type& TypeCheck(eve::types::TypeEnv* env) const;
+      virtual const eve::types::Type* TypeCheck(eve::types::TypeEnv* env) const;
       virtual llvm::Value* compile(llvm::Module* module, llvm::IRBuilder* builder) const;
       virtual std::string pprint() const;
     };
@@ -32,7 +32,7 @@ namespace eve {
       public:
         IntLiteral(const Location& location, int value);
         virtual ~IntLiteral();
-        virtual const eve::types::Type& TypeCheck(eve::types::TypeEnv* env) const;
+        virtual const eve::types::Type* TypeCheck(eve::types::TypeEnv* env) const;
         virtual llvm::Value* compile(llvm::Module* module, llvm::IRBuilder* builder) const;
         virtual std::string pprint() const;
     };

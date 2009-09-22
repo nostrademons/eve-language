@@ -30,7 +30,7 @@ using llvm::Value;
 BoolLiteral::BoolLiteral(const Location& location, bool value) : Expr(location), value_(value) {}
 BoolLiteral::~BoolLiteral() {}
 
-const Type& BoolLiteral::TypeCheck(TypeEnv* env) const {
+const Type* BoolLiteral::TypeCheck(TypeEnv* env) const {
   return env->GetBool();
 }
 
@@ -46,7 +46,7 @@ std::string BoolLiteral::pprint() const {
 IntLiteral::IntLiteral(const Location& location, int value) : Expr(location), value_(value) {}
 IntLiteral::~IntLiteral() {}
 
-const Type& IntLiteral::TypeCheck(TypeEnv* env) const {
+const Type* IntLiteral::TypeCheck(TypeEnv* env) const {
   return env->GetInt();
 }
 
