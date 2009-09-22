@@ -24,6 +24,10 @@ namespace eve {
     class Expr {
      private:
       Location location_;
+      
+     protected:
+      const Location& GetLocation() const { return location_; }
+      
      public:
       Expr(const Location& location) : location_(location) {}
       virtual ~Expr() {}

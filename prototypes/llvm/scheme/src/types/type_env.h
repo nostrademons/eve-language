@@ -18,7 +18,7 @@ namespace types {
 using eve::Location;
 
 class Type;
-typedef std::pair<FunctionArgs, Type*> FunctionKey;
+typedef std::pair<FunctionArgs, const Type*> FunctionKey;
 typedef std::map<FunctionKey, Function> FunctionMap;
 typedef std::vector<std::string> ErrorList;
 
@@ -34,7 +34,7 @@ class TypeEnv {
  public:
   const Bool* GetBool() const { return &bool_; }
   const Int* GetInt() const { return &int_; }
-  const Function* GetFunction(FunctionArgs arg_types, Type* return_type) {
+  const Function* GetFunction(const FunctionArgs arg_types, const Type* return_type) {
     FunctionKey key(arg_types, return_type);
     FunctionMap::const_iterator found(functions_.find(key));
     if (found == functions_.end()) {

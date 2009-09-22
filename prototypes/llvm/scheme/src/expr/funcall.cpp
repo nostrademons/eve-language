@@ -9,6 +9,7 @@
 #include <llvm/Support/IRBuilder.h>
 
 #include "../types/bool.h"
+#include "../types/function.h"
 #include "../types/int.h"
 #include "../types/type_env.h"
 
@@ -19,6 +20,8 @@ namespace types {
 
 namespace expr {
 
+using eve::types::Function;
+using eve::types::FunctionArgs;
 using eve::types::Int;
 using eve::types::Type;
 using eve::types::TypeEnv;
@@ -38,18 +41,25 @@ protected:
     primitives[name] = this;
   }
 public:
-  virtual Value* compile(Module* module, IRBuilder* builder, Args* args) = 0;
-  virtual const string& pprint() { return name_; }
+  virtual const Function* GetType(TypeEnv* env) const = 0;
+  virtual Value* compile(Module* module, IRBuilder* builder, Args* args) const = 0;
+  virtual const string& pprint() const { return name_; }
 };
 
-class Binop : public Primitive {
+class ArithmeticBinop : public Primitive {
 private:
-  virtual Value* compilePair(IRBuilder* builder, Value* x, Value* y) = 0;
+  virtual Value* compilePair(IRBuilder* builder, Value* x, Value* y) const = 0;
 public:
-  Binop(const string& name) : Primitive(name) {}
-  virtual Value* compile(Module* module, IRBuilder* builder, Args* args) {
+  ArithmeticBinop(const string& name) : Primitive(name) {}
+  virtual const Function* GetType(TypeEnv* env) const {
+    FunctionArgs args;
+    args.push_back(env->GetInt());
+    args.push_back(env->GetBool());
+    return env->GetFunction(args, env->GetInt());
+  }
+  virtual Value* compile(Module* module, IRBuilder* builder, Args* args) const {
     Value* current = (*args)[0]->compile(module, builder);
-    for (Args::iterator i = ++args->begin(), e = args->end(); i != e; ++i) {
+    for (Args::const_iterator i = ++args->begin(), e = args->end(); i != e; ++i) {
       Value* next = (*i)->compile(module, builder);
       current = compilePair(builder, current, next);
     }
@@ -57,37 +67,37 @@ public:
   }
 };
 
-class Add : public Binop {
+class Add : public ArithmeticBinop {
 public:
-  Add() : Binop("+") {}
-  virtual Value* compilePair(IRBuilder* builder, Value* x, Value* y) {
+  Add() : ArithmeticBinop("+") {}
+  virtual Value* compilePair(IRBuilder* builder, Value* x, Value* y) const {
     return builder->CreateAdd(x, y);
   }
 };
 static const Add kAdd;
 
-class Sub : public Binop {
+class Sub : public ArithmeticBinop {
 public:
-  Sub() : Binop("-") {}
-  virtual Value* compilePair(IRBuilder* builder, Value* x, Value* y) {
+  Sub() : ArithmeticBinop("-") {}
+  virtual Value* compilePair(IRBuilder* builder, Value* x, Value* y) const {
     return builder->CreateSub(x, y);
   }
 };
 static const Sub kSub;
 
-class Mul : public Binop {
+class Mul : public ArithmeticBinop {
 public:
-  Mul() : Binop("*") {}
-  virtual Value* compilePair(IRBuilder* builder, Value* x, Value* y) {
+  Mul() : ArithmeticBinop("*") {}
+  virtual Value* compilePair(IRBuilder* builder, Value* x, Value* y) const {
     return builder->CreateMul(x, y);
   }
 };
 static const Mul kMul;
 
-class Div : public Binop {
+class Div : public ArithmeticBinop {
 public:
-  Div() : Binop("/") {}
-  virtual Value* compilePair(IRBuilder* builder, Value* x, Value* y) {
+  Div() : ArithmeticBinop("/") {}
+  virtual Value* compilePair(IRBuilder* builder, Value* x, Value* y) const {
     return builder->CreateUDiv(x, y);
   }
 };
@@ -103,8 +113,30 @@ Funcall::~Funcall() {
 }
 
 const Type* Funcall::TypeCheck(TypeEnv* env) const {
-  // TODO: Should depend on the particular primitive invoked.
-  return env->GetInt();
+  Primitive* maybe_primitive = primitives[op_];
+  if (maybe_primitive) {
+    const Function* primitive_type = maybe_primitive->GetType(env);
+    const FunctionArgs& arg_types = primitive_type->GetArgTypes();
+    if (arg_types.size() != args_->size()) {
+      // TODO: include the expected and found numbers.
+      env->AddError(GetLocation(), "Wrong number of arguments.");
+      return NULL;
+    }
+    
+    bool seenError = false;
+    FunctionArgs::const_iterator type = arg_types.begin();
+    for (Args::const_iterator expr = args_->begin(),
+         end = args_->end(); expr != end; ++type, ++expr) {
+      if (*type != (*expr)->TypeCheck(env)) {
+        env->AddError(GetLocation(), "Type mismatch.");
+        seenError = true;
+      }
+    }
+    return seenError ? NULL : primitive_type->GetReturnType();
+  } else {
+    std::cout << "No primitive for " << op_ << std::endl;
+    assert(false);
+  }
 }
 
 Value* Funcall::compile(Module* module, IRBuilder* builder) const {
@@ -120,7 +152,7 @@ Value* Funcall::compile(Module* module, IRBuilder* builder) const {
 string Funcall::pprint() const {
   std::stringstream stream;
   stream << '(' << op_;
-  for(Args::iterator iter = args_->begin(); iter != args_->end(); ++iter) {
+  for (Args::iterator iter = args_->begin(); iter != args_->end(); ++iter) {
     stream << ' ' << (*iter)->pprint();
   }
   return stream.str();
