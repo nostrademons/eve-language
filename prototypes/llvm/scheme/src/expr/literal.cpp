@@ -34,11 +34,11 @@ const Type* BoolLiteral::TypeCheck(TypeEnv* env) const {
   return env->GetBool();
 }
 
-Value* BoolLiteral::compile(Module* module, IRBuilder* builder) const {
+Value* BoolLiteral::Compile(Module* module, IRBuilder* builder) const {
   return value_ ? ConstantInt::getTrue() : ConstantInt::getFalse();
 }
 
-std::string BoolLiteral::pprint() const {
+std::string BoolLiteral::PPrint() const {
   return value_ ? "True" : "False";
 }
 
@@ -50,11 +50,11 @@ const Type* IntLiteral::TypeCheck(TypeEnv* env) const {
   return env->GetInt();
 }
 
-Value* IntLiteral::compile(Module* module, IRBuilder* builder) const {
+Value* IntLiteral::Compile(Module* module, IRBuilder* builder) const {
   return ConstantInt::get(IntegerType::get(32), value_);
 }
 
-std::string IntLiteral::pprint() const {
+std::string IntLiteral::PPrint() const {
   std::stringstream stream;
   stream << value_;
   return stream.str();

@@ -43,7 +43,7 @@ int main (int argc, char const *argv[])
   f->setCallingConv(llvm::CallingConv::C);
   
   llvm::IRBuilder builder(llvm::BasicBlock::Create("entry", f));
-  llvm::Value* untaggedResult = expr->compile(module.get(), &builder);
+  llvm::Value* untaggedResult = expr->Compile(module.get(), &builder);
   builder.CreateRet(type->GenerateTaggingCode(&builder, untaggedResult));
   
   verifyFunction(*f);

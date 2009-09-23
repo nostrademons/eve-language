@@ -23,8 +23,8 @@ namespace eve {
       BoolLiteral(const Location& location, bool value);
       virtual ~BoolLiteral();
       virtual const eve::types::Type* TypeCheck(eve::types::TypeEnv* env) const;
-      virtual llvm::Value* compile(llvm::Module* module, llvm::IRBuilder* builder) const;
-      virtual std::string pprint() const;
+      virtual llvm::Value* Compile(llvm::Module* module, llvm::IRBuilder* builder) const;
+      virtual std::string PPrint() const;
     };
 
     class IntLiteral : public Expr {
@@ -33,8 +33,8 @@ namespace eve {
         IntLiteral(const Location& location, int value);
         virtual ~IntLiteral();
         virtual const eve::types::Type* TypeCheck(eve::types::TypeEnv* env) const;
-        virtual llvm::Value* compile(llvm::Module* module, llvm::IRBuilder* builder) const;
-        virtual std::string pprint() const;
+        virtual llvm::Value* Compile(llvm::Module* module, llvm::IRBuilder* builder) const;
+        virtual std::string PPrint() const;
     };
 
   } // namespace expr

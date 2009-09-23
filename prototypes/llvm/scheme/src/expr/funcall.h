@@ -30,9 +30,9 @@ namespace eve {
         Funcall(const Location& location, const char* op, Args* args);
         virtual ~Funcall();
         virtual const eve::types::Type* TypeCheck(eve::types::TypeEnv* env) const;
-        virtual llvm::Value* compile(
+        virtual llvm::Value* Compile(
             llvm::Module* module, llvm::IRBuilder* builder) const;
-        virtual std::string pprint() const;
+        virtual std::string PPrint() const;
     };
 
   } // namespace expr

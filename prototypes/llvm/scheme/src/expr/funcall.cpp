@@ -42,13 +42,13 @@ protected:
   }
 public:
   virtual const Function* GetType(TypeEnv* env) const = 0;
-  virtual Value* compile(Module* module, IRBuilder* builder, Args* args) const = 0;
-  virtual const string& pprint() const { return name_; }
+  virtual Value* Compile(Module* module, IRBuilder* builder, Args* args) const = 0;
+  virtual const string& PPrint() const { return name_; }
 };
 
 class ArithmeticBinop : public Primitive {
 private:
-  virtual Value* compilePair(IRBuilder* builder, Value* x, Value* y) const = 0;
+  virtual Value* CompilePair(IRBuilder* builder, Value* x, Value* y) const = 0;
 public:
   ArithmeticBinop(const string& name) : Primitive(name) {}
   virtual const Function* GetType(TypeEnv* env) const {
@@ -57,11 +57,11 @@ public:
     args.push_back(env->GetInt());
     return env->GetFunction(args, env->GetInt());
   }
-  virtual Value* compile(Module* module, IRBuilder* builder, Args* args) const {
-    Value* current = (*args)[0]->compile(module, builder);
+  virtual Value* Compile(Module* module, IRBuilder* builder, Args* args) const {
+    Value* current = (*args)[0]->Compile(module, builder);
     for (Args::const_iterator i = ++args->begin(), e = args->end(); i != e; ++i) {
-      Value* next = (*i)->compile(module, builder);
-      current = compilePair(builder, current, next);
+      Value* next = (*i)->Compile(module, builder);
+      current = CompilePair(builder, current, next);
     }
     return current;
   }
@@ -70,7 +70,7 @@ public:
 class Add : public ArithmeticBinop {
 public:
   Add() : ArithmeticBinop("+") {}
-  virtual Value* compilePair(IRBuilder* builder, Value* x, Value* y) const {
+  virtual Value* CompilePair(IRBuilder* builder, Value* x, Value* y) const {
     return builder->CreateAdd(x, y);
   }
 };
@@ -79,7 +79,7 @@ static const Add kAdd;
 class Sub : public ArithmeticBinop {
 public:
   Sub() : ArithmeticBinop("-") {}
-  virtual Value* compilePair(IRBuilder* builder, Value* x, Value* y) const {
+  virtual Value* CompilePair(IRBuilder* builder, Value* x, Value* y) const {
     return builder->CreateSub(x, y);
   }
 };
@@ -88,7 +88,7 @@ static const Sub kSub;
 class Mul : public ArithmeticBinop {
 public:
   Mul() : ArithmeticBinop("*") {}
-  virtual Value* compilePair(IRBuilder* builder, Value* x, Value* y) const {
+  virtual Value* CompilePair(IRBuilder* builder, Value* x, Value* y) const {
     return builder->CreateMul(x, y);
   }
 };
@@ -97,7 +97,7 @@ static const Mul kMul;
 class Div : public ArithmeticBinop {
 public:
   Div() : ArithmeticBinop("/") {}
-  virtual Value* compilePair(IRBuilder* builder, Value* x, Value* y) const {
+  virtual Value* CompilePair(IRBuilder* builder, Value* x, Value* y) const {
     return builder->CreateUDiv(x, y);
   }
 };
@@ -139,21 +139,21 @@ const Type* Funcall::TypeCheck(TypeEnv* env) const {
   }
 }
 
-Value* Funcall::compile(Module* module, IRBuilder* builder) const {
+Value* Funcall::Compile(Module* module, IRBuilder* builder) const {
   Primitive* maybePrimitive = primitives[op_];
   if (maybePrimitive) {
-    return maybePrimitive->compile(module, builder, args_);
+    return maybePrimitive->Compile(module, builder, args_);
   } else {
     std::cout << "No primitive for " << op_ << std::endl;
     assert(false);
   }
 }
 
-string Funcall::pprint() const {
+string Funcall::PPrint() const {
   std::stringstream stream;
   stream << '(' << op_;
   for (Args::iterator iter = args_->begin(); iter != args_->end(); ++iter) {
-    stream << ' ' << (*iter)->pprint();
+    stream << ' ' << (*iter)->PPrint();
   }
   return stream.str();
 }
