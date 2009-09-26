@@ -58,12 +58,9 @@ public:
     return env->GetFunction(args, env->GetInt());
   }
   virtual Value* Compile(Module* module, IRBuilder* builder, Args* args) const {
-    Value* current = (*args)[0]->Compile(module, builder);
-    for (Args::const_iterator i = ++args->begin(), e = args->end(); i != e; ++i) {
-      Value* next = (*i)->Compile(module, builder);
-      current = CompilePair(builder, current, next);
-    }
-    return current;
+    Value* first_arg = (*args)[0]->Compile(module, builder);
+    Value* second_arg = (*args)[1]->Compile(module, builder);
+    return CompilePair(builder, first_arg, second_arg);
   }
 };
 
