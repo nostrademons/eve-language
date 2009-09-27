@@ -64,7 +64,7 @@ class Binop : public Primitive {
     Value* first_arg = (*args)[0]->Compile(module, builder);
     Value* second_arg = (*args)[1]->Compile(module, builder);
     return CompilePair(builder, first_arg, second_arg);
-  }  
+  }
  protected:
   Binop(const string& name) : Primitive(name) {}
  private:
@@ -252,7 +252,20 @@ class Or : public ShortCircuitingLogicalOp {
 };
 static const Or kOr;
 
-
+class Not : public Primitive {
+ public:
+  Not() : Primitive("not") {}
+  virtual const Function* GetType(TypeEnv* env) const {
+    FunctionArgs args;
+    args.push_back(env->GetBool());
+    return env->GetFunction(args, env->GetBool());
+  }
+  virtual Value* Compile(Module* module, IRBuilder* builder, Args* args) const {
+    Value* arg = (*args)[0]->Compile(module, builder);
+    return builder->CreateNot(arg);
+  }
+};
+static const Not kNot;
 
 Funcall::Funcall(const Location& location, const char* op, Args* args) 
     : Expr(location), op_(op), args_(args) {}
