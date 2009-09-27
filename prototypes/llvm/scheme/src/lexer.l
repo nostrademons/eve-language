@@ -29,7 +29,7 @@ WORD    [[:alnum:]+\-*/<>!=]
 ")"					{ return RPAREN; }
 [ \t]+				{}
 [[:digit:]]+		{ yylval->num = atoi(yytext); return NUM; }
-[[:alnum:]+\-*/]+	{ yylval->sym = strdup(yytext); return SYM; }
+{WORD}+			{ yylval->sym = strdup(yytext); return SYM; }
 
 %%
 

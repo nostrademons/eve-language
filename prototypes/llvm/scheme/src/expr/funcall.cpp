@@ -6,6 +6,7 @@
 #include <sstream>
 #include <string>
 
+#include <llvm/Instructions.h>
 #include <llvm/Support/IRBuilder.h>
 
 #include "../types/bool.h"
@@ -25,47 +26,61 @@ using eve::types::FunctionArgs;
 using eve::types::Int;
 using eve::types::Type;
 using eve::types::TypeEnv;
+
+using llvm::ICmpInst;
 using llvm::IRBuilder;
 using llvm::Module;
 using llvm::Value;
+
 using std::string;
 
 class Primitive;
 static std::map<string, Primitive*> primitives;
 
 class Primitive {
-private:
-  string name_;
-protected:  
-  Primitive(const string& name) : name_(name) {
-    primitives[name] = this;
-  }
-public:
+ public:
   virtual const Function* GetType(TypeEnv* env) const = 0;
   virtual Value* Compile(Module* module, IRBuilder* builder, Args* args) const = 0;
   virtual const string& PPrint() const { return name_; }
+ protected: 
+  Primitive(const string& name) : name_(name) {
+    primitives[name] = this;
+  }
+ private:
+  string name_;
 };
 
-class ArithmeticBinop : public Primitive {
-private:
-  virtual Value* CompilePair(IRBuilder* builder, Value* x, Value* y) const = 0;
-public:
-  ArithmeticBinop(const string& name) : Primitive(name) {}
+class Binop : public Primitive {
+ public:
   virtual const Function* GetType(TypeEnv* env) const {
     FunctionArgs args;
-    args.push_back(env->GetInt());
-    args.push_back(env->GetInt());
-    return env->GetFunction(args, env->GetInt());
+    args.push_back(GetArgType(env));
+    args.push_back(GetArgType(env));
+    return env->GetFunction(args, GetReturnType(env));
   }
   virtual Value* Compile(Module* module, IRBuilder* builder, Args* args) const {
     Value* first_arg = (*args)[0]->Compile(module, builder);
     Value* second_arg = (*args)[1]->Compile(module, builder);
     return CompilePair(builder, first_arg, second_arg);
-  }
+  }  
+ protected:
+  Binop(const string& name) : Primitive(name) {}
+ private:
+  virtual Value* CompilePair(IRBuilder* builder, Value* x, Value* y) const = 0;
+  virtual const Type* GetArgType(TypeEnv* env) const = 0;
+  virtual const Type* GetReturnType(TypeEnv* env) const = 0;
+};
+
+class ArithmeticBinop : public Binop {
+ protected:
+  ArithmeticBinop(const string& name) : Binop(name) {}
+ private:
+  virtual const Type* GetArgType(TypeEnv* env) const { return env->GetInt(); }
+  virtual const Type* GetReturnType(TypeEnv* env) const { return env->GetInt(); }
 };
 
 class Add : public ArithmeticBinop {
-public:
+ public:
   Add() : ArithmeticBinop("+") {}
   virtual Value* CompilePair(IRBuilder* builder, Value* x, Value* y) const {
     return builder->CreateAdd(x, y);
@@ -74,7 +89,7 @@ public:
 static const Add kAdd;
 
 class Sub : public ArithmeticBinop {
-public:
+ public:
   Sub() : ArithmeticBinop("-") {}
   virtual Value* CompilePair(IRBuilder* builder, Value* x, Value* y) const {
     return builder->CreateSub(x, y);
@@ -83,7 +98,7 @@ public:
 static const Sub kSub;
 
 class Mul : public ArithmeticBinop {
-public:
+ public:
   Mul() : ArithmeticBinop("*") {}
   virtual Value* CompilePair(IRBuilder* builder, Value* x, Value* y) const {
     return builder->CreateMul(x, y);
@@ -92,7 +107,7 @@ public:
 static const Mul kMul;
 
 class Div : public ArithmeticBinop {
-public:
+ public:
   Div() : ArithmeticBinop("/") {}
   virtual Value* CompilePair(IRBuilder* builder, Value* x, Value* y) const {
     return builder->CreateUDiv(x, y);
@@ -100,8 +115,83 @@ public:
 };
 static const Div kDiv;
 
+class RelationalBinop : public Binop {
+ private:
+  virtual const Type* GetArgType(TypeEnv* env) const { return env->GetInt(); }
+  virtual const Type* GetReturnType(TypeEnv* env) const {
+    return env->GetBool();
+  }
+  virtual ICmpInst::Predicate GetPredicate() const = 0;
+ protected:
+  RelationalBinop(const string& name) : Binop(name) {}
+  virtual Value* CompilePair(IRBuilder* builder, Value* x, Value* y) const {
+    return builder->CreateICmp(GetPredicate(), x, y);
+  }
+};
+
+class Equal : public RelationalBinop {
+ public:
+  Equal() : RelationalBinop("==") {}
+ private:
+  virtual ICmpInst::Predicate GetPredicate() const {
+    return ICmpInst::ICMP_EQ;
+  }
+};
+static const Equal kEqual;
+
+class NotEqual : public RelationalBinop {
+ public:
+  NotEqual() : RelationalBinop("!=") {}
+ private:
+  virtual ICmpInst::Predicate GetPredicate() const {
+    return ICmpInst::ICMP_NE;
+  }
+};
+static const NotEqual kNotEqual;
+
+class LessThan : public RelationalBinop {
+ public:
+  LessThan() : RelationalBinop("<") {}
+ private:
+  virtual ICmpInst::Predicate GetPredicate() const {
+    return ICmpInst::ICMP_SLT;
+  }
+};
+static const LessThan kLessThan;
+
+class LessThanOrEqual : public RelationalBinop {
+ public:
+  LessThanOrEqual() : RelationalBinop("<=") {}
+ private:
+  virtual ICmpInst::Predicate GetPredicate() const {
+    return ICmpInst::ICMP_SLE;
+  }
+};
+static const LessThanOrEqual kLessThanOrEqual;
+
+class GreaterThan : public RelationalBinop {
+ public:
+  GreaterThan() : RelationalBinop(">") {}
+ private:
+  virtual ICmpInst::Predicate GetPredicate() const {
+    return ICmpInst::ICMP_SGT;
+  }
+};
+static const GreaterThan kGreaterThan;
+
+class GreaterThanOrEqual : public RelationalBinop {
+ public:
+  GreaterThanOrEqual() : RelationalBinop(">=") {}
+ private:
+  virtual ICmpInst::Predicate GetPredicate() const {
+    return ICmpInst::ICMP_SGE;
+  }
+};
+static const GreaterThanOrEqual kGreaterThanOrEqual;
+
 Funcall::Funcall(const Location& location, const char* op, Args* args) 
     : Expr(location), op_(op), args_(args) {}
+
 Funcall::~Funcall() {
   for(Args::iterator iter = args_->begin(); iter != args_->end(); ++iter) {
     delete *iter;
