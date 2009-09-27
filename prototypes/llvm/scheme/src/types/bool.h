@@ -6,6 +6,8 @@
 namespace eve {
 namespace types {
 
+extern const llvm::Type* kLLVMBoolType;
+
 class Bool : public Type {
  public:
   virtual const llvm::Type* GetRepresentationType() const;

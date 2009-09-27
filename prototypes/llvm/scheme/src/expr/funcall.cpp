@@ -27,9 +27,11 @@ using eve::types::Int;
 using eve::types::Type;
 using eve::types::TypeEnv;
 
+using llvm::BasicBlock;
 using llvm::ICmpInst;
 using llvm::IRBuilder;
 using llvm::Module;
+using llvm::PHINode;
 using llvm::Value;
 
 using std::string;
@@ -188,6 +190,46 @@ class GreaterThanOrEqual : public RelationalBinop {
   }
 };
 static const GreaterThanOrEqual kGreaterThanOrEqual;
+
+class And : public Binop {
+ public:
+  And() : Binop("and") {}
+ private:
+  virtual Value* CompilePair(IRBuilder* builder, Value* x, Value* y) const {}
+  virtual const Type* GetArgType(TypeEnv* env) const { return env->GetBool(); }
+  virtual const Type* GetReturnType(TypeEnv* env) const {
+    return env->GetBool();
+  }
+  virtual Value* Compile(Module* module, IRBuilder* builder, Args* args) const {
+    // Because of the short-circuiting, we need some extra basic blocks.  The
+    // first arg is compiled into the current basic block, but then we put the
+    // second arg in its own basic block (conditionally executed based on the
+    // the result of the first operand), and finish off with a basic block to
+    // tie the results together.
+    Value* first_arg = (*args)[0]->Compile(module, builder);
+
+    BasicBlock* current = builder->GetInsertBlock();
+    BasicBlock* eval_second_arg =
+        BasicBlock::Create("eval_second_arg", current->getParent());
+    BasicBlock* exit =
+        BasicBlock::Create("exit", current->getParent());
+
+    builder->CreateCondBr(first_arg, eval_second_arg, exit);
+    builder->SetInsertPoint(eval_second_arg);
+
+    Value* second_arg = (*args)[1]->Compile(module, builder);
+    builder->CreateBr(exit);
+    builder->SetInsertPoint(exit);
+
+    PHINode* final = builder->CreatePHI(eve::types::kLLVMBoolType);
+    final->addIncoming(first_arg, current);
+    final->addIncoming(second_arg, eval_second_arg);
+    return final;
+  }
+};
+static const And kAnd;
+
+
 
 Funcall::Funcall(const Location& location, const char* op, Args* args) 
     : Expr(location), op_(op), args_(args) {}

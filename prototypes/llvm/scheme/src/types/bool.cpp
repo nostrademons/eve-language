@@ -6,8 +6,10 @@
 namespace eve {
 namespace types {
 
+const llvm::Type* kLLVMBoolType = llvm::IntegerType::get(1);
+
 const llvm::Type* Bool::GetRepresentationType() const {
-  return llvm::IntegerType::get(1);
+  return kLLVMBoolType;
 }
 
 llvm::Value* Bool::GenerateTaggingCode(
