@@ -191,15 +191,17 @@ class GreaterThanOrEqual : public RelationalBinop {
 };
 static const GreaterThanOrEqual kGreaterThanOrEqual;
 
-class And : public Binop {
+class ShortCircuitingLogicalOp : public Binop {
  public:
-  And() : Binop("and") {}
+  ShortCircuitingLogicalOp(const string& name) : Binop(name) {}
  private:
   virtual Value* CompilePair(IRBuilder* builder, Value* x, Value* y) const {}
   virtual const Type* GetArgType(TypeEnv* env) const { return env->GetBool(); }
   virtual const Type* GetReturnType(TypeEnv* env) const {
     return env->GetBool();
   }
+  virtual void CreateCondBr(IRBuilder* builder, Value* result_of_first,
+                            BasicBlock* second, BasicBlock* exit) const = 0;
   virtual Value* Compile(Module* module, IRBuilder* builder, Args* args) const {
     // Because of the short-circuiting, we need some extra basic blocks.  The
     // first arg is compiled into the current basic block, but then we put the
@@ -214,7 +216,7 @@ class And : public Binop {
     BasicBlock* exit =
         BasicBlock::Create("exit", current->getParent());
 
-    builder->CreateCondBr(first_arg, eval_second_arg, exit);
+    CreateCondBr(builder, first_arg, eval_second_arg, exit);
     builder->SetInsertPoint(eval_second_arg);
 
     Value* second_arg = (*args)[1]->Compile(module, builder);
@@ -227,7 +229,28 @@ class And : public Binop {
     return final;
   }
 };
+
+class And : public ShortCircuitingLogicalOp {
+ public:
+  And() : ShortCircuitingLogicalOp("and") {}
+ private:
+  virtual void CreateCondBr(IRBuilder* builder, Value* result_of_first,
+                            BasicBlock* second, BasicBlock* exit) const {
+    builder->CreateCondBr(result_of_first, second, exit);
+  }
+};
 static const And kAnd;
+
+class Or : public ShortCircuitingLogicalOp {
+ public:
+  Or() : ShortCircuitingLogicalOp("or") {}
+ private:
+  virtual void CreateCondBr(IRBuilder* builder, Value* result_of_first,
+                            BasicBlock* second, BasicBlock* exit) const {
+    builder->CreateCondBr(result_of_first, exit, second);
+  }
+};
+static const Or kOr;
 
 
 
