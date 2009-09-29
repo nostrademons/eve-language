@@ -1,5 +1,7 @@
 #include "int.h"
 
+#include <sstream>
+
 #include <llvm/Constants.h>
 #include <llvm/DerivedTypes.h>
 #include <llvm/Support/IRBuilder.h>
@@ -26,8 +28,10 @@ llvm::Value* Int::GenerateUntaggingCode(
       llvm::ConstantInt::get(GetRepresentationType(), 1));
 }
 
-void Int::Print(const char* original_text, TaggedValue result) const {
-  printf("'%s' is %d.\n", original_text, result >> 1);
+std::string Int::Print(TaggedValue result) const {
+  std::stringstream stream;
+  stream << (result >> 1);
+  return stream.str();
 }
 
 } // namespace types

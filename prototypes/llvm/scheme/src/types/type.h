@@ -1,6 +1,8 @@
 #ifndef EVE_TYPES_TYPE_H
 #define EVE_TYPES_TYPE_H
 
+#include <string>
+
 namespace llvm {
 class IRBuilder;
 class Type;
@@ -21,7 +23,7 @@ class Type {
   virtual llvm::Value* GenerateUntaggingCode(
       llvm::IRBuilder* builder, llvm::Value* tagged) const;
   // TODO: Temporary; going away when str() is implemented.
-  virtual void Print(const char* original_text, TaggedValue result) const = 0;
+  virtual std::string Print(TaggedValue result) const = 0;
 };
   
 } // namespace types

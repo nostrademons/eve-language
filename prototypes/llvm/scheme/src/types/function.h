@@ -24,7 +24,7 @@ class Function : public Type {
   const Type* GetReturnType() const { return return_type_; }
 
   // TODO: Temporary; going away when str() is implemented.
-  virtual void Print(const char* original_text, TaggedValue result) const;
+  virtual std::string Print(TaggedValue result) const;
 };
 
 }

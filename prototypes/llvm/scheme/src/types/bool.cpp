@@ -23,8 +23,8 @@ llvm::Value* Bool::GenerateUntaggingCode(
   return builder->CreateTrunc(tagged, GetRepresentationType());
 }
 
-void Bool::Print(const char* original_text, TaggedValue result) const {
-  printf("'%s' is %s.\n", original_text, result ? "True" : "False");
+std::string Bool::Print(TaggedValue result) const {
+  return result ? "True" : "False";
 }
 
 } // namespace types

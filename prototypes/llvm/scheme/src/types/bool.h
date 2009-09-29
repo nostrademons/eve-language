@@ -15,7 +15,7 @@ class Bool : public Type {
       llvm::IRBuilder* builder, llvm::Value* untagged) const;
   virtual llvm::Value* GenerateUntaggingCode(
       llvm::IRBuilder* builder, llvm::Value* tagged) const;
-  virtual void Print(const char* original_text, TaggedValue result) const;
+  virtual std::string Print(TaggedValue result) const;
 };
   
 } // namespace types
