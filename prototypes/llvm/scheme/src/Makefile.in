@@ -35,8 +35,8 @@ subdir = src
 DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in lexer.c \
 	parser.c
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
-am__aclocal_m4_deps = $(top_srcdir)/autoconf/ax_llvm.m4 \
-	$(top_srcdir)/configure.ac
+am__aclocal_m4_deps = $(top_srcdir)/autoconf/ax_boost_base.m4 \
+	$(top_srcdir)/autoconf/ax_llvm.m4 $(top_srcdir)/configure.ac
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
 mkinstalldirs = $(install_sh) -d
@@ -46,8 +46,8 @@ am__installdirs = "$(DESTDIR)$(bindir)"
 binPROGRAMS_INSTALL = $(INSTALL_PROGRAM)
 PROGRAMS = $(bin_PROGRAMS)
 am_calculator_OBJECTS = calculator-location.$(OBJEXT) \
-	calculator-lexer.$(OBJEXT) calculator-parser.$(OBJEXT) \
-	calculator-main.$(OBJEXT)
+	calculator-repl.$(OBJEXT) calculator-lexer.$(OBJEXT) \
+	calculator-parser.$(OBJEXT) calculator-main.$(OBJEXT)
 calculator_OBJECTS = $(am_calculator_OBJECTS)
 calculator_DEPENDENCIES = expr/libschemeexpr.a types/libschemetypes.a
 calculator_LINK = $(CXXLD) $(AM_CXXFLAGS) $(CXXFLAGS) \
@@ -88,6 +88,8 @@ AUTOCONF = @AUTOCONF@
 AUTOHEADER = @AUTOHEADER@
 AUTOMAKE = @AUTOMAKE@
 AWK = @AWK@
+BOOST_CPPFLAGS = @BOOST_CPPFLAGS@
+BOOST_LDFLAGS = @BOOST_LDFLAGS@
 CC = $(CXX)
 CCDEPMODE = @CCDEPMODE@
 CFLAGS = @CFLAGS@
@@ -179,10 +181,12 @@ top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 SUBDIRS = expr types
 AM_DEFAULT_SOURCE_EXT = .cpp
-calculator_SOURCES = location.h location.cpp parser.h lexer.l parser.y main.c
+calculator_SOURCES = location.h location.cpp parser.h repl.h repl.cpp lexer.l \
+    parser.y main.c
+
 calculator_LDADD = expr/libschemeexpr.a types/libschemetypes.a
-calculator_CPPFLAGS = $(LLVM_CPPFLAGS) $(AM_CPPFLAGS)
-calculator_LDFLAGS = $(LLVM_LDFLAGS) $(AM_LDFLAGS)
+calculator_CPPFLAGS = $(BOOST_CPPFLAGS) $(LLVM_CPPFLAGS) $(AM_CPPFLAGS)
+calculator_LDFLAGS = $(BOOST_LDFLAGS) $(LLVM_LDFLAGS) $(AM_LDFLAGS)
 all: all-recursive
 
 .SUFFIXES:
@@ -253,6 +257,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/calculator-location.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/calculator-main.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/calculator-parser.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/calculator-repl.Po@am__quote@
 
 .c.o:
 @am__fastdepCC_TRUE@	$(COMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<
@@ -337,6 +342,20 @@ calculator-location.obj: location.cpp
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='location.cpp' object='calculator-location.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(calculator_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o calculator-location.obj `if test -f 'location.cpp'; then $(CYGPATH_W) 'location.cpp'; else $(CYGPATH_W) '$(srcdir)/location.cpp'; fi`
+
+calculator-repl.o: repl.cpp
+@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(calculator_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT calculator-repl.o -MD -MP -MF $(DEPDIR)/calculator-repl.Tpo -c -o calculator-repl.o `test -f 'repl.cpp' || echo '$(srcdir)/'`repl.cpp
+@am__fastdepCXX_TRUE@	mv -f $(DEPDIR)/calculator-repl.Tpo $(DEPDIR)/calculator-repl.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='repl.cpp' object='calculator-repl.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(calculator_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o calculator-repl.o `test -f 'repl.cpp' || echo '$(srcdir)/'`repl.cpp
+
+calculator-repl.obj: repl.cpp
+@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(calculator_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT calculator-repl.obj -MD -MP -MF $(DEPDIR)/calculator-repl.Tpo -c -o calculator-repl.obj `if test -f 'repl.cpp'; then $(CYGPATH_W) 'repl.cpp'; else $(CYGPATH_W) '$(srcdir)/repl.cpp'; fi`
+@am__fastdepCXX_TRUE@	mv -f $(DEPDIR)/calculator-repl.Tpo $(DEPDIR)/calculator-repl.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='repl.cpp' object='calculator-repl.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(calculator_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o calculator-repl.obj `if test -f 'repl.cpp'; then $(CYGPATH_W) 'repl.cpp'; else $(CYGPATH_W) '$(srcdir)/repl.cpp'; fi`
 
 .l.c:
 	$(am__skiplex) $(SHELL) $(YLWRAP) $< $(LEX_OUTPUT_ROOT).c $@ -- $(LEXCOMPILE)

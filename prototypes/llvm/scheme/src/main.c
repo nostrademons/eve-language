@@ -1,6 +1,7 @@
 #include <memory>
 #include <stdio.h>
 #include <sstream>
+
 #include "parser.h"
 
 #include <llvm/BasicBlock.h>
@@ -21,12 +22,12 @@ namespace llvm {
 
 int main (int argc, char const *argv[])
 {	
-	if(argc <= 1) {
-		printf("usage: calculator \"2 + 2\"");
-		return -1;
-	}
-	std::stringstream input(argv[1]);
-	eve::Parser parser;
+  if(argc <= 1) {
+    printf("usage: calculator \"2 + 2\"");
+    return -1;
+  }
+  std::stringstream input(argv[1]);
+  eve::Parser parser;
   std::auto_ptr<eve::expr::Expr> expr(parser.Parse("args", input));
   
   eve::types::TypeEnv typeEnv;

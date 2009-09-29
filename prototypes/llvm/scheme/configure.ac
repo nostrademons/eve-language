@@ -13,5 +13,6 @@ AC_CONFIG_FILES([
 	src/expr/Makefile
 	src/types/Makefile
 ])
+AX_BOOST_BASE()
 AX_LLVM([core jit native])
 AC_OUTPUT
