@@ -1,5 +1,7 @@
 #include "repl.h"
 
+#include <string.h>
+#include <iostream>
 #include <sstream>
 #include <string>
 
@@ -9,7 +11,6 @@
 #include <llvm/Function.h>
 #include <llvm/Module.h>
 #include <llvm/Analysis/Verifier.h>
-#include <llvm/ExecutionEngine/ExecutionEngine.h>
 #include <llvm/Support/IRBuilder.h>
 
 #include "parser.h"
@@ -19,6 +20,8 @@
 
 namespace eve {
 
+using std::cin;
+using std::cout;
 using std::string;
 using std::stringstream;
 using boost::scoped_ptr;
@@ -51,11 +54,20 @@ string Repl::EvalOneLine(const string& input) {
   builder.CreateRet(type->GenerateTaggingCode(&builder, untaggedResult));
   
   verifyFunction(*f);
-  ExecutionEngine* jit = ExecutionEngine::create(module_.get());
       
-  TaggedValue (*calculate)() = (TaggedValue (*)()) jit->getPointerToFunction(f);
+  TaggedValue (*calculate)() = (TaggedValue (*)()) jit_->getPointerToFunction(f);
   TaggedValue result = calculate();
   return type->Print(result);
+}
+
+void Repl::StartRepl() {
+  char input[200];
+  cout << ">>> ";
+  cin.getline(input, 200);
+  while (strcmp(input, "quit")) {
+    cout << EvalOneLine(input) << "\n>>> ";
+    cin.getline(input, 200);
+  }
 }
 
 } // namespace eve

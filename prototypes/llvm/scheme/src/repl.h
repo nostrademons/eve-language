@@ -6,6 +6,7 @@
 #include <boost/scoped_ptr.hpp>
 
 #include <llvm/Module.h>
+#include <llvm/ExecutionEngine/ExecutionEngine.h>
 
 #include "parser.h"
 
@@ -17,7 +18,9 @@ namespace eve {
 
 class Repl {
  public:
-  Repl() : seq_num_(0), module_(new llvm::Module("repl")) {}
+  Repl() : seq_num_(0),
+           module_(new llvm::Module("repl")),
+           jit_(llvm::ExecutionEngine::create(module_.get())) {}
   std::string EvalOneLine(const std::string& input);
   void StartRepl();
 
@@ -25,6 +28,7 @@ class Repl {
   int seq_num_;
   eve::Parser parser_;
   boost::scoped_ptr<llvm::Module> module_;
+  llvm::ExecutionEngine* jit_;
 };
 
 } // namespace eve
