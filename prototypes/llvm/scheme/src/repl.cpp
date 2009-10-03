@@ -55,8 +55,8 @@ string Repl::EvalOneLine(const string& input) {
   
   verifyFunction(*f);
       
-  TaggedValue (*calculate)() = (TaggedValue (*)()) jit_->getPointerToFunction(f);
-  TaggedValue result = calculate();
+  TaggedValue (*calc)() = (TaggedValue (*)()) jit_->getPointerToFunction(f);
+  TaggedValue result = calc();
   return type->Print(result);
 }
 
@@ -67,6 +67,7 @@ void Repl::StartRepl() {
   while (strcmp(input, "quit")) {
     cout << EvalOneLine(input) << "\n>>> ";
     cin.getline(input, 200);
+    seq_num_++;
   }
 }
 
