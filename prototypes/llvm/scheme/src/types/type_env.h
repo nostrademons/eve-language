@@ -26,13 +26,6 @@ typedef std::vector<std::string> ErrorList;
 
 // Dummy class for now; will replace it with something later.
 class TypeEnv : boost::noncopyable {
- private:
-  Bool bool_;
-  Int int_;
-  FunctionMap functions_;
-  
-  ErrorList errors_;
-  
  public:
   ~TypeEnv() {
     for (FunctionMap::const_iterator i = functions_.begin(); i != functions_.end(); ++i) {
@@ -61,6 +54,13 @@ class TypeEnv : boost::noncopyable {
       std::cout << *i << "\n";
     }
   }
+
+ private:
+  Bool bool_;
+  Int int_;
+  FunctionMap functions_;
+  
+  ErrorList errors_;
 };
 
 } // namespace types

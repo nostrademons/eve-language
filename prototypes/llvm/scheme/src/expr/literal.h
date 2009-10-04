@@ -4,40 +4,44 @@
 #include "expr.h"
 
 namespace llvm {
-  class IRBuilder;
-  class Module;
-  class Value;
-}
+class IRBuilder;
+class Module;
+class Value;
+} // namespace llvm
 
 namespace eve {
-  namespace types {
-    class Type;
-    class TypeEnv;
-  }
-  
-  namespace expr {
+namespace types {
+  class Type;
+  class TypeEnv;
+} // namespace types
 
-    class BoolLiteral : public Expr {
-      bool value_;
-    public:
-      BoolLiteral(const Location& location, bool value);
-      virtual ~BoolLiteral();
-      virtual const eve::types::Type* TypeCheck(eve::types::TypeEnv* env) const;
-      virtual llvm::Value* Compile(llvm::Module* module, llvm::IRBuilder* builder) const;
-      virtual std::string PPrint() const;
-    };
+namespace expr {
 
-    class IntLiteral : public Expr {
-    	  int value_;
-      public:
-        IntLiteral(const Location& location, int value);
-        virtual ~IntLiteral();
-        virtual const eve::types::Type* TypeCheck(eve::types::TypeEnv* env) const;
-        virtual llvm::Value* Compile(llvm::Module* module, llvm::IRBuilder* builder) const;
-        virtual std::string PPrint() const;
-    };
+class BoolLiteral : public Expr {
+ public:
+  BoolLiteral(const Location& location, bool value);
+  virtual ~BoolLiteral();
+  virtual const eve::types::Type* TypeCheck(eve::types::TypeEnv* env) const;
+  virtual llvm::Value* Compile(llvm::Module* module, llvm::IRBuilder* builder) const;
+  virtual std::string PPrint() const;
 
-  } // namespace expr
+ private:
+  bool value_;
+};
+
+class IntLiteral : public Expr {
+ public:
+  IntLiteral(const Location& location, int value);
+  virtual ~IntLiteral();
+  virtual const eve::types::Type* TypeCheck(eve::types::TypeEnv* env) const;
+  virtual llvm::Value* Compile(llvm::Module* module, llvm::IRBuilder* builder) const;
+  virtual std::string PPrint() const;
+
+ private:
+  int value_;
+};
+
+} // namespace expr
 } // namespace eve
 
 #endif
