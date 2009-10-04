@@ -49,22 +49,6 @@ int eve_yy_get_next_buffer(void* scanner);
 namespace eve {
 
 class Parser {
- private:
-	void* scanner_;
-  const char* file_;
-	std::istream* input_;
-	eve::expr::Expr* result_;
-	
- public:
-	int Read(char* buffer, int max_size) {
-		int num_read = input_->readsome(buffer, max_size);
-		if (input_->eof()) {
-			return 0;	// Technically YY_NULL, but that's defined in lexer.cpp
-		} else {
-			return num_read;
-		}
-	}
-	
  public:
 	explicit Parser() : input_(NULL), result_(NULL) {
 		eve_yylex_init(&scanner_);
@@ -73,8 +57,15 @@ class Parser {
 	~Parser() {
 		eve_yylex_destroy(scanner_);
 	}
-	friend int ::eve_yyparse(void* scanner);
-	friend int ::eve_yy_get_next_buffer(void* scanner);
+
+	int Read(char* buffer, int max_size) {
+		int num_read = input_->readsome(buffer, max_size);
+		if (input_->eof()) {
+			return 0;	// Technically YY_NULL, but that's defined in lexer.cpp
+		} else {
+			return num_read;
+		}
+	}
 
   const char* GetFile() {
     return file_;
@@ -90,6 +81,15 @@ class Parser {
 		}
 		return result_;
 	}
+
+	friend int ::eve_yyparse(void* scanner);
+	friend int ::eve_yy_get_next_buffer(void* scanner);
+
+ private:
+	void* scanner_;
+  const char* file_;
+	std::istream* input_;
+	eve::expr::Expr* result_;
 };
 
 } // namespace eve

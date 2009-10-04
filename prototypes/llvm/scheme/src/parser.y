@@ -16,6 +16,8 @@
 %token FALSE
 %token LPAREN
 %token RPAREN
+%token START_REPL
+%token START_FILE
 %type <expr> expr
 %type <exprList> exprList
 

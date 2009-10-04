@@ -116,7 +116,9 @@
      TRUE = 260,
      FALSE = 261,
      LPAREN = 262,
-     RPAREN = 263
+     RPAREN = 263,
+     START_REPL = 264,
+     START_FILE = 265
    };
 #endif
 /* Tokens.  */
@@ -126,6 +128,8 @@
 #define FALSE 261
 #define LPAREN 262
 #define RPAREN 263
+#define START_REPL 264
+#define START_FILE 265
 
 
 
@@ -154,7 +158,7 @@ typedef struct YYLTYPE
 
 
 /* Line 264 of yacc.c  */
-#line 158 "parser.c"
+#line 162 "parser.c"
 
 #ifdef short
 # undef short
@@ -374,7 +378,7 @@ union yyalloc
 #define YYLAST   11
 
 /* YYNTOKENS -- Number of terminals.  */
-#define YYNTOKENS  9
+#define YYNTOKENS  11
 /* YYNNTS -- Number of nonterminals.  */
 #define YYNNTS  4
 /* YYNRULES -- Number of rules.  */
@@ -384,7 +388,7 @@ union yyalloc
 
 /* YYTRANSLATE(YYLEX) -- Bison symbol number corresponding to YYLEX.  */
 #define YYUNDEFTOK  2
-#define YYMAXUTOK   263
+#define YYMAXUTOK   265
 
 #define YYTRANSLATE(YYX)						\
   ((unsigned int) (YYX) <= YYMAXUTOK ? yytranslate[YYX] : YYUNDEFTOK)
@@ -418,7 +422,7 @@ static const yytype_uint8 yytranslate[] =
        2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
        2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
        2,     2,     2,     2,     2,     2,     1,     2,     3,     4,
-       5,     6,     7,     8
+       5,     6,     7,     8,     9,    10
 };
 
 #if YYDEBUG
@@ -432,14 +436,14 @@ static const yytype_uint8 yyprhs[] =
 /* YYRHS -- A `-1'-separated list of the rules' RHS.  */
 static const yytype_int8 yyrhs[] =
 {
-      10,     0,    -1,    11,    -1,     3,    -1,     5,    -1,     6,
-      -1,     7,     4,    12,     8,    -1,    -1,    12,    11,    -1
+      12,     0,    -1,    13,    -1,     3,    -1,     5,    -1,     6,
+      -1,     7,     4,    14,     8,    -1,    -1,    14,    13,    -1
 };
 
 /* YYRLINE[YYN] -- source line where rule number YYN was defined.  */
 static const yytype_uint8 yyrline[] =
 {
-       0,    24,    24,    26,    27,    28,    29,    31,    32
+       0,    26,    26,    28,    29,    30,    31,    33,    34
 };
 #endif
 
@@ -449,7 +453,8 @@ static const yytype_uint8 yyrline[] =
 static const char *const yytname[] =
 {
   "$end", "error", "$undefined", "NUM", "SYM", "TRUE", "FALSE", "LPAREN",
-  "RPAREN", "$accept", "program", "expr", "exprList", 0
+  "RPAREN", "START_REPL", "START_FILE", "$accept", "program", "expr",
+  "exprList", 0
 };
 #endif
 
@@ -458,14 +463,15 @@ static const char *const yytname[] =
    token YYLEX-NUM.  */
 static const yytype_uint16 yytoknum[] =
 {
-       0,   256,   257,   258,   259,   260,   261,   262,   263
+       0,   256,   257,   258,   259,   260,   261,   262,   263,   264,
+     265
 };
 # endif
 
 /* YYR1[YYN] -- Symbol number of symbol that rule YYN derives.  */
 static const yytype_uint8 yyr1[] =
 {
-       0,     9,    10,    11,    11,    11,    11,    12,    12
+       0,    11,    12,    13,    13,    13,    13,    14,    14
 };
 
 /* YYR2[YYN] -- Number of symbols composing right hand side of rule YYN.  */
@@ -525,8 +531,8 @@ static const yytype_uint8 yycheck[] =
    symbol of state STATE-NUM.  */
 static const yytype_uint8 yystos[] =
 {
-       0,     3,     5,     6,     7,    10,    11,     4,     0,    12,
-       8,    11
+       0,     3,     5,     6,     7,    12,    13,     4,     0,    14,
+       8,    13
 };
 
 #define yyerrok		(yyerrstatus = 0)
@@ -1380,56 +1386,56 @@ yyreduce:
         case 2:
 
 /* Line 1455 of yacc.c  */
-#line 24 "parser.y"
+#line 26 "parser.y"
     { eve_yyget_extra(scanner)->result_ = (yyvsp[(1) - (1)].expr); }
     break;
 
   case 3:
 
 /* Line 1455 of yacc.c  */
-#line 26 "parser.y"
+#line 28 "parser.y"
     { (yyval.expr) = new eve::expr::IntLiteral((yyloc), (yyvsp[(1) - (1)].num)); }
     break;
 
   case 4:
 
 /* Line 1455 of yacc.c  */
-#line 27 "parser.y"
+#line 29 "parser.y"
     { (yyval.expr) = new eve::expr::BoolLiteral((yyloc), true); }
     break;
 
   case 5:
 
 /* Line 1455 of yacc.c  */
-#line 28 "parser.y"
+#line 30 "parser.y"
     { (yyval.expr) = new eve::expr::BoolLiteral((yyloc), false); }
     break;
 
   case 6:
 
 /* Line 1455 of yacc.c  */
-#line 29 "parser.y"
+#line 31 "parser.y"
     { (yyval.expr) = new eve::expr::Funcall((yyloc), (yyvsp[(2) - (4)].sym), (yyvsp[(3) - (4)].exprList)); free((yyvsp[(2) - (4)].sym)); }
     break;
 
   case 7:
 
 /* Line 1455 of yacc.c  */
-#line 31 "parser.y"
+#line 33 "parser.y"
     { (yyval.exprList) = new eve::expr::Args(); }
     break;
 
   case 8:
 
 /* Line 1455 of yacc.c  */
-#line 32 "parser.y"
+#line 34 "parser.y"
     { (yyvsp[(1) - (2)].exprList)->push_back((yyvsp[(2) - (2)].expr)); }
     break;
 
 
 
 /* Line 1455 of yacc.c  */
-#line 1433 "parser.c"
+#line 1439 "parser.c"
       default: break;
     }
   YY_SYMBOL_PRINT ("-> $$ =", yyr1[yyn], &yyval, &yyloc);
@@ -1648,6 +1654,6 @@ yyreturn:
 
 
 /* Line 1675 of yacc.c  */
-#line 34 "parser.y"
+#line 36 "parser.y"
 
 
