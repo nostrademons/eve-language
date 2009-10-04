@@ -4,6 +4,7 @@
 #include <string>
 
 #include <boost/scoped_ptr.hpp>
+#include <boost/utility.hpp>
 
 #include <llvm/Module.h>
 #include <llvm/ExecutionEngine/ExecutionEngine.h>
@@ -16,7 +17,7 @@ class Module;
 
 namespace eve {
 
-class Repl {
+class Repl : boost::noncopyable {
  public:
   Repl() : seq_num_(0),
            module_(new llvm::Module("repl")),
@@ -31,7 +32,7 @@ class Repl {
   llvm::ExecutionEngine* jit_;
 };
 
-class ReplLine {
+class ReplLine : boost::noncopyable {
   virtual std::string Eval(Repl* repl) = 0;
 };
 

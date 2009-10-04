@@ -3,6 +3,8 @@
 
 #include <string>
 
+#include <boost/utility.hpp>
+
 namespace llvm {
 class IRBuilder;
 class Type;
@@ -15,7 +17,7 @@ namespace types {
 // TODO: This probably differs on 64-bit machines.
 typedef int TaggedValue;
 
-class Type {
+class Type : boost::noncopyable {
  public:
   virtual const llvm::Type* GetRepresentationType() const;
   virtual llvm::Value* GenerateTaggingCode(

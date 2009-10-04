@@ -6,6 +6,8 @@
 #include <string>
 #include <vector>
 
+#include <boost/utility.hpp>
+
 #include "bool.h"
 #include "function.h"
 #include "int.h"
@@ -19,11 +21,11 @@ using eve::Location;
 
 class Type;
 typedef std::pair<FunctionArgs, const Type*> FunctionKey;
-typedef std::map<FunctionKey, Function> FunctionMap;
+typedef std::map<FunctionKey, Function*> FunctionMap;
 typedef std::vector<std::string> ErrorList;
 
 // Dummy class for now; will replace it with something later.
-class TypeEnv {
+class TypeEnv : boost::noncopyable {
  private:
   Bool bool_;
   Int int_;
@@ -32,6 +34,12 @@ class TypeEnv {
   ErrorList errors_;
   
  public:
+  ~TypeEnv() {
+    for (FunctionMap::const_iterator i = functions_.begin(); i != functions_.end(); ++i) {
+      delete i->second;
+    }
+  }
+
   const Bool* GetBool() const { return &bool_; }
   const Int* GetInt() const { return &int_; }
   const Function* GetFunction(const FunctionArgs arg_types, const Type* return_type) {
@@ -39,9 +47,9 @@ class TypeEnv {
     FunctionMap::const_iterator found(functions_.find(key));
     if (found == functions_.end()) {
       found = functions_.insert(
-          std::pair<FunctionKey, Function>(key, Function(arg_types, return_type))).first;
+          FunctionMap::value_type(key, new Function(arg_types, return_type))).first;
     }
-    return &found->second;
+    return found->second;
   }
   
   void AddError(const Location& location, const std::string& error) {

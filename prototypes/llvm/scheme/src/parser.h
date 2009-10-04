@@ -4,7 +4,8 @@
 #include <stdlib.h>
 #include <iostream>
 #include <vector>
-#include <memory>
+
+#include <boost/utility.hpp>
 
 #include "location.h"
 #include "expr/expr.h"
@@ -48,7 +49,7 @@ int eve_yy_get_next_buffer(void* scanner);
 
 namespace eve {
 
-class Parser {
+class Parser : boost::noncopyable {
  public:
 	explicit Parser() : input_(NULL), result_(NULL) {
 		eve_yylex_init(&scanner_);

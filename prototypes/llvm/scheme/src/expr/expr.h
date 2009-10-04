@@ -5,6 +5,8 @@
 #include <sstream>
 #include <vector>
 
+#include <boost/utility.hpp>
+
 #include "../location.h"
 
 namespace llvm {
@@ -21,7 +23,7 @@ namespace eve {
 
   namespace expr {
 
-    class Expr {
+    class Expr : boost::noncopyable {
      private:
       Location location_;
       
