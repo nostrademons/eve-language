@@ -16,21 +16,24 @@
 %token FALSE
 %token LPAREN
 %token RPAREN
-%token START_REPL
-%token START_FILE
+%token EQ
 %type <expr> expr
 %type <exprList> exprList
+%type <replLine> replLine
 
 %%
 
-program: expr				{ eve_yyget_extra(scanner)->result_ = $1; }
+program : replLine { eve_yyget_extra(scanner)->repl_result_ = $1; }
 
-expr :	  NUM						 { $$ = new eve::expr::IntLiteral(@$, $1); }
-		| TRUE						 { $$ = new eve::expr::BoolLiteral(@$, true); }
-		| FALSE						 { $$ = new eve::expr::BoolLiteral(@$, false); }
-		| LPAREN SYM exprList RPAREN { $$ = new eve::expr::Funcall(@$, $2, $3); free($2); }
+replLine : expr { $$ = new eve::expr::ReplExpr($1); }
+         | SYM EQ expr { $$ = new eve::expr::ReplAssignment($1, $3); }
+
+expr : NUM  { $$ = new eve::expr::IntLiteral(@$, $1); }
+     | TRUE  { $$ = new eve::expr::BoolLiteral(@$, true); }
+     | FALSE  { $$ = new eve::expr::BoolLiteral(@$, false); }
+     | LPAREN SYM exprList RPAREN { $$ = new eve::expr::Funcall(@$, $2, $3); free($2); }
 		
-exprList: /* empty */		{ $$ = new eve::expr::Args(); }
-		| exprList expr		{ $1->push_back($2); }
+exprList : /* empty */		{ $$ = new eve::expr::Args(); }
+         | exprList expr		{ $1->push_back($2); }
 		
 %%

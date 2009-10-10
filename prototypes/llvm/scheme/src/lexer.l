@@ -23,12 +23,13 @@ WORD    [[:alnum:]+\-*/<>!=]
 
 %%
 
-"True"				{ return TRUE; }
-"False"				{ return FALSE; }
-"("					{ return LPAREN; }
-")"					{ return RPAREN; }
-[ \t]+				{}
-[[:digit:]]+		{ yylval->num = atoi(yytext); return NUM; }
+"True"  { return TRUE; }
+"False"  { return FALSE; }
+"("  { return LPAREN; }
+")"  { return RPAREN; }
+"="  { return EQ; }
+[ \t]+  {}
+[[:digit:]]+  { yylval->num = atoi(yytext); return NUM; }
 {WORD}+			{ yylval->sym = strdup(yytext); return SYM; }
 
 %%

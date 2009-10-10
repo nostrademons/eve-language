@@ -46,7 +46,9 @@ ARFLAGS = cru
 libschemeexpr_a_AR = $(AR) $(ARFLAGS)
 libschemeexpr_a_LIBADD =
 am_libschemeexpr_a_OBJECTS = libschemeexpr_a-funcall.$(OBJEXT) \
-	libschemeexpr_a-literal.$(OBJEXT)
+	libschemeexpr_a-literal.$(OBJEXT) \
+	libschemeexpr_a-repl_expr.$(OBJEXT) \
+	libschemeexpr_a-repl_assignment.$(OBJEXT)
 libschemeexpr_a_OBJECTS = $(am_libschemeexpr_a_OBJECTS)
 DEFAULT_INCLUDES = -I. -I$(top_builddir)@am__isrc@
 depcomp = $(SHELL) $(top_srcdir)/autoconf/depcomp
@@ -164,8 +166,8 @@ top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 noinst_LIBRARIES = libschemeexpr.a
 AM_DEFAULT_SOURCE_EXT = .cpp
-libschemeexpr_a_SOURCES = expr.h funcall.h funcall.cpp literal.h literal.cpp
-libschemeexpr_a_CPPFLAGS = $(LLVM_CPPFLAGS) $(AM_CPPFLAGS)
+libschemeexpr_a_SOURCES = expr.h funcall.h funcall.cpp literal.h literal.cpp repl_line.h repl_expr.h repl_expr.cpp repl_assignment.h repl_assignment.cpp
+libschemeexpr_a_CPPFLAGS = $(BOOST_CPPFLAGS) $(LLVM_CPPFLAGS) $(AM_CPPFLAGS)
 all: all-am
 
 .SUFFIXES:
@@ -215,6 +217,8 @@ distclean-compile:
 
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libschemeexpr_a-funcall.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libschemeexpr_a-literal.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libschemeexpr_a-repl_assignment.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libschemeexpr_a-repl_expr.Po@am__quote@
 
 .cpp.o:
 @am__fastdepCXX_TRUE@	$(CXXCOMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<
@@ -257,6 +261,34 @@ libschemeexpr_a-literal.obj: literal.cpp
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='literal.cpp' object='libschemeexpr_a-literal.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libschemeexpr_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o libschemeexpr_a-literal.obj `if test -f 'literal.cpp'; then $(CYGPATH_W) 'literal.cpp'; else $(CYGPATH_W) '$(srcdir)/literal.cpp'; fi`
+
+libschemeexpr_a-repl_expr.o: repl_expr.cpp
+@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libschemeexpr_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT libschemeexpr_a-repl_expr.o -MD -MP -MF $(DEPDIR)/libschemeexpr_a-repl_expr.Tpo -c -o libschemeexpr_a-repl_expr.o `test -f 'repl_expr.cpp' || echo '$(srcdir)/'`repl_expr.cpp
+@am__fastdepCXX_TRUE@	mv -f $(DEPDIR)/libschemeexpr_a-repl_expr.Tpo $(DEPDIR)/libschemeexpr_a-repl_expr.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='repl_expr.cpp' object='libschemeexpr_a-repl_expr.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libschemeexpr_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o libschemeexpr_a-repl_expr.o `test -f 'repl_expr.cpp' || echo '$(srcdir)/'`repl_expr.cpp
+
+libschemeexpr_a-repl_expr.obj: repl_expr.cpp
+@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libschemeexpr_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT libschemeexpr_a-repl_expr.obj -MD -MP -MF $(DEPDIR)/libschemeexpr_a-repl_expr.Tpo -c -o libschemeexpr_a-repl_expr.obj `if test -f 'repl_expr.cpp'; then $(CYGPATH_W) 'repl_expr.cpp'; else $(CYGPATH_W) '$(srcdir)/repl_expr.cpp'; fi`
+@am__fastdepCXX_TRUE@	mv -f $(DEPDIR)/libschemeexpr_a-repl_expr.Tpo $(DEPDIR)/libschemeexpr_a-repl_expr.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='repl_expr.cpp' object='libschemeexpr_a-repl_expr.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libschemeexpr_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o libschemeexpr_a-repl_expr.obj `if test -f 'repl_expr.cpp'; then $(CYGPATH_W) 'repl_expr.cpp'; else $(CYGPATH_W) '$(srcdir)/repl_expr.cpp'; fi`
+
+libschemeexpr_a-repl_assignment.o: repl_assignment.cpp
+@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libschemeexpr_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT libschemeexpr_a-repl_assignment.o -MD -MP -MF $(DEPDIR)/libschemeexpr_a-repl_assignment.Tpo -c -o libschemeexpr_a-repl_assignment.o `test -f 'repl_assignment.cpp' || echo '$(srcdir)/'`repl_assignment.cpp
+@am__fastdepCXX_TRUE@	mv -f $(DEPDIR)/libschemeexpr_a-repl_assignment.Tpo $(DEPDIR)/libschemeexpr_a-repl_assignment.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='repl_assignment.cpp' object='libschemeexpr_a-repl_assignment.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libschemeexpr_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o libschemeexpr_a-repl_assignment.o `test -f 'repl_assignment.cpp' || echo '$(srcdir)/'`repl_assignment.cpp
+
+libschemeexpr_a-repl_assignment.obj: repl_assignment.cpp
+@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libschemeexpr_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT libschemeexpr_a-repl_assignment.obj -MD -MP -MF $(DEPDIR)/libschemeexpr_a-repl_assignment.Tpo -c -o libschemeexpr_a-repl_assignment.obj `if test -f 'repl_assignment.cpp'; then $(CYGPATH_W) 'repl_assignment.cpp'; else $(CYGPATH_W) '$(srcdir)/repl_assignment.cpp'; fi`
+@am__fastdepCXX_TRUE@	mv -f $(DEPDIR)/libschemeexpr_a-repl_assignment.Tpo $(DEPDIR)/libschemeexpr_a-repl_assignment.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='repl_assignment.cpp' object='libschemeexpr_a-repl_assignment.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libschemeexpr_a_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o libschemeexpr_a-repl_assignment.obj `if test -f 'repl_assignment.cpp'; then $(CYGPATH_W) 'repl_assignment.cpp'; else $(CYGPATH_W) '$(srcdir)/repl_assignment.cpp'; fi`
 
 ID: $(HEADERS) $(SOURCES) $(LISP) $(TAGS_FILES)
 	list='$(SOURCES) $(HEADERS) $(LISP) $(TAGS_FILES)'; \

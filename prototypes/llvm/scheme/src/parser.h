@@ -1,16 +1,19 @@
-#ifndef PARSER_H
-#define PARSER_H
+#ifndef EVE_PARSER_H
+#define EVE_PARSER_H
 
 #include <stdlib.h>
 #include <iostream>
 #include <vector>
 
+#include <boost/scoped_ptr.hpp>
 #include <boost/utility.hpp>
 
 #include "location.h"
 #include "expr/expr.h"
 #include "expr/literal.h"
 #include "expr/funcall.h"
+#include "expr/repl_expr.h"
+#include "expr/repl_assignment.h"
 
 namespace eve {
   class Parser;
@@ -19,6 +22,7 @@ namespace eve {
 typedef union {
   int num;
   char* sym;
+  eve::expr::ReplLine* replLine;
   eve::expr::Expr* expr;
   eve::expr::Args* exprList;
 } YYSTYPE;
@@ -51,7 +55,7 @@ namespace eve {
 
 class Parser : boost::noncopyable {
  public:
-	explicit Parser() : input_(NULL), result_(NULL) {
+	explicit Parser() : input_(NULL), repl_result_(NULL) {
 		eve_yylex_init(&scanner_);
 		eve_yyset_extra(this, scanner_);
 	}
@@ -72,15 +76,15 @@ class Parser : boost::noncopyable {
     return file_;
   }
   
-	eve::expr::Expr* Parse(std::string filename, std::istream& input) {
-		input_ = &input;
-    file_ = filename.c_str();
+	eve::expr::ReplLine* ParseRepl(const std::string& input) {
+		input_.reset(new std::stringstream(input));
+    file_ = "repl";
 		if (eve_yyparse(scanner_)) {
 			// TODO: real error handling
 			std::cerr << "Parse error.\n";
 			exit(1);
 		}
-		return result_;
+		return repl_result_;
 	}
 
 	friend int ::eve_yyparse(void* scanner);
@@ -89,8 +93,8 @@ class Parser : boost::noncopyable {
  private:
 	void* scanner_;
   const char* file_;
-	std::istream* input_;
-	eve::expr::Expr* result_;
+	boost::scoped_ptr<std::istream> input_;
+	eve::expr::ReplLine* repl_result_;
 };
 
 } // namespace eve

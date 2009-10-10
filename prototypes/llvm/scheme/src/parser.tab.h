@@ -45,8 +45,7 @@
      FALSE = 261,
      LPAREN = 262,
      RPAREN = 263,
-     START_REPL = 264,
-     START_FILE = 265
+     EQ = 264
    };
 #endif
 /* Tokens.  */
@@ -56,8 +55,7 @@
 #define FALSE 261
 #define LPAREN 262
 #define RPAREN 263
-#define START_REPL 264
-#define START_FILE 265
+#define EQ 264
 
 
 

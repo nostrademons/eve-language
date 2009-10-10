@@ -10,6 +10,10 @@
 #include <llvm/ExecutionEngine/ExecutionEngine.h>
 
 #include "parser.h"
+#include "expr/expr.h"
+#include "expr/repl_line.h"
+#include "types/type.h"
+#include "types/type_env.h"
 
 namespace llvm {
 class Module;
@@ -22,37 +26,23 @@ class Repl : boost::noncopyable {
   Repl() : seq_num_(0),
            module_(new llvm::Module("repl")),
            jit_(llvm::ExecutionEngine::create(module_.get())) {}
-  std::string EvalOneLine(const std::string& input);
   void StartRepl();
+  std::string EvalOneLine(const std::string& input);
+
+  eve::types::TypeEnv* GetTypeEnv() { return &type_env_; }
+  eve::types::TaggedValue ExecuteCode(const eve::expr::Expr& expr,
+                                      const eve::types::Type& type);
+  void AddBinding(const std::string& var, eve::types::TaggedValue value) {
+    symbol_table_[var] = value;
+  }
 
  private:
   int seq_num_;
   eve::Parser parser_;
+  eve::types::TypeEnv type_env_;
+  std::map<std::string, eve::types::TaggedValue> symbol_table_;
   boost::scoped_ptr<llvm::Module> module_;
   llvm::ExecutionEngine* jit_;
-};
-
-class ReplLine : boost::noncopyable {
-  virtual std::string Eval(Repl* repl) = 0;
-};
-
-class ReplExpr : public ReplLine {
- public:
-  ReplExpr(eve::expr::Expr* expr) : expr_(expr) {}
-  virtual std::string Eval(Repl* repl);
-
- private:
-  boost::scoped_ptr<eve::expr::Expr> expr_;
-};
-
-class ReplAssignment : public ReplLine {
- public:
-  ReplAssignment(const std::string& var, ReplExpr* expr)
-      : var_(var), expr_(expr) {}
-  virtual std::string Eval(Repl* repl);
- private:
-  std::string var_;
-  boost::scoped_ptr<ReplExpr> expr_;
 };
 
 } // namespace eve
