@@ -1,7 +1,16 @@
+Numeric literals look like you'd expect, and evaluate to themselves:
+
     >>> 3
     3
+
+Negative numbers are supported as well:
+
     >>> -1
     -1
+
+All the standard arithmetic operators are present.  Internal whitespace is not
+significant:
+
     >>> 2+2
     4
     >>> 3 -3
@@ -12,12 +21,19 @@
     2
     >>> -3*-3
     9
+
+Evaluation follows normal order of operations:
+
     >>> 2+3*4
     14
     >>> 3+3*4/2
     9
     >>> 3*2+4/2-1
     7
+
+Finally (and this may not stay), you can use Int to convert from other types to
+integers.
+
     >>> Int("42")
     42
     >>> Int(True)
