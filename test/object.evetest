@@ -1,16 +1,16 @@
-    Eve>>> obj = { proto: { x: 2, f: {| *args | args }}}
+    >>> obj = { proto: { x: 2, f: {| *args | args }}}
     {}
-    Eve>>> obj.x
+    >>> obj.x
     2
-    Eve>>> obj.f()
+    >>> obj.f()
     []
-    Eve>>> obj.f(2, 3)
+    >>> obj.f(2, 3)
     [2, 3]
-    Eve>>> bound_obj = 2 | { foo: obj.f, method_receiver: None }
+    >>> bound_obj = 2 | { foo: obj.f, method_receiver: None }
     2
-    Eve>>> bound_obj.foo()
+    >>> bound_obj.foo()
     [2]
-    Eve>>> unbound_obj = 3 | { bar: bound_obj.foo }
+    >>> unbound_obj = 3 | { bar: bound_obj.foo }
     3
-    Eve>>> unbound_obj.bar()
+    >>> unbound_obj.bar()
     [2]

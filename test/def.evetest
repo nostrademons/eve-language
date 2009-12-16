@@ -1,6 +1,6 @@
-    Eve>>> import test.test_def
+    >>> import test.test_def
     {| x | 2 with  }
-    Eve>>> recursive_def(3)
+    >>> recursive_def(3)
     5
-    Eve>>> binding(2, 4)
+    >>> binding(2, 4)
     3

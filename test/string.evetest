@@ -1,40 +1,40 @@
-    Eve>>> "foo"
+    >>> "foo"
     'foo'
-    Eve>>> "foo" + "bar"
+    >>> "foo" + "bar"
     'foobar'
-    Eve>>> "foo" * 2
+    >>> "foo" * 2
     'foofoo'
-    Eve>>> ''
+    >>> ''
     ''
-    Eve>>> '''test'''
+    >>> '''test'''
     'test'
     File>>> '''test\
     result'''
     'test\
     result'
-    Eve>>> """double quote"""
+    >>> """double quote"""
     'double quote'
-    Eve>>> Bool('')
+    >>> Bool('')
     False
-    Eve>>> Bool('foo')
+    >>> Bool('foo')
     True
-    Eve>>> Str(False)
+    >>> Str(False)
     'False'
-    Eve>>> Str(True)
+    >>> Str(True)
     'True'
-    Eve>>> Str(42)
+    >>> Str(42)
     '42'
-    Eve>>> Str(2 + 4)
+    >>> Str(2 + 4)
     '6'
-    Eve>>> "Foo"[0]
+    >>> "Foo"[0]
     'F'
-    Eve>>> "Bar"[-1]
+    >>> "Bar"[-1]
     'r'
-    Eve>>> "Foo".len()
+    >>> "Foo".len()
     3
-    Eve>>> "Frob".iter().next().get()
+    >>> "Frob".iter().next().get()
     'r'
-    Eve>>> "Foobar"[1:4]
+    >>> "Foobar"[1:4]
     'oob'
-    Eve>>> "Foobar"[-3:-1]
+    >>> "Foobar"[-3:-1]
     'ba'

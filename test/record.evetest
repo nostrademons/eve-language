@@ -1,24 +1,24 @@
-    Eve>>> { 'foo': 2, 'bar': 2 + 4 }
+    >>> { 'foo': 2, 'bar': 2 + 4 }
     {'foo': 2, 'bar': 6}
-    Eve>>> { 'foo': ?, 'bar': 4}(3)
+    >>> { 'foo': ?, 'bar': 4}(3)
     {'foo': 3, 'bar': 4}
-    Eve>>> { foo: 1 } | { bar: 2 }
+    >>> { foo: 1 } | { bar: 2 }
     {'bar': 2, 'foo': 1}
-    Eve>>> 2 | { foo: 'bar' }
+    >>> 2 | { foo: 'bar' }
     2
-    Eve>>> { foo: 2, bar: 3}.foo
+    >>> { foo: 2, bar: 3}.foo
     2
-    Eve>>> attr({foo: 2}, 'fo' + 'o')
+    >>> attr({foo: 2}, 'fo' + 'o')
     2
-    Eve>>> { attr: {| self, field | field }}.bar
+    >>> { attr: {| self, field | field }}.bar
     'bar'
-    Eve>>> { foo: 2, attr: {| self, field | self.foo }}.bar
+    >>> { foo: 2, attr: {| self, field | self.foo }}.bar
     2
-    Eve>>> (1..5).start
+    >>> (1..5).start
     1
-    Eve>>> obj2 = 5 | { proto: { proto: Int, f: {| x, y=2 | x - y }, g: {| self, *args | self.f(*args) }}}
+    >>> obj2 = 5 | { proto: { proto: Int, f: {| x, y=2 | x - y }, g: {| self, *args | self.f(*args) }}}
     5
-    Eve>>> Record([["foo", 2], ["bar", { field1: 3 }]])
+    >>> Record([["foo", 2], ["bar", { field1: 3 }]])
     {'foo': 2, 'bar': {'field1': 3}}
-    Eve>>> vars({ foo: 1, bar: 2}).get()
+    >>> vars({ foo: 1, bar: 2}).get()
     ['foo', 1]

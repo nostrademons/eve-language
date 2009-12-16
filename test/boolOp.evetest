@@ -1,24 +1,24 @@
-    Eve>>> 2 > 3 and 3 < 2
+    >>> 2 > 3 and 3 < 2
     False
-    Eve>>> 2 > 3 or 3 < 2
+    >>> 2 > 3 or 3 < 2
     False
-    Eve>>> 3 == 2 + 1 and 3 * 2 == 6
+    >>> 3 == 2 + 1 and 3 * 2 == 6
     True
-    Eve>>> 3 == None
+    >>> 3 == None
     False
-    Eve>>> None == None
+    >>> None == None
     True
-    Eve>>> not 2 > 3
+    >>> not 2 > 3
     True
-    Eve>>> Bool(42)
+    >>> Bool(42)
     True
-    Eve>>> Bool(0)
+    >>> Bool(0)
     False
-    Eve>>> Bool([])
+    >>> Bool([])
     False
-    Eve>>> Bool([3, 2])
+    >>> Bool([3, 2])
     True
-    Eve>>> Bool('')
+    >>> Bool('')
     False
-    Eve>>> Bool('foo')
+    >>> Bool('foo')
     True

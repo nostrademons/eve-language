@@ -1,6 +1,6 @@
-    Eve>>> apply(add, [2, 3])
+    >>> apply(add, [2, 3])
     5
-    Eve>>> apply(? + 1, [3])
+    >>> apply(? + 1, [3])
     4
-    Eve>>> apply({| | 2 * 3 }, [])
+    >>> apply({| | 2 * 3 }, [])
     6
