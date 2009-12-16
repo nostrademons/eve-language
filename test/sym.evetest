@@ -1,6 +1,6 @@
-Eve>>> :foo2
-:foo2
-Eve>>> Sym('foo')
-:foo
-Eve>>> Sym('foo' + 'bar')
-:foobar
+    Eve>>> :foo2
+    :foo2
+    Eve>>> Sym('foo')
+    :foo
+    Eve>>> Sym('foo' + 'bar')
+    :foobar

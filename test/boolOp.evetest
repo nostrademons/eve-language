@@ -1,24 +1,24 @@
-Eve>>> 2 > 3 and 3 < 2
-False
-Eve>>> 2 > 3 or 3 < 2
-False
-Eve>>> 3 == 2 + 1 and 3 * 2 == 6
-True
-Eve>>> 3 == None
-False
-Eve>>> None == None
-True
-Eve>>> not 2 > 3
-True
-Eve>>> Bool(42)
-True
-Eve>>> Bool(0)
-False
-Eve>>> Bool([])
-False
-Eve>>> Bool([3, 2])
-True
-Eve>>> Bool('')
-False
-Eve>>> Bool('foo')
-True
+    Eve>>> 2 > 3 and 3 < 2
+    False
+    Eve>>> 2 > 3 or 3 < 2
+    False
+    Eve>>> 3 == 2 + 1 and 3 * 2 == 6
+    True
+    Eve>>> 3 == None
+    False
+    Eve>>> None == None
+    True
+    Eve>>> not 2 > 3
+    True
+    Eve>>> Bool(42)
+    True
+    Eve>>> Bool(0)
+    False
+    Eve>>> Bool([])
+    False
+    Eve>>> Bool([3, 2])
+    True
+    Eve>>> Bool('')
+    False
+    Eve>>> Bool('foo')
+    True

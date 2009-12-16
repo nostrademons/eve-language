@@ -1,40 +1,40 @@
-Eve>>> "foo"
-'foo'
-Eve>>> "foo" + "bar"
-'foobar'
-Eve>>> "foo" * 2
-'foofoo'
-Eve>>> ''
-''
-Eve>>> '''test'''
-'test'
-File>>> '''test\
-result'''
-'test\
-result'
-Eve>>> """double quote"""
-'double quote'
-Eve>>> Bool('')
-False
-Eve>>> Bool('foo')
-True
-Eve>>> Str(False)
-'False'
-Eve>>> Str(True)
-'True'
-Eve>>> Str(42)
-'42'
-Eve>>> Str(2 + 4)
-'6'
-Eve>>> "Foo"[0]
-'F'
-Eve>>> "Bar"[-1]
-'r'
-Eve>>> "Foo".len()
-3
-Eve>>> "Frob".iter().next().get()
-'r'
-Eve>>> "Foobar"[1:4]
-'oob'
-Eve>>> "Foobar"[-3:-1]
-'ba'
+    Eve>>> "foo"
+    'foo'
+    Eve>>> "foo" + "bar"
+    'foobar'
+    Eve>>> "foo" * 2
+    'foofoo'
+    Eve>>> ''
+    ''
+    Eve>>> '''test'''
+    'test'
+    File>>> '''test\
+    result'''
+    'test\
+    result'
+    Eve>>> """double quote"""
+    'double quote'
+    Eve>>> Bool('')
+    False
+    Eve>>> Bool('foo')
+    True
+    Eve>>> Str(False)
+    'False'
+    Eve>>> Str(True)
+    'True'
+    Eve>>> Str(42)
+    '42'
+    Eve>>> Str(2 + 4)
+    '6'
+    Eve>>> "Foo"[0]
+    'F'
+    Eve>>> "Bar"[-1]
+    'r'
+    Eve>>> "Foo".len()
+    3
+    Eve>>> "Frob".iter().next().get()
+    'r'
+    Eve>>> "Foobar"[1:4]
+    'oob'
+    Eve>>> "Foobar"[-3:-1]
+    'ba'

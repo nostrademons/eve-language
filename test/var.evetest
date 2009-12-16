@@ -1,10 +1,10 @@
-Eve>>> x = 3
-3
-Eve>>> 2*x
-6
-Eve>>> y=2+x
-5
-Eve>>> x*y
-15
-Eve>>> add(x, y)
-8
+    Eve>>> x = 3
+    3
+    Eve>>> 2*x
+    6
+    Eve>>> y=2+x
+    5
+    Eve>>> x*y
+    15
+    Eve>>> add(x, y)
+    8
