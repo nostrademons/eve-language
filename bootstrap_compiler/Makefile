@@ -4,12 +4,15 @@ HAPPY = happy
 LEX_SPEC = Lexer.x
 PARSE_SPEC = Parser.y
 GENERATED = Lexer.hs Parser.hs
-SOURCES = Utils.hs SourcePos.hs Token.hs Error.hs Literal.hs Expr.hs Types.hs TypeCheck.hs $(GENERATED) Main.hs
+SOURCES = Utils.hs SourcePos.hs Token.hs Error.hs Literal.hs Expr.hs Types.hs TypeCheck.hs $(GENERATED)
 EXECS = eve
 
 .PHONY: clean-gen clean check
 
-eve: Main.hs Utils.hs SourcePos.hs Token.hs Error.hs Literal.hs Expr.hs Types.hs TypeCheck.hs Repl.hs $(GENERATED)
+eve: Main.hs $(SOURCES)
+	$(GHCMAKE) $< -o $@
+
+evetest: RunTest.hs $(SOURCES)
 	$(GHCMAKE) $< -o $@
 
 Lexer.hs: $(LEX_SPEC)
