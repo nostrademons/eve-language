@@ -1,6 +1,9 @@
-module Utils(join, strip, replace, indent, 
-            showPair, showCommas, showTuple, showRecord, sortPairs, eqTuple, eqRecord) where
+module Utils(join, strip, replace, indent, dirWalk, 
+             showPair, showCommas, showTuple, showRecord,
+             sortPairs, eqTuple, eqRecord) where
 import Data.List 
+import Directory
+import Monad hiding (join)
 
 join sep [] = ""
 join sep ws = foldr1 (\w s -> w ++ sep ++ s) ws
@@ -20,6 +23,19 @@ replace oldSub newSub list = _replace list where
 	len = length oldSub
 
 indent text level = replace "\n" (concat $ replicate level "    ") text
+
+dirWalk :: FilePath -> IO [FilePath]
+dirWalk dir = let
+    isValid name = not $ ("/." `isSuffixOf` name) || ("/.." `isSuffixOf` name)
+    listDirs = filterM doesDirectoryExist
+    listFiles = filterM doesFileExist
+    joinName base path = base ++ "/" ++ path
+  in do
+    noDots <- getDirectoryContents dir 
+          >>= filterM (return . isValid) . map (joinName dir)
+    subDirFiles <- listDirs noDots >>= mapM dirWalk >>= return . concat
+    files <- listFiles noDots
+    return $ files ++ subDirFiles
 
 showPair (label, value) = label ++ ": " ++ show value
 showCommas args = join ", " (map show args)
