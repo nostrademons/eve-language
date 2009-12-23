@@ -13,14 +13,13 @@ filterExtensions ext = notHas ".svn" . notHas "~" . notHas ".swp" . hasExt ext
 
 extractCode :: FilePath -> IO String
 extractCode filename = do
-    file <- openFile filename ReadMode
+    file <- openFile "/Users/jdtang/Documents/programming/eve/eve-language/test/number.evetest" ReadMode
     contents <- hGetContents file
-    hClose file
     pandoc <- return $ readMarkdown defaultParserState contents
     return $ concat $ codeBlocks pandoc
   where
     codeBlocks (Pandoc _ blocks) = map codeBlockText blocks
-    codeBlockText (CodeBlock _ text) = text
+    codeBlockText (CodeBlock _ text) = text ++ "\n"
     codeBlockText _ = ""
 
 main = do
