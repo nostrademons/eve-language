@@ -9,7 +9,7 @@ EXECS = eve
 
 .PHONY: clean-gen clean check
 
-eve: Main.hs $(SOURCES)
+repl: Repl.hs $(SOURCES)
 	$(GHCMAKE) $< -o $@
 
 evetest: RunTest.hs $(SOURCES)
