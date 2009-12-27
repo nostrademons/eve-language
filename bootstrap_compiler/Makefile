@@ -9,6 +9,9 @@ EXECS = eve
 
 .PHONY: clean-gen clean check
 
+eve: Main.hs $(SOURCES)
+	$(GHCMAKE) $< -o $@
+
 repl: Repl.hs $(SOURCES)
 	$(GHCMAKE) $< -o $@
 
