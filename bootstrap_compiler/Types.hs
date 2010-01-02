@@ -35,6 +35,7 @@ instance Eq Type where
     _ == _ = False
 
 nullKind = 0
+tVoid = TCon $ Tycon "Void" nullKind
 tBool = TCon $ Tycon "Bool" nullKind
 tInt = TCon $ Tycon "Int" nullKind
 tString = TCon $ Tycon "String" nullKind
@@ -88,7 +89,8 @@ defaultAssumptions = [
     ("gt", intBoolBinop),
     ("ge", intBoolBinop),
     ("and_", boolBinop),
-    ("or_", boolBinop)]
+    ("or_", boolBinop),
+		("print", tFunc [tString] tVoid)]
 
 data UnificationError =
     UnificationCircularity Type
