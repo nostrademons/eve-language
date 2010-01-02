@@ -44,7 +44,7 @@ bldGreet = do
       defineBasicBlock exit
       ret (1::Word32)
 
-    main <- newNamedFunction ExternalLinkage "main"
+    main <- newNamedFunction ExternalLinkage "main2"
     defineFunction main $ \argc argv -> do
       errBlock <- newBasicBlock
       run <- newBasicBlock
