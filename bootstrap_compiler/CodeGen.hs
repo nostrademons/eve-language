@@ -7,6 +7,7 @@ import LLVM.Core
 
 import Expr
 import Literal
+import SourcePos
 
 externalizeStrings :: [FileLine] -> CodeGenModule [(String, Global (Array n Word8))]
 externalizeStrings lines = liftM (zip strings) $ mapM createStringNul strings
@@ -32,9 +33,31 @@ compileString strings string = case lookup string strings of
   Nothing -> error $ string ++ " not properly externalized in " ++ show strings
   Just ptr -> getElementPtr0 ptr (0::Word32, ())
 
+-- | Collects all "raw" expressions into a main() function that can be compiled
+-- like any other.  Returns the original module contents with all of them
+-- removed, and a new Definition for main() added.
+buildMainFunction :: [FileLine] -> [FileLine]
+buildMainFunction lines = if null exprs then notExprs 
+    else buildMain (map extractExpr exprs) : notExprs
+  where
+    (exprs, notExprs) = partition isExpr lines
+    isExpr (FileLine (NakedExpr expr) _) = True
+    isExpr _ = False
+    extractExpr (FileLine (NakedExpr expr) _) = expr
+    firstPos = pos $ exprs !! 0
+    buildMain exprs = FileLine (Definition $ buildMainDef exprs) firstPos
+    -- TODO: This creates a def main(args as List<String>), but when we compile
+    -- it, it needs to be lowered to the int main(int argc, char** argv) that
+    -- the OS expects.  Should we merge this function directly with codegen,
+    -- or depend upon the runtime to handle boxing?
+    buildMainDef exprs = DefLine (Def "main" (ArgList [] Nothing) "" Nothing $
+                                  map buildDefLine exprs) firstPos
+    buildDefLine expr = DefLine (Statement expr) $ pos expr
+
 buildModule :: [FileLine] -> CodeGenModule ()
 buildModule lines = do
   strings <- externalizeStrings lines
+  lines <- return $ buildMainFunction lines
   -- TODO: Temporary, will only compile one program
   main <- newNamedFunction ExternalLinkage "main" :: TFunction (IO Word32)
   defineFunction main $ do

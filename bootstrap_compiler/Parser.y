@@ -108,32 +108,30 @@ FileLine
 
 DefDecl     
   : 'def' VAR '(' VarArgList ')' TypeDecl ':' DefBody
-    { let (doc, lines, body) = $8 in 
-        DefLine (Def (extractVar $2) $4 doc $6 lines body) $ pos $1 }
+    { let (doc, lines) = $8 in 
+        DefLine (Def (extractVar $2) $4 doc $6 lines) $ pos $1 }
 
 DocString   
-  : {- Empty -}       
+  : {- Empty -}
     { "" }
   | STR EOL           
     { $1 }
 
 DefBody 
   : Expr                                      
-    { ("", [], $1) }
-  | EOL INDENT DocString DefLineList DefExpr DEDENT   
-    { ($3, reverse $ tail $4, $5) }
+    { ("", [DefLine (Statement $1) $ pos $1]) }
+  | EOL INDENT DocString DefLineList DEDENT   
+    { ($3, reverse $4) }
 
 DefLine 
   : SequenceUnpack EOL        
     { $1 }
   | DefDecl EOL               
     { $1 }
-
-DefExpr 
-  : Expr                  
-    { $1 }
-  | MultiLineExpr         
-    { $1 }
+  | Expr EOL
+    { DefLine (Statement $1) $ pos $1 }
+  | MultiLineExpr EOL
+    { DefLine (Statement $1) $ pos $1 }
 
 DefLineList     
   : {- empty -}           

@@ -73,32 +73,31 @@ instance Show Expr where show = show . exprVal
 data DefLineValue = 
     Binding {
         def_var :: String,
-        def_body :: Expr
+        def_expr :: Expr
     }
   | SequenceUnpack {
         def_vars :: [String],
-        def_body :: Expr
+        def_expr :: Expr
     }
-  | FinalExpr { defExpr :: Expr }
+  | Statement { defExpr :: Expr }
   | Def {
         def_name :: String,
         def_args :: ArgList,
         def_doc :: String,
         def_type :: Maybe Scheme,
-        def_defs :: [DefLine],
-        def_body :: Expr
+        def_body :: [DefLine]
     }
   deriving (Eq)
 
 instance Show DefLineValue where
     show (Binding var expr) = var ++ " = " ++ show expr
     show (SequenceUnpack vars expr) = join ", " vars ++ " = " ++ show expr
-    show (FinalExpr expr) = show expr
-    show (Def name args doc typeDecl defs body) | length defs == 0 =
-        concat ["def ", name, "(", show args, "): ", show body]
-    show (Def name args doc typeDecl defs body) =
+    show (Statement expr) = show expr
+    show (Def name args doc typeDecl body) | length body == 1 =
+        concat ["def ", name, "(", show args, "): ", show $ head body]
+    show (Def name args doc typeDecl body) =
         concat ["def ", name, "(", show args, "):\n    "] 
-            ++ indent (concat $ docString : map show defs) 1 ++ indent (show body) 1
+            ++ indent (concat $ docString : map show body) 1
       where docString = if length doc == 0 then "" else doc ++ "\n"
 
 data DefLine = DefLine {
