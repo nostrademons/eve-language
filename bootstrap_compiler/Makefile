@@ -4,7 +4,7 @@ HAPPY = happy
 LEX_SPEC = Lexer.x
 PARSE_SPEC = Parser.y
 GENERATED = Lexer.hs Parser.hs
-SOURCES = Utils.hs SourcePos.hs Token.hs Error.hs Literal.hs Expr.hs Types.hs TypeCheck.hs $(GENERATED)
+SOURCES = Utils.hs SourcePos.hs Token.hs Error.hs Literal.hs Expr.hs Types.hs TypeCheck.hs CodeGen.hs $(GENERATED)
 EXECS = eve
 
 .PHONY: clean-gen clean check

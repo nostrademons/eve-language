@@ -5,35 +5,38 @@ import System
 import System.Cmd
 import LLVM.Core
 
-compilePlaceholder :: CodeGenModule ()
-compilePlaceholder = do
-  printf <- newNamedFunction ExternalLinkage "printf"
-      :: TFunction (Ptr Word8 -> IO Word32)
-  msg <- createStringNul "Hello, Eve!\n"
-  main <- newNamedFunction ExternalLinkage "main"
-      :: TFunction (Word32 -> Ptr (Ptr Word8) -> IO Word32)
-  defineFunction main $ \argc argv -> do
-    tmp <- getElementPtr0 msg (0::Word32, ())
-    call printf tmp
-    ret (1::Word32)
+import Lexer
+import Parser
+import CodeGen
+import Expr
+import Error
 
-writeCompiledFile moduleName = do
-  mod <- newNamedModule moduleName
-  defineModule mod compilePlaceholder
-  let bcFile = moduleName ++ ".bc"
-  let sFile = moduleName ++ ".s"
+writeCompiledFile filename mod = do
+  let bcFile = filename ++ ".bc"
+  let sFile = filename ++ ".s"
   writeBitcodeToFile bcFile mod
   rawSystem "llc" [bcFile]
-  rawSystem "gcc" [sFile, "-o", moduleName]
+  rawSystem "gcc" [sFile, "-o", filename]
+  rawSystem "rm" [bcFile, sFile]
+  return ()
 
+compileFile filename = do
+  inFile <- openFile (filename ++ ".eve") ReadMode
+  text <- hGetContents inFile
+  case compile filename text of
+    Left error -> print error
+    Right lines -> codegen lines >>= writeCompiledFile filename
+
+compile :: String -> String -> Either EveError [FileLine]
+compile filename text = do
+  tokens <- lexer filename text
+  parseTree <- parseFile tokens
+  -- TODO: typechecking.  Need to expand to typecheck whole files.
+  return parseTree
+
+main :: IO ()
 main = do
   args <- getArgs
   if null args
     then putStrLn "Usage: eve <file to compile>"
-    else do
-      let filename = args !! 0
-      inFile <- openFile (filename ++ ".evetest") ReadMode
-      text <- hGetContents inFile
-      putStrLn text
-      writeCompiledFile filename
-      return ()
+    else compileFile (args !! 0)
