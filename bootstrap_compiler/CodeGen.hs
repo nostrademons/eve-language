@@ -25,7 +25,6 @@ externalizeStrings lines = liftM (zip strings) $ mapM createStringNul strings
     extractFromExprVal (Cond alternatives) = concatMap (extractFromCond) alternatives
     extractFromExprVal (Funcall fn args) = extractFromExpr fn ++ concatMap extractFromExpr args
     extractFromExprVal (Lambda _ body) = extractFromExpr body
-    extractFromExprVal (Letrec _ _) = []
 
 compileString :: [(String, Global (Array n Word8))] -> String
     -> CodeGenFunction r (Value (Ptr Word8))

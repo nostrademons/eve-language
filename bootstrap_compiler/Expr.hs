@@ -44,7 +44,6 @@ data ExprValue =
   | Cond [(Expr, Expr)]
   | Funcall Expr [Expr]
   | Lambda ArgList Expr
-  | Letrec [(String, Expr)] Expr
   deriving (Eq)
 
 instance Show ExprValue where
@@ -56,9 +55,6 @@ instance Show ExprValue where
     show (Cond args) = "Cond: " ++ join ", " (map showClause args)
       where showClause (pred, expr) = show pred ++ "->" ++ show expr
     show (Lambda args body) = "{|" ++ show args ++ "| " ++ show body ++ "}"
-    show (Letrec clauses body) = show body ++ " with " ++ 
-            join ", " (map showClause clauses)
-      where showClause (name, expr) = name ++ " = " ++ show expr
 
 data Expr = Expr {
     exprVal :: ExprValue,
