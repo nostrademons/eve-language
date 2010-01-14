@@ -2,6 +2,7 @@ module CodeGen(codegen) where
 import Control.Monad.State
 import Data.Maybe
 import Data.Word
+import Foreign.C.String
 import Foreign.ForeignPtr
 import List
 import Monad
@@ -13,18 +14,21 @@ import Literal
 import SourcePos
 
 data CompileState = CompileState {
+    cs_module :: FFI.ModuleRef,
     cs_builder :: ForeignPtr FFI.Builder
 }
 
 type CompileM = StateT CompileState IO
 
-runCompile :: CompileM a -> IO a
+runCompile :: CompileM a -> IO FFI.ModuleRef
 runCompile action = do
   -- TODO: All the module setup, externs, etc.
-  ptr <- FFI.createBuilder
-  builder <- newForeignPtr FFI.ptrDisposeBuilder ptr
-  evalStateT action $ CompileState builder
-
+  builderPtr <- FFI.createBuilder
+  builder <- newForeignPtr FFI.ptrDisposeBuilder builderPtr
+  modulePtr <- withCString "TODO_Extract_From_Module" FFI.moduleCreateWithName
+  evalStateT action $ CompileState modulePtr builder
+  return modulePtr
+  
 externalizeStrings :: [FileLine] -> CodeGenModule [(String, Global (Array n Word8))]
 externalizeStrings lines = liftM (zip strings) $ mapM createStringNul strings
   where
