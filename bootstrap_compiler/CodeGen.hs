@@ -1,13 +1,29 @@
 module CodeGen(codegen) where
+import Control.Monad.State
 import Data.Maybe
 import Data.Word
+import Foreign.ForeignPtr
 import List
 import Monad
 import LLVM.Core
+import qualified LLVM.FFI.Core as FFI
 
 import Expr
 import Literal
 import SourcePos
+
+data CompileState = CompileState {
+    cs_builder :: ForeignPtr FFI.Builder
+}
+
+type CompileM = StateT CompileState IO
+
+runCompile :: CompileM a -> IO a
+runCompile action = do
+  -- TODO: All the module setup, externs, etc.
+  ptr <- FFI.createBuilder
+  builder <- newForeignPtr FFI.ptrDisposeBuilder ptr
+  evalStateT action $ CompileState builder
 
 externalizeStrings :: [FileLine] -> CodeGenModule [(String, Global (Array n Word8))]
 externalizeStrings lines = liftM (zip strings) $ mapM createStringNul strings
