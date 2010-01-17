@@ -14,8 +14,9 @@ import Literal
 import SourcePos
 
 data CompileState = CompileState {
-    cs_module :: FFI.ModuleRef,
-    cs_builder :: ForeignPtr FFI.Builder
+  cs_gensym :: Integer,
+  cs_module :: FFI.ModuleRef,
+  cs_builder :: ForeignPtr FFI.Builder
 }
 
 type CompileM = StateT CompileState IO
@@ -26,12 +27,62 @@ runCompile action = do
   builderPtr <- FFI.createBuilder
   builder <- newForeignPtr FFI.ptrDisposeBuilder builderPtr
   modulePtr <- withCString "TODO_Extract_From_Module" FFI.moduleCreateWithName
-  evalStateT action $ CompileState modulePtr builder
+  evalStateT action $ CompileState 0 modulePtr builder
   return modulePtr
-  
-externalizeStrings :: [FileLine] -> CodeGenModule [(String, Global (Array n Word8))]
-externalizeStrings lines = liftM (zip strings) $ mapM createStringNul strings
+
+withGensym :: (CString -> IO a) -> CompileM a
+withGensym f = do
+  state <- get
+  name <- return $ "__" ++ show (cs_gensym state)
+  put (state { cs_gensym = cs_gensym state + 1 })
+  liftIO $ withCString name f
+
+getModule :: CompileM FFI.ModuleRef
+getModule = liftM cs_module get
+
+cStringType :: FFI.TypeRef
+cStringType = FFI.pointerType FFI.int8Type 0
+
+-- unsafePerformIO is safe because only effect is memory allocation.
+stringType :: FFI.TypeRef
+stringType = unsafePerformIO $ 
+  withArrayLen [FFI.int32Type, FFI.arrayType FFI.int8Type 0] $ \len ptr ->
+    return $ FFI.structType ptr len 0
+
+-- unsafePerformIO is safe because only effect is memory allocation.
+functionType :: Bool -> [FFI.TypeRef] -> FFI.TypeRef -> FFI.TypeRef
+functionType varargs args ret = unsafePerformIO $
+  withArrayLen args $ \len ptr ->
+    return $ FFI.functionType ret ptr len varargs
+
+externs = [("puts", functionType False [cStringType] FFI.int32Type)]
+
+externalizeFunctions :: CompileM [(String, FFI.ValueRef)]
+externalizeFunctions = liftM (zip names) $ mapM createFunction externs
   where
+    (names, types) = unzip externs
+    createFunction (name, typ) = do
+      modul <- getModule
+      liftIO $ withCString name $ \cName -> do
+        func <- FFI.addFunction modul cName typ
+        FFI.setLinkage func ExternalLinkage
+        return func
+  
+externalizeStrings :: [FileLine] -> CompileM [(String, FFI.ValueRef)]
+externalizeStrings lines = liftM (zip strings) $ mapM createStringConstant strings
+  where
+    createStringConstant str = do
+      modul <- getModule
+      withGensym $ \name ->
+        global <- FFI.addGlobal modul name stringType
+        FFI.setLinkage global (fromIntegral $ fromEnum PrivateLinkage)
+        FFI.setGlobalConstant global 1
+        withCStringLen str $ \(sPtr, sLen) -> do
+          let cLen = fromIntegral sLen
+          let llvmLen = FFI.constInt FFI.int32Type cLen 0
+          let llvmStr = FFI.constString cLen 0
+          withArrayLen [llvmLen, llvmStr] $ \len ptr ->
+            FFI.setInitializer global $ FFI.constStruct  ptr (fromIntegral len) 0
     strings = nub $ concatMap extractFromLine lines
     extractFromLine (FileLine (NakedExpr expr) _) = extractFromExpr expr
     -- TODO: extract from defs too
