@@ -16,7 +16,9 @@ import SourcePos
 data CompileState = CompileState {
   cs_gensym :: Integer,
   cs_module :: FFI.ModuleRef,
-  cs_builder :: ForeignPtr FFI.Builder
+  cs_builder :: ForeignPtr FFI.Builder,
+  cs_externs :: [(String, FFI.ValueRef)],
+  cs_strings :: [(String, FFI.ValueRef)]
 }
 
 type CompileM = StateT CompileState IO
@@ -30,6 +32,25 @@ runCompile action = do
   evalStateT action $ CompileState 0 modulePtr builder
   return modulePtr
 
+class BuilderArg a
+instance BuilderArg FFI.ValueRef
+instance BuilderArg (Ptr FFI.ValueRef)
+instance BuilderArg FFI.TypeRef
+instance BuilderArg CUInt
+
+class BuilderArg a => BuilderType b f a | b -> f a, f a -> b where
+  withBuilder :: (FFI.BuilderRef -> f) -> a -> b
+
+instance BuilderType (CompileM FFI.ValueRef)
+                     (CString -> IO FFI.ValueRef)
+                     a where
+  withBuilder f _ = do
+    builder <- liftM cs_builder get
+    liftIO $ withForeignPtr builder $ \b -> withCString "" $ \s -> f b s
+
+instance BuilderType b f a => (a -> b) (a -> f) a where
+  withBuilder f = withBuilder' (flip f $ arg)
+
 withGensym :: (CString -> IO a) -> CompileM a
 withGensym f = do
   state <- get
@@ -37,8 +58,13 @@ withGensym f = do
   put (state { cs_gensym = cs_gensym state + 1 })
   liftIO $ withCString name f
 
+withEmptyCString :: (CString -> IO a) -> IO a
+withEmptyCString = withCString ""
+
 getModule :: CompileM FFI.ModuleRef
 getModule = liftM cs_module get
+
+getBuilder :: CompileM FFI
 
 cStringType :: FFI.TypeRef
 cStringType = FFI.pointerType FFI.int8Type 0
@@ -58,7 +84,7 @@ functionType varargs args ret = unsafePerformIO $
 externs = [("puts", functionType False [cStringType] FFI.int32Type)]
 
 externalizeFunctions :: CompileM [(String, FFI.ValueRef)]
-externalizeFunctions = liftM (zip names) $ mapM createFunction externs
+externalizeFunctions = mapM createFunction externs >>= setExterns
   where
     (names, types) = unzip externs
     createFunction (name, typ) = do
@@ -67,9 +93,10 @@ externalizeFunctions = liftM (zip names) $ mapM createFunction externs
         func <- FFI.addFunction modul cName typ
         FFI.setLinkage func ExternalLinkage
         return func
+    setExterns functions = modify (\s -> s { cs_externs = zip names functions })
   
 externalizeStrings :: [FileLine] -> CompileM [(String, FFI.ValueRef)]
-externalizeStrings lines = liftM (zip strings) $ mapM createStringConstant strings
+externalizeStrings lines = mapM createStringConstant strings >>= setStrings
   where
     createStringConstant str = do
       modul <- getModule
@@ -84,6 +111,7 @@ externalizeStrings lines = liftM (zip strings) $ mapM createStringConstant strin
           withArrayLen [llvmLen, llvmStr] $ \len ptr ->
             FFI.setInitializer global $ FFI.constStruct  ptr (fromIntegral len) 0
     strings = nub $ concatMap extractFromLine lines
+    setStrings values = modify $ \s -> s { cs_strings = zip strings values }
     extractFromLine (FileLine (NakedExpr expr) _) = extractFromExpr expr
     -- TODO: extract from defs too
     extractFromLine _ = []
@@ -98,11 +126,42 @@ externalizeStrings lines = liftM (zip strings) $ mapM createStringConstant strin
     extractFromExprVal (Funcall fn args) = extractFromExpr fn ++ concatMap extractFromExpr args
     extractFromExprVal (Lambda _ body) = extractFromExpr body
 
+compileFileLine :: FileLine -> CompileM ()
+compileFileLine line = compile $ fileLineValue line
+  where
+    compile (NakedExpr expr) = compileExpr expr
+    compile _ = error "Definitions not implemented."
+
+compileExpr :: Expr -> CompileM FFI.ValueRef
+compileExpr expr = compile $ exprVal expr
+  where
+    compile (Literal (LitString str)) = compileString str
+    compile (Literal _) = error "Non-string literals not implemented."
+    compile (Funcall (Variable var) args) = do
+      externs <- liftM cs_externs get
+      argVals <- mapM compileExpr args
+      case lookup var externs of
+        Just func -> compileCFuncall func argVals
+        Nothing -> error "User-defined functions not implemented."
+
+compileCFuncall :: FFI.ValueRef -> [FFI.ValueRef] -> CompileM FFI.ValueRef
+compileCFuncall func args = do
+  builder <- liftM cs_builder get
+  liftIO $ withArrayLen args $ \argLen argPtr ->
+    withEmptyCString $ FFI.buildCall builder func argPtr (fromIntegral argLen)
+  
+
+compileString :: String -> CompileM FFI.ValueRef
+compileString str = do
+  strings <- liftM cs_strings get
+  builder <- getBuilder
+  liftIO $ case lookup str strings of
+    Nothing -> error $ str ++ " not properly externalized in " ++ show strings
+    Just ptr -> getElementPtr0 ptr (0::Word32, ())
+
 compileString :: [(String, Global (Array n Word8))] -> String
     -> CodeGenFunction r (Value (Ptr Word8))
 compileString strings string = case lookup string strings of
-  Nothing -> error $ string ++ " not properly externalized in " ++ show strings
-  Just ptr -> getElementPtr0 ptr (0::Word32, ())
 
 -- | Collects all "raw" expressions into a main() function that can be compiled
 -- like any other.  Returns the original module contents with all of them
