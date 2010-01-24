@@ -9,6 +9,7 @@ import Foreign.C.Types
 import Foreign.ForeignPtr
 import Foreign.Marshal.Array
 import Foreign.Marshal.Utils
+import Foreign.Storable
 import List
 import Monad
 import LLVM.Core
@@ -43,29 +44,30 @@ instance BuilderArg FFI.ValueRef
 instance BuilderArg FFI.TypeRef
 instance BuilderArg CInt
 
-class BuilderArg a => BuilderType b f a where
-  withBuilder :: (FFI.BuilderRef -> f) -> a -> b
+class BuilderType b f where
+  withBuilder :: (FFI.BuilderRef -> f) -> b
 
 -- Base case: apply the builder and name and lift into compileM.
-instance BuilderArg a => BuilderType (CompileM FFI.ValueRef)
-                                     (CString -> IO FFI.ValueRef)
-                                     a where
-  withBuilder f _ = do
+instance BuilderType (CompileM FFI.ValueRef) (CString -> IO FFI.ValueRef) where
+  withBuilder f = do
     builder <- liftM cs_builder get
-    liftIO $ withForeignPtr builder $ \b -> withCString "" $ \s -> f b s
+    liftIO $ withForeignPtr builder $ \b -> withCString "" $
+        \s -> (f :: FFI.BuilderRef -> CString -> IO FFI.ValueRef) b s
 
 -- Recursive case: propagate the builder, apply the function to the arg.
-instance (BuilderArg a, BuilderType b f a) =>
-    BuilderType (a -> b) (a -> f) a where
-  withBuilder f arg = withBuilder (flip f $ arg)
+instance (BuilderArg a, BuilderType b f) => BuilderType (a -> b) (a -> f) where
+--  withBuilder :: (FFI.BuilderRef -> a -> f) -> a -> b
+  withBuilder f arg = withBuilder ((flip f :: a -> FFI.BuilderRef -> f) $ arg)
 
 -- Special case: a function with a Ptr and a CUInt takes an array, so we need
 -- to convert a list into it with withArrayLen.
-instance (BuilderArg a, BuilderType b f a) => 
-    BuilderType ([a] -> b) (Ptr a -> CUInt -> f) a where
-  withBuilder f arg nextArg = \nextArg -> withBuilder applyWithArrayLen
+instance (Storable a, BuilderArg a, BuilderType b f) => 
+    BuilderType ([a] -> b) (Ptr a -> CUInt -> f) where
+--  withBuilder :: (FFI.BuilderRef -> Ptr a -> CUInt -> f) -> [a] -> b
+  withBuilder f argList = withBuilder applyWithArrayLen
     where
-      applyWithArrayLen builder = withArrayLen arg $ \len ptr -> f ptr len
+      applyWithArrayLen builder = unsafePerformIO $ withArrayLen argList $ 
+          \len ptr -> return $ f builder ptr (fromIntegral len)
 
 withGensym :: (CString -> IO a) -> CompileM a
 withGensym f = do
