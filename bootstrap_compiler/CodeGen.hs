@@ -53,14 +53,12 @@ instance BuilderType (CompileM FFI.ValueRef) (IO FFI.ValueRef) where
 
 -- Recursive case: propagate the builder, apply the function to the arg.
 instance (BuilderArg a, BuilderType b f) => BuilderType (a -> b) (a -> f) where
---  withBuilder :: (FFI.BuilderRef -> a -> f) -> a -> b
-  withBuilder f arg = withBuilder ((flip f :: a -> FFI.BuilderRef -> f) $ arg)
+  withBuilder f arg = withBuilder (flip f $ arg)
 
 -- Special case: a function with a Ptr and a CUInt takes an array, so we need
 -- to convert a list into it with withArrayLen.
 instance (Storable a, BuilderArg a, BuilderType b f) => 
     BuilderType ([a] -> b) (Ptr a -> CUInt -> f) where
---  withBuilder :: (FFI.BuilderRef -> Ptr a -> CUInt -> f) -> [a] -> b
   withBuilder f argList = withBuilder applyWithArrayLen
     where
       applyWithArrayLen builder = unsafePerformIO $ withArrayLen argList $ 
