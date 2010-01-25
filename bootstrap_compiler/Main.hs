@@ -3,7 +3,6 @@ import Data.Word
 import IO
 import System
 import System.Cmd
-import LLVM.Core
 
 import Lexer
 import Parser
@@ -14,7 +13,7 @@ import Error
 writeCompiledFile filename mod = do
   let bcFile = filename ++ ".bc"
   let sFile = filename ++ ".s"
-  writeBitcodeToFile bcFile mod
+  writeBitcode bcFile mod
   rawSystem "llc" [bcFile]
   rawSystem "gcc" [sFile, "-o", filename]
   rawSystem "rm" [bcFile, sFile]

@@ -1,6 +1,6 @@
 {-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies, FlexibleInstances,
   UndecidableInstances #-}
-module CodeGen(codegen) where
+module CodeGen(codegen, writeBitcode) where
 import Control.Monad.State
 import Data.Maybe
 import Data.Word
@@ -9,11 +9,12 @@ import Foreign.C.Types
 import Foreign.ForeignPtr
 import Foreign.Marshal.Array
 import Foreign.Marshal.Utils
+import Foreign.Ptr
 import Foreign.Storable
 import List
 import Monad
-import LLVM.Core
 import qualified LLVM.FFI.Core as FFI
+import qualified LLVM.FFI.BitWriter as FFI
 import System.IO.Unsafe
 
 import Expr
@@ -30,15 +31,6 @@ data CompileState = CompileState {
 
 type CompileM = StateT CompileState IO
 
-runCompile :: CompileM a -> IO FFI.ModuleRef
-runCompile action = do
-  -- TODO: All the module setup, externs, etc.
-  builderPtr <- FFI.createBuilder
-  builder <- newForeignPtr FFI.ptrDisposeBuilder builderPtr
-  modulePtr <- withCString "TODO_Extract_From_Module" FFI.moduleCreateWithName
-  evalStateT action $ CompileState 0 modulePtr builder [] []
-  return modulePtr
-
 class BuilderArg a
 instance BuilderArg FFI.ValueRef
 instance BuilderArg FFI.TypeRef
@@ -51,8 +43,13 @@ class BuilderType b f where
 instance BuilderType (CompileM FFI.ValueRef) (CString -> IO FFI.ValueRef) where
   withBuilder f = do
     builder <- liftM cs_builder get
-    liftIO $ withForeignPtr builder $ \b -> withCString "" $
-        \s -> (f :: FFI.BuilderRef -> CString -> IO FFI.ValueRef) b s
+    liftIO $ withForeignPtr builder $ \b -> withCString "" $ \s -> f b s
+
+-- Special base case: no name parameter.
+instance BuilderType (CompileM FFI.ValueRef) (IO FFI.ValueRef) where
+  withBuilder f = do
+    builder <- liftM cs_builder get
+    liftIO $ withForeignPtr builder $ \b -> f b
 
 -- Recursive case: propagate the builder, apply the function to the arg.
 instance (BuilderArg a, BuilderType b f) => BuilderType (a -> b) (a -> f) where
@@ -97,17 +94,19 @@ functionType varargs args ret = unsafePerformIO $
 constInt :: Int -> FFI.ValueRef
 constInt n = FFI.constInt FFI.int32Type (fromIntegral n) 1
 
-externs = [("puts", functionType False [cStringType] FFI.int32Type)]
+externData = [
+    ("print", ("puts", functionType False [cStringType] FFI.int32Type))
+    ]
 
 externalizeFunctions :: CompileM ()
-externalizeFunctions = mapM createFunction externs >>= setExterns
+externalizeFunctions = mapM createFunction cSignatures >>= setExterns
   where
-    (names, types) = unzip externs
+    (names, cSignatures) = unzip externData
     createFunction (name, typ) = do
       modul <- getModule
       liftIO $ withCString name $ \cName -> do
         func <- FFI.addFunction modul cName typ
-        FFI.setLinkage func (fromIntegral . fromEnum $ ExternalLinkage)
+        FFI.setLinkage func 0
         return func
     setExterns functions = modify (\s -> s { cs_externs = zip names functions })
   
@@ -118,7 +117,7 @@ externalizeStrings lines = mapM createStringConstant strings >>= setStrings
       modul <- getModule
       withGensym $ \name -> do
         global <- FFI.addGlobal modul stringType name
-        FFI.setLinkage global (fromIntegral $ fromEnum PrivateLinkage)
+        FFI.setLinkage global 0
         FFI.setGlobalConstant global 1
         withCStringLen str $ \(sPtr, sLen) -> do
           let llvmLen = constInt sLen
@@ -165,7 +164,7 @@ compileString str = do
   strings <- liftM cs_strings get
   case lookup str strings of
     Nothing -> error $ str ++ " not properly externalized in " ++ show strings
-    Just ptr -> withBuilder FFI.buildGEP ptr [constInt 0, constInt 0]
+    Just ptr -> withBuilder FFI.buildGEP ptr [constInt 0, constInt 1, constInt 0]
 
 -- | Collects all "raw" expressions into a main() function that can be compiled
 -- like any other.  Returns the original module contents with all of them
@@ -188,20 +187,35 @@ buildMainFunction lines = if null exprs then notExprs
                                   map buildDefLine exprs) firstPos
     buildDefLine expr = DefLine (Statement expr) $ pos expr
 
-buildModule :: [FileLine] -> CodeGenModule ()
-buildModule lines = do
-  strings <- externalizeStrings lines
-  lines <- return $ buildMainFunction lines
-  -- TODO: Temporary, will only compile one program
-  main <- newNamedFunction ExternalLinkage "main" :: TFunction (IO Word32)
-  defineFunction main $ do
-    msg <- compileString strings "Hello, World!" :: CodeGenFunction Word32 (Value (Ptr Word8))
-    print <- externFunction "puts" :: CodeGenFunction Word32 (Function (Ptr Word8 -> IO Word32))
-    call print msg
-    ret (0::Word32)
+createFunction :: CompileM ()
+createFunction = do
+  modul <- getModule
+  builder <- liftM cs_builder get
+  liftIO $ withCString "main" $ \name -> do
+    let mainType = functionType False 
+          [FFI.int32Type, FFI.pointerType cStringType 0] FFI.int32Type
+    func <- FFI.addFunction modul name mainType
+    FFI.setLinkage func 0
+    entry <- withCString "entry" $ \name -> FFI.appendBasicBlock func name
+    withForeignPtr builder $ \b -> FFI.positionAtEnd b entry
 
-codegen :: [FileLine] -> IO Module
+codegen :: [FileLine] -> IO FFI.ModuleRef
 codegen lines = do
-  mod <- newModule
-  defineModule mod $ buildModule lines
-  return mod
+  builderPtr <- FFI.createBuilder
+  builder <- newForeignPtr FFI.ptrDisposeBuilder builderPtr
+  modulePtr <- withCString "TODO_Extract_From_Module" FFI.moduleCreateWithName
+  let action = do
+        externalizeFunctions
+        externalizeStrings lines
+        createFunction
+        mapM compileFileLine lines
+        withBuilder FFI.buildRet (constInt 0) :: (CompileM FFI.ValueRef)
+  evalStateT action $ CompileState 0 modulePtr builder [] []
+  return modulePtr
+
+writeBitcode :: String -> FFI.ModuleRef -> IO ()
+writeBitcode name modul = withCString name $ \cName -> do
+  ret <- FFI.writeBitcodeToFile modul cName
+  when (ret /= 0) $ ioError $ userError $
+    "writeBitcodeToFile returned " ++ show ret
+  return ()
