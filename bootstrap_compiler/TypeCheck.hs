@@ -1,4 +1,4 @@
-module TypeCheck(typeCheck) where
+module TypeCheck(typeCheck, typeCheckFile) where
 
 import Control.Monad (ap)
 import Control.Monad.State
@@ -117,9 +117,22 @@ typeCheckExpr tEnv expr@(Expr val pos Nothing) =
         unify expr (tFunc tArgs tResult) tFn
         return tResult
 
+typeCheckFileLine :: Assumptions -> FileLine -> TypeM Type
+typeCheckFileLine tEnv (FileLine line pos) = typeCheckFileLineValue line
+  where
+    typeCheckFileLineValue (NakedExpr expr) = typeCheckExpr tEnv expr
+    typeCheckFileLineValue _ = error "typeCheckFileLineValue not implemented."
+
 typeCheck :: Expr -> Either EveError Type
 typeCheck expr = do
-    let typeM = typeCheckExpr defaultAssumptions expr 
+    let action = typeCheckExpr defaultAssumptions expr 
     let initialState = TypeMState nullSubst 0
-    (exprType, state) <- runStateT typeM initialState
+    (exprType, state) <- runStateT action initialState
     return $ apply (typeSubst state) exprType
+
+typeCheckFile :: [FileLine] -> Either EveError [Type]
+typeCheckFile lines = do
+    let action = mapM (typeCheckFileLine defaultAssumptions) lines
+    let initialState = TypeMState nullSubst 0
+    (exprTypes, state) <- runStateT action initialState
+    return $ apply (typeSubst state) exprTypes

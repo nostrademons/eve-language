@@ -31,7 +31,7 @@ compile :: String -> String -> Either EveError [FileLine]
 compile filename text = do
   tokens <- lexer filename text
   parseTree <- parseFile tokens
-  -- TODO: typechecking.  Need to expand to typecheck whole files.
+  typeCheckFile parseTree
   return parseTree
 
 main :: IO ()
