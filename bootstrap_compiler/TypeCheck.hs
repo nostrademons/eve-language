@@ -92,27 +92,30 @@ typeCheckLiteral (LitInt _) = return tInt
 typeCheckLiteral (LitString _) = return tString
 
 typeCheckExpr :: Assumptions -> Expr -> TypeM Type
-typeCheckExpr tEnv expr@(Expr val pos Nothing) = typeCheckExprValue tEnv expr val
 typeCheckExpr tEnv expr@(Expr val pos (Just (Scheme _ expected))) = do
-    rawType <- typeCheckExprValue tEnv expr val
+    rawType <- typeCheckExpr tEnv $ Expr val pos Nothing
     state <- get
     let found = apply (typeSubst state) rawType
     if expected == found 
         then return expected 
         else throwError $ TypeError expr $ UnificationMismatch expected found
-
-typeCheckExprValue :: Assumptions -> Expr -> ExprValue -> TypeM Type
-typeCheckExprValue tEnv _ (Literal lit) = typeCheckLiteral lit
-typeCheckExprValue tEnv _ (TupleLiteral exprs) = liftM tTuple $ mapM (typeCheckExpr tEnv) exprs
--- TODO: Need record predicates to typecheck records
-typeCheckExprValue tEnv expr (Variable var) = 
-    maybe (throwError $ TypeError expr $ UnboundVar var) return $ lookup var tEnv
-typeCheckExprValue tEnv expr (Funcall fn args) = do
-    tFn <- typeCheckExpr tEnv fn
-    tArgs <- mapM (typeCheckExpr tEnv) args
-    tResult <- newTVar
-    unify expr (tFunc tArgs tResult) tFn
-    return tResult
+typeCheckExpr tEnv expr@(Expr val pos Nothing) =
+    typeCheckExprValue val
+  where
+    throwTypeError = throwError . TypeError expr
+    typeCheckExprValue :: ExprValue -> TypeM Type
+    typeCheckExprValue (Literal lit) = typeCheckLiteral lit
+    typeCheckExprValue (TupleLiteral exprs) =
+        liftM tTuple $ mapM (typeCheckExpr tEnv) exprs
+    -- TODO: Need record predicates to typecheck records
+    typeCheckExprValue (Variable var) = 
+        maybe (throwTypeError $ UnboundVar var) return $ lookup var tEnv
+    typeCheckExprValue (Funcall fn args) = do
+        tFn <- typeCheckExpr tEnv fn
+        tArgs <- mapM (typeCheckExpr tEnv) args
+        tResult <- newTVar
+        unify expr (tFunc tArgs tResult) tFn
+        return tResult
 
 typeCheck :: Expr -> Either EveError Type
 typeCheck expr = do

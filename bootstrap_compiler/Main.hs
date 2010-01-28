@@ -6,6 +6,7 @@ import System.Cmd
 
 import Lexer
 import Parser
+import TypeCheck
 import CodeGen
 import Expr
 import Error
