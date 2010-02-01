@@ -11,12 +11,16 @@ import CodeGen
 import Expr
 import Error
 
+runtimeFiles = map ("../runtime/" ++) [
+    "main.c"
+    ]
+
 writeCompiledFile filename mod = do
   let bcFile = filename ++ ".bc"
   let sFile = filename ++ ".s"
   writeBitcode bcFile mod
   rawSystem "llc" [bcFile]
-  rawSystem "gcc" [sFile, "-o", filename]
+  rawSystem "gcc" ((sFile : runtimeFiles) ++ ["-o", filename])
   rawSystem "rm" [bcFile, sFile]
   return ()
 

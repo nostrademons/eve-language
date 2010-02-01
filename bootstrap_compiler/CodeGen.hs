@@ -189,9 +189,8 @@ createFunction :: CompileM ()
 createFunction = do
   modul <- getModule
   builder <- liftM cs_builder get
-  liftIO $ withCString "main" $ \name -> do
-    let mainType = functionType False 
-          [FFI.int32Type, FFI.pointerType cStringType 0] FFI.int32Type
+  liftIO $ withCString "eve_main" $ \name -> do
+    let mainType = functionType False [] FFI.int32Type
     func <- FFI.addFunction modul name mainType
     FFI.setLinkage func 0
     entry <- withCString "entry" $ \name -> FFI.appendBasicBlock func name
