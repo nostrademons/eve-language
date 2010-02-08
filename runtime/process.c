@@ -18,6 +18,10 @@ void eve_destroy_process(EveProcess* process) {
   free(process);
 }
 
+EveHeap* eve_process_get_heap(EveProcess* process) {
+  return process->heap_;
+}
+
 EveProcess* eve_get_current_process() {
   return current_process_;
 }

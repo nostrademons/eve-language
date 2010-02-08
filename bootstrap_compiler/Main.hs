@@ -12,9 +12,10 @@ import Expr
 import Error
 
 runtimeFiles = map ("../runtime/" ++) [
+    "heap.c",
     "main.c",
     "process.c",
-    "heap.c"
+    "strings.c"
     ]
 
 writeCompiledFile filename mod = do
