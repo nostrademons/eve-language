@@ -93,6 +93,8 @@ constInt :: Int -> FFI.ValueRef
 constInt n = FFI.constInt FFI.int32Type (fromIntegral n) 1
 
 externData = [
+    ("add", ("eve_string_concat",
+             functionType False [stringType, stringType] stringType)),
     ("print", ("puts", functionType False [cStringType] FFI.int32Type))
     ]
 

@@ -75,12 +75,13 @@ type Assumptions = [(String, Type)]
 intBinop = tFunc [tInt, tInt] tInt
 intBoolBinop = tFunc [tInt, tInt] tBool
 boolBinop = tFunc [tBool, tBool] tBool
+stringBinop = tFunc [tString, tString] tString
 
 defaultAssumptions = [
     ("pow", intBinop),
     ("mul", intBinop),
     ("div", intBinop),
-    ("add", intBinop),
+    ("add", stringBinop),
     ("sub", intBinop),
     ("eq", intBoolBinop),
     ("ne", intBoolBinop),

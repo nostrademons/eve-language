@@ -6,6 +6,7 @@ typedef struct {
   char c[];
 } EveString;
 
-EveString* eve_new_string(int length);
+EveString* eve_string_new(int length);
+EveString* eve_string_concat(EveString* str1, EveString* str2);
 
 #endif
