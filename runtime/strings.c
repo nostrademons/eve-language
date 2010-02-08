@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <math.h>
 #include <stdio.h>
 #include <strings.h>
 
@@ -18,6 +19,18 @@ EveString* eve_string_new(int length) {
 
 void eve_string_print(EveString* str) {
   puts(str->c);
+}
+
+EveString* eve_string_from_int(int n) {
+  int negative = n < 0;
+  if (negative) {
+    n = -n;
+  }
+  int length = (int) (log10(n) + 1) + negative;
+  printf("Length of %d = %d.\n", n, length);
+  EveString* retval = eve_string_new(length);
+  sprintf(retval->c, "%s%d", negative ? "-" : "", n);
+  return retval;
 }
 
 EveString* eve_string_concat(EveString* str1, EveString* str2) {
