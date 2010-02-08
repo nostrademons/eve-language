@@ -23,7 +23,7 @@ writeCompiledFile filename mod = do
   let sFile = filename ++ ".s"
   writeBitcode bcFile mod
   rawSystem "llc" [bcFile]
-  rawSystem "gcc" ((sFile : runtimeFiles) ++ ["-o", filename])
+  rawSystem "gcc" ((sFile : runtimeFiles) ++ ["-g", "-o", filename])
   rawSystem "rm" [bcFile, sFile]
   return ()
 
