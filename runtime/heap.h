@@ -6,10 +6,10 @@
 #include <stdlib.h>
 
 typedef struct {
-  char* from_start_;
-  char* from_end_;
-  char* to_start_;
-  char* allocator_;
+  void* from_start_;
+  void* from_end_;
+  void* to_start_;
+  void* allocator_;
 } EveHeap;
 
 EveHeap* eve_new_heap(size_t heap_size);

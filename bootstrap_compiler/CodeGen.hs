@@ -74,14 +74,14 @@ withGensym f = do
 getModule :: CompileM FFI.ModuleRef
 getModule = liftM cs_module get
 
-cStringType :: FFI.TypeRef
-cStringType = FFI.pointerType FFI.int8Type 0
-
 -- unsafePerformIO is safe because only effect is memory allocation.
 stringType :: FFI.TypeRef
 stringType = unsafePerformIO $ 
   withArrayLen [FFI.int32Type, FFI.arrayType FFI.int8Type 0] $ \len ptr ->
     return $ FFI.structType ptr (fromIntegral len) 0
+
+pStringType :: FFI.TypeRef
+pStringType = FFI.pointerType stringType 0
 
 -- unsafePerformIO is safe because only effect is memory allocation.
 functionType :: Bool -> [FFI.TypeRef] -> FFI.TypeRef -> FFI.TypeRef
@@ -94,8 +94,9 @@ constInt n = FFI.constInt FFI.int32Type (fromIntegral n) 1
 
 externData = [
     ("add", ("eve_string_concat",
-             functionType False [stringType, stringType] stringType)),
-    ("print", ("puts", functionType False [cStringType] FFI.int32Type))
+             functionType False [pStringType, pStringType] pStringType)),
+    ("print", ("eve_string_print",
+               functionType False [pStringType] FFI.voidType))
     ]
 
 externalizeFunctions :: CompileM ()
@@ -164,7 +165,7 @@ compileString str = do
   strings <- liftM cs_strings get
   case lookup str strings of
     Nothing -> error $ str ++ " not properly externalized in " ++ show strings
-    Just ptr -> withBuilder FFI.buildGEP ptr [constInt 0, constInt 1, constInt 0]
+    Just ptr -> withBuilder FFI.buildGEP ptr [constInt 0]
 
 -- | Collects all "raw" expressions into a main() function that can be compiled
 -- like any other.  Returns the original module contents with all of them
